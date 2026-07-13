@@ -538,49 +538,48 @@ I'm your TLS PM intelligence assistant. Ask me anything:
     <!-- Analyst center -->
     <div id="center-analyst" style="display:none;flex-direction:column;height:100%;overflow:hidden">
       <div class="fbar">
-        <div class="frow" style="flex-wrap:nowrap;min-width:0">
-          <span class="fl">Offering Area</span>
-          <select class="fs" id="fOA" onchange="onOAChange()" style="min-width:90px;max-width:130px"><option value="ALL">All</option></select>
-          <span class="fl">Offering Name</span>
-          <select class="fs" id="fCon" style="min-width:0;flex:1;max-width:200px"><option value="ALL">All</option></select>
+        <!-- Row 1: offering hierarchy + time -->
+        <div class="frow" style="flex-wrap:wrap;gap:4px">
+          <span class="fl">OA</span>
+          <select class="fs" id="fOA" onchange="onOAChange()" style="min-width:80px;max-width:130px"><option value="ALL">All</option></select>
+          <span class="fl">Offering</span>
+          <select class="fs" id="fCon" style="min-width:70px;max-width:150px"><option value="ALL">All</option></select>
           <span class="fl">Lvl 30</span>
-          <select class="fs" id="fUT30" style="min-width:0;flex:1;max-width:200px"><option value="ALL">All</option></select>
-        </div>
-        <div class="frow">
+          <select class="fs" id="fUT30" style="min-width:60px;max-width:130px"><option value="ALL">All</option></select>
           <span class="fl">Year</span>
-          <select class="fs" id="fYear"><option value="ALL">All</option><option value="2026">2026</option><option value="2025">2025</option></select>
-          <span class="fl">Quarter</span>
-          <select class="fs" id="fQtr">
-            <option value="ALL">All</option><option value="2Q26">2Q26</option>
-            <option value="3Q26">3Q26</option><option value="4Q26">4Q26</option>
-            <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
-            <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
+          <select class="fs" id="fYear" style="min-width:46px"><option value="ALL">All</option><option value="2026">2026</option><option value="2025">2025</option></select>
+          <span class="fl">Qtr</span>
+          <select class="fs" id="fQtr" style="min-width:50px">
+            <option value="ALL">All</option><option value="1Q26">1Q26</option>
+            <option value="2Q26">2Q26</option><option value="3Q26">3Q26</option>
+            <option value="4Q26">4Q26</option><option value="1Q25">1Q25</option>
+            <option value="2Q25">2Q25</option><option value="3Q25">3Q25</option>
+            <option value="4Q25">4Q25</option>
           </select>
           <span class="fl">Month</span>
-          <select class="fs" id="fMonth"><option value="ALL">All</option></select>
+          <select class="fs" id="fMonth" style="min-width:44px"><option value="ALL">All</option></select>
         </div>
-        <div class="frow">
+        <!-- Row 2: geo + segment + generate -->
+        <div class="frow" style="flex-wrap:wrap;gap:4px">
           <span class="fl">Geo</span>
-          <select class="fs" id="fGeo" onchange="onGeoChange()">
+          <select class="fs" id="fGeo" onchange="onGeoChange()" style="min-width:52px">
             <option value="WW">WW</option><option value="Americas">Americas</option>
             <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
           </select>
           <span class="fl">Market</span>
-          <select class="fs" id="fMarket" onchange="onMarketChange()"><option value="ALL">All</option></select>
+          <select class="fs" id="fMarket" onchange="onMarketChange()" style="min-width:60px;max-width:130px"><option value="ALL">All</option></select>
           <span class="fl">Country</span>
-          <select class="fs" id="fCountry"><option value="ALL">All</option></select>
-        </div>
-        <div class="frow">
-          <span class="fl">Client Type</span>
-          <select class="fs" id="fCT"><option value="ALL">All</option></select>
+          <select class="fs" id="fCountry" style="min-width:60px;max-width:120px"><option value="ALL">All</option></select>
+          <span class="fl">Client</span>
+          <select class="fs" id="fCT" style="min-width:56px;max-width:110px"><option value="ALL">All</option></select>
           <span class="fl">Channel</span>
-          <select class="fs" id="fCh">
+          <select class="fs" id="fCh" style="min-width:56px">
             <option value="ALL">All</option>
             <option value="Field Rep - Direct">Direct</option>
             <option value="Distributor">Distributor</option>
             <option value="Inside Sales Fulfilled-Digital">Digital</option>
           </select>
-          <button class="abtn" onclick="applyAll()">&#9889; Generate Insights</button>
+          <button class="abtn" onclick="applyAll()" style="margin-left:auto">&#9889; Generate Insights</button>
         </div>
       </div>
       <div class="kstrip">
@@ -696,8 +695,8 @@ Chart.register(ChartDataLabels);
   document.getElementById("center-exec").innerHTML = `
 <style>
 .exec-wrap{max-width:1100px;margin:0 auto;padding:0;width:100%;display:flex;flex-direction:column;height:100%}
-.exec-wip-bar{background:repeating-linear-gradient(45deg,#b28600,#b28600 6px,#fff3cd 6px,#fff3cd 14px);
-              padding:6px 16px;font-size:10px;font-weight:700;color:#7a4f00;letter-spacing:.3px;flex-shrink:0;
+.exec-wip-bar{background:#fff0f0;border-bottom:2px solid var(--red);
+              padding:7px 16px;font-size:11px;font-weight:700;color:var(--red);letter-spacing:.2px;flex-shrink:0;
               display:flex;align-items:center;gap:8px}
 .exec-fbar{background:#f4f4f4;border-bottom:1px solid var(--bdr);padding:6px 14px 7px;
            display:flex;flex-direction:column;gap:5px;flex-shrink:0}
@@ -739,30 +738,31 @@ Chart.register(ChartDataLabels);
 .exec-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:20px 0}
 </style>
 <div class="exec-wrap">
-  <div class="exec-wip-bar">&#9888; WORK IN PROGRESS &nbsp;&mdash;&nbsp; Portfolio Leader View is under active development. Data shown is live but layout and features will evolve.</div>
+  <div class="exec-wip-bar">&#9888;&nbsp; WORK IN PROGRESS &nbsp;&mdash;&nbsp; Portfolio Leader View is under active development. Data shown is live but layout and features will evolve.</div>
   <div class="exec-fbar">
     <div class="exec-frow">
       <span class="exec-scope-lbl">Portfolio</span>
       <select class="exec-scope-sel" id="ex-port" onchange="execOnPortChange()" style="min-width:200px"></select>
       <span class="exec-scope-lbl">Offering Area</span>
-      <select class="exec-scope-sel" id="ex-oa"><option value="ALL">All</option></select>
-    </div>
-    <div class="exec-frow">
+      <select class="exec-scope-sel" id="ex-oa"><option value="ALL">All Offering Areas</option></select>
       <span class="exec-scope-lbl">Geo</span>
       <select class="exec-scope-sel" id="ex-geo">
-        <option value="WW">Worldwide</option><option value="Americas">Americas</option>
+        <option value="WW">WW</option><option value="Americas">Americas</option>
         <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
       </select>
       <span class="exec-scope-lbl">Year</span>
       <select class="exec-scope-sel" id="ex-year">
-        <option value="ALL">All</option><option value="2026">2026</option><option value="2025">2025</option>
+        <option value="ALL">All</option><option value="2026" selected>2026</option><option value="2025">2025</option>
       </select>
       <span class="exec-scope-lbl">Quarter</span>
       <select class="exec-scope-sel" id="ex-qtr">
-        <option value="2Q26" selected>2Q26</option><option value="3Q26">3Q26</option>
-        <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option><option value="3Q25">3Q25</option>
+        <option value="ALL" selected>All Quarters</option>
+        <option value="1Q26">1Q26</option><option value="2Q26">2Q26</option>
+        <option value="3Q26">3Q26</option><option value="4Q26">4Q26</option>
+        <option value="1Q25">1Q25</option><option value="2Q25">2Q25</option>
+        <option value="3Q25">3Q25</option><option value="4Q25">4Q25</option>
       </select>
-      <button class="exec-gen-btn" onclick="loadExec()">&#9889; Generate</button>
+      <button class="exec-gen-btn" onclick="loadExec()">&#9889; Generate Intelligence</button>
     </div>
   </div>
   <div class="exec-scroll">
@@ -803,6 +803,16 @@ Chart.register(ChartDataLabels);
     <div id="ex-narrative" class="exec-narrative-body">
       <div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating executive narrative&hellip;</div>
     </div>
+  </div>
+  <!-- OA Intel -->
+  <div class="exec-narrative-card" id="ex-oa-intel-card" style="display:none">
+    <div class="exec-narrative-hd">&#128200; Intelligence by Offering Area</div>
+    <div id="ex-oa-intel" class="exec-narrative-body"></div>
+  </div>
+  <!-- Geo Intel -->
+  <div class="exec-narrative-card" id="ex-geo-intel-card" style="display:none">
+    <div class="exec-narrative-hd">&#127758; Intelligence by Geography</div>
+    <div id="ex-geo-intel" class="exec-narrative-body"></div>
   </div>
   </div>
 </div>`;
@@ -1431,7 +1441,12 @@ async function loadInsights() {
 }
 
 async function applyAll() {
-  await Promise.all([loadKPIs(), aView==="trn"?loadTrend():aView==="tab"?loadTab():loadRevTab(), loadInsights()]);
+  // Run KPI + chart updates, then always refresh right panel even if earlier calls error
+  await Promise.all([
+    loadKPIs().catch(e => console.warn("KPI load:", e)),
+    (aView==="trn" ? loadTrend() : aView==="tab" ? loadTab() : loadRevTab()).catch(e => console.warn("View load:", e)),
+  ]);
+  await loadInsights(); // always runs independently so right panel always refreshes
 }
 
 // Chat
@@ -1583,14 +1598,15 @@ function execOnPortChange() {
 
 async function loadExec() {
   const geo  = ($("ex-geo") ||{}).value||"WW";
-  const qtr  = ($("ex-qtr") ||{}).value||"2Q26";
+  const qtr  = ($("ex-qtr") ||{}).value||"ALL";
   const oa   = ($("ex-oa")  ||{}).value||"ALL";
-  const year = ($("ex-year")||{}).value||"ALL";
+  const year = ($("ex-year")||{}).value||"2026";
   const narEl = $("ex-narrative");
   if (narEl) narEl.innerHTML = `<div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating\u2026</div>`;
 
-  const paramObj = { geo, quarter: qtr, offeringArea: oa };
+  const paramObj = { geo, offeringArea: oa };
   if (year !== "ALL") paramObj.year = year;
+  if (qtr  !== "ALL") paramObj.quarter = qtr;
   const params = qs(paramObj);
   const [kpi, rev, summ] = await Promise.all([
     fetch(`/api/kpi/summary?${params}`).then(r=>r.json()),
@@ -1615,11 +1631,13 @@ async function loadExec() {
     kpi.winRateQoQ, kpi.winRateYoY, true);
 
   const geoSlots = { Americas:"ex-g-americas", EMEA:"ex-g-emea", APAC:"ex-g-apac", Japan:"ex-g-japan" };
+  const geoQParam = qtr !== "ALL" ? `quarter=${qtr}&` : "";
   const [sigGeo, revGeo, pipeGeo] = await Promise.all([
-    fetch(`/api/kpi/signings-by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
-    fetch(`/api/revenue/by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
-    fetch(`/api/kpi/pipeline-by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
+    fetch(`/api/kpi/signings-by-geo?${geoQParam}${qs({offeringArea:oa})}`).then(r=>r.json()),
+    fetch(`/api/revenue/by-geo?${geoQParam}${qs({offeringArea:oa})}`).then(r=>r.json()),
+    fetch(`/api/kpi/pipeline-by-geo?${geoQParam}${qs({offeringArea:oa})}`).then(r=>r.json()),
   ]);
+  const GC_EX = {Americas:"var(--c-americas)",EMEA:"var(--c-emea)",APAC:"var(--c-apac)",Japan:"var(--c-japan)"};
   GEOS.forEach(g => {
     const el = $(geoSlots[g]); if(!el) return;
     const sig  = (sigGeo.find(d=>d.geo===g)||{}).signings||0;
@@ -1636,10 +1654,85 @@ async function loadExec() {
       .map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("");
   }
 
+  // ── OA Intelligence ──
+  const pmRpt = await fetch(`/api/pm-report?${params}`).then(r=>r.json()).catch(()=>({}));
+  const oaIntelEl = $("ex-oa-intel"); const oaCard = $("ex-oa-intel-card");
+  if (oaIntelEl && pmRpt.byOA && pmRpt.byOA.length) {
+    const fmtE = v => v==null?"—":(Math.abs(v)>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.abs(v).toFixed(1)}M`);
+    const kdHE = (v,pts=false) => v==null?"":v>0?`<span style="color:#198038;font-size:9px;font-weight:700">▲ ${v>0?"+":""}${v.toFixed(1)}${pts?"pts":"%"}</span>`:`<span style="color:#da1e28;font-size:9px;font-weight:700">▼ ${v.toFixed(1)}${pts?"pts":"%"}</span>`;
+    const topOA = pmRpt.byOA[0];
+    const atRisk = pmRpt.byOA.filter(r=>r.sigYoY!=null&&r.sigYoY<-10);
+    const growing = pmRpt.byOA.filter(r=>r.sigYoY!=null&&r.sigYoY>15);
+    oaIntelEl.innerHTML = pmRpt.byOA.slice(0,6).map(r=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
+        <div>
+          <div style="font-size:11px;font-weight:700">${r.oa}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">
+            ${r.activeCount} active opps · Win Rate <strong style="color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${r.winRate!=null?r.winRate.toFixed(1)+"%":"—"}</strong>
+          </div>
+          <div style="font-size:10px;margin-top:3px;line-height:1.5;color:#1f2328">
+            ${r.sigYoY!=null&&r.sigYoY<-10?`⚠ Signings down ${Math.abs(r.sigYoY).toFixed(0)}% YoY — review coverage and competitive positioning.`
+             :r.sigYoY!=null&&r.sigYoY>15?`✅ Strong signings momentum +${r.sigYoY.toFixed(0)}% YoY — replicate winning play.`
+             :`Signings ${r.sigYoY!=null?(r.sigYoY>0?"+":"")+r.sigYoY.toFixed(1)+"%":"tracking"} YoY — monitor pipeline velocity.`}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div style="font-size:14px;font-weight:700">${fmtE(r.pipeline)}</div>
+          <div style="font-size:9px;color:var(--muted)">Pipeline</div>
+          <div style="font-size:11px;font-weight:600;margin-top:2px">${fmtE(r.signings)}</div>
+          <div style="font-size:9px;color:var(--muted)">Signings ${kdHE(r.sigYoY)} YoY</div>
+        </div>
+      </div>`).join("");
+    if (oaCard) oaCard.style.display = "";
+  }
+
+  // ── Geo Intelligence ──
+  const geoIntelEl = $("ex-geo-intel"); const geoCard = $("ex-geo-intel-card");
+  if (geoIntelEl && pmRpt.byGeo && pmRpt.byGeo.length) {
+    const fmtE = v => v==null?"—":(Math.abs(v)>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.abs(v).toFixed(1)}M`);
+    const kdHE = (v,pts=false) => v==null?"":v>0?`<span style="color:#198038;font-size:9px;font-weight:700">▲ ${v>0?"+":""}${v.toFixed(1)}${pts?"pts":"%"}</span>`:`<span style="color:#da1e28;font-size:9px;font-weight:700">▼ ${v.toFixed(1)}${pts?"pts":"%"}</span>`;
+    const GCO = {Americas:"var(--c-americas)",EMEA:"var(--c-emea)",APAC:"var(--c-apac)",Japan:"var(--c-japan)"};
+    geoIntelEl.innerHTML = pmRpt.byGeo.map(gd=>{
+      const topAcct = (pmRpt.topAccounts||[]).filter(a=>a.geo===gd.geo)[0];
+      const i1 = gd.sigYoY!=null?(gd.sigYoY>10?`✅ Signings up <strong>+${gd.sigYoY.toFixed(1)}%</strong> YoY — capitalize on momentum, extend top accounts.`
+        :gd.sigYoY<-10?`⚠ Signings down <strong>${gd.sigYoY.toFixed(1)}%</strong> YoY — executive intervention required.`
+        :`Signings flat YoY at <strong>${gd.sigYoY>0?"+":""}${gd.sigYoY.toFixed(1)}%</strong> — accelerate pipeline conversion.`)
+        :"No prior-year comparison available.";
+      const i2 = gd.winRate!=null?(gd.winRate>=60?`Win rate <strong>${gd.winRate.toFixed(1)}%</strong> — healthy. Capture best practices, expand to similar accounts.`
+        :gd.winRate>=45?`Win rate <strong>${gd.winRate.toFixed(1)}%</strong> — below 60% target. Run deal-level coaching on top stalled opps.`
+        :`Win rate <strong>${gd.winRate.toFixed(1)}%</strong> — critical. Deploy competitive playbook and exec sponsor engagement immediately.`):"";
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--bdr)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:4px;height:36px;background:${GCO[gd.geo]||"var(--ibm)"};border-radius:2px;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${GCO[gd.geo]||"var(--ibm)"}">${gd.geo}</div>
+            <div style="font-size:9px;color:var(--muted)">${gd.activeCount||0} active opps · ${gd.oppCount||0} total</div>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <span style="font-size:13px;font-weight:700">${fmtE(gd.signings)}</span>
+            <span style="font-size:9px;color:var(--muted);display:block">Signings ${kdHE(gd.sigYoY)} YoY</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:13px;font-weight:700">${fmtE(gd.revenue)}</span>
+            <span style="font-size:9px;color:var(--muted);display:block">Revenue ${kdHE(gd.revYoY)} YoY</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:13px;font-weight:700;color:${gd.winRate>=60?"#198038":gd.winRate>=45?"#b28600":"#da1e28"}">${gd.winRate!=null?gd.winRate.toFixed(1)+"%":"—"}</span>
+            <span style="font-size:9px;color:var(--muted);display:block">Win Rate ${kdHE(gd.wrDeltaQoQ,true)} QoQ</span>
+          </div>
+        </div>
+        <div style="font-size:11px;line-height:1.6;padding:6px 10px;background:#f0f6ff;border-left:3px solid ${GCO[gd.geo]||"var(--ibm)"};border-radius:0 4px 4px 0;margin-bottom:4px">${i1}</div>
+        ${i2?`<div style="font-size:11px;line-height:1.6;padding:6px 10px;background:#f0f6ff;border-left:3px solid ${GCO[gd.geo]||"var(--ibm)"};border-radius:0 4px 4px 0;margin-bottom:4px">${i2}</div>`:""}
+        ${topAcct?`<div style="font-size:10px;color:var(--muted);padding:3px 0">&#128188; Top account: <strong>${topAcct.name}</strong> — ${fmtE(topAcct.pipeline)} pipeline · ${topAcct.winRate!=null?topAcct.winRate.toFixed(1)+"%":"—"} WR</div>`:""}
+      </div>`;
+    }).join("");
+    if (geoCard) geoCard.style.display = "";
+  }
+
   // ── Refresh right panel with exec filter context ──
   const rpInsF = { geo, offeringArea: oa };
   if (year !== "ALL") rpInsF.year = year;
-  if (qtr  !== "2Q26") rpInsF.quarter = qtr;
+  if (qtr  !== "ALL") rpInsF.quarter = qtr;
   const rpInsD = await fetch(`/api/insights?${qs(rpInsF)}`).then(r=>r.json()).catch(()=>({highlights:[],focus:[],actions:[]}));
   const rpRender=(el,items)=>{ const e=$(el); if(!e) return; e.innerHTML=items.length?items.map(i=>`<div class="ins-item"><span style="margin-right:5px">${i.icon}</span>${i.text}</div>`).join(""):`<div style="color:var(--muted);font-size:10px">No data</div>`; };
   rpRender("rpHigh",rpInsD.highlights); rpRender("rpFocus",rpInsD.focus); rpRender("rpAct",rpInsD.actions);
@@ -1883,18 +1976,32 @@ function renderPMReport(d, ind, scope) {
     const cq=d.cq, rev=d.revenue||{};
     const accts = (d.topAccounts||[]).slice(0,8);
     const mpA   = Math.max(...accts.map(a=>a.pipeline),1);
-    const topGeo = (d.byGeo||[]).sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
-    const lowWR  = (d.byGeo||[]).filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
-    const sigDir = d.sigYoY!=null?(d.sigYoY>0?"grew":"declined"):"moved";
-    const sigPct = d.sigYoY!=null?` (${d.sigYoY>0?"+":""}${d.sigYoY.toFixed(1)}% YoY)`:"";
-    const revDir = d.revYoY!=null?(d.revYoY>0?"ahead of":"behind"):"tracking";
-    const bhNarr = `Signings ${sigDir} to <strong>${fmt(cq.signings)}</strong>${sigPct}, revenue actuals ${revDir} prior year at <strong>${fmt(rev.cq)}</strong>. `+
-      (topGeo?`<strong>${topGeo.geo}</strong> leads signings at ${fmt(topGeo.signings||0)}. `:"")+
-      (lowWR&&lowWR.winRate<60?`<strong>${lowWR.geo}</strong> win rate of ${fpp(lowWR.winRate)} is the lowest — needs immediate coaching focus.`:"Win rate is healthy across all geos.");
+    const byGeoAll = d.byGeo||[];
+    const topGeo  = [...byGeoAll].sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
+    const lowWR   = byGeoAll.filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
+    const highPipe = [...byGeoAll].sort((a,b)=>(b.pipeline||0)-(a.pipeline||0))[0];
+    const chRows  = (ind&&ind.byChannel)||[];
+    const segRows = (ind&&ind.byClientType)||[];
+    const topCh   = chRows[0];
+    const topSeg  = segRows[0];
+    // 4 intel bullets: Signings+Pipeline · Revenue · Win Rate · Geo/Account · Channel/Segment
+    const bullet1 = `📊 <strong>Signings ${d.sigYoY!=null?(d.sigYoY>0?"grew":"declined"):"moved"} to ${fmt(cq.signings)}</strong>${d.sigYoY!=null?` (${d.sigYoY>0?"+":""}${d.sigYoY.toFixed(1)}% YoY)`:""} · Pipeline: <strong>${fmt(cq.pipeline)}</strong> (${cq.activeCount} active opps${d.pipeYoY!=null?`, ${d.pipeYoY>0?"+":""}${d.pipeYoY.toFixed(1)}% YoY`:""}).`;
+    const bullet2 = `💰 <strong>Revenue: ${fmt(rev.cq)}</strong>${d.revYoY!=null?` — ${d.revYoY>=0?"growing":"declining"} ${Math.abs(d.revYoY).toFixed(1)}% YoY vs ${fmt(rev.pyq)}.`:"."}${d.revQoQ!=null&&d.revQoQ<-5?` QoQ drop of ${Math.abs(d.revQoQ).toFixed(1)}% signals delayed recognitions — review billing milestones.`:d.revQoQ!=null&&d.revQoQ>5?` QoQ momentum +${d.revQoQ.toFixed(1)}% — strong execution signal.`:""} Win Rate: <strong>${fpp(cq.winRate)}</strong> (${cq.wonCount} won / ${cq.closedCount} closed)${d.wrDeltaQoQ!=null?`, ${d.wrDeltaQoQ>0?"+":""}${d.wrDeltaQoQ.toFixed(1)}pts QoQ`:""}`;
+    const bullet3 = topGeo
+      ? `🌍 <strong>${topGeo.geo}</strong> leads signings at ${fmt(topGeo.signings||0)}${topGeo.sigYoY!=null?` (${topGeo.sigYoY>0?"+":""}${topGeo.sigYoY.toFixed(1)}% YoY)`:""}.`+
+        (highPipe&&highPipe.geo!==topGeo.geo?` <strong>${highPipe.geo}</strong> has highest pipeline at ${fmt(highPipe.pipeline||0)}.`:"")+
+        (lowWR&&lowWR.winRate<60?` ⚠ <strong>${lowWR.geo}</strong> win rate ${fpp(lowWR.winRate)} — needs coaching focus.`:" Win rates broadly healthy across all geos.")
+      : "";
+    const bullet4 = (topCh||topSeg)
+      ? `📌 `+(topCh?`<strong>${topCh.channel}</strong> is the top channel (${fmt(topCh.pipeline)} pipe, ${fpp(topCh.winRate)} WR). `:"")+(topSeg?`<strong>${topSeg.clientType}</strong> is the largest client segment (${fmt(topSeg.pipeline)} pipe).`:"")
+      : "";
+    const bullets = [bullet1,bullet2,bullet3,bullet4].filter(Boolean);
     bh.innerHTML = `
       <div class="pm-sec-hd"><div><div class="pm-sec-title">Business Health</div>
       <div class="pm-sec-sub">${scope.quarter} · ${scope.geo} · ${scope.oa!=="ALL"?scope.oa:"All Offerings"}</div></div></div>
-      ${ins(bhNarr)}
+      <div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:10px 14px;border-radius:0 4px 4px 0;margin-bottom:10px">
+        ${bullets.map(b=>`<div style="font-size:11px;line-height:1.7;color:#1f2328;padding:2px 0">${b}</div>`).join("")}
+      </div>
       <div class="pm-kpi-row">
         <div class="pm-kpi-card pm-kc-sig"><div class="pm-kc-lbl">Signings</div><div class="pm-kc-val">${fmt(cq.signings)}</div><div class="pm-kc-sub">${cq.wonCount} won deals</div><div class="pm-kc-deltas">${kdH(d.sigQoQ)} QoQ &nbsp;${kdH(d.sigYoY)} YoY</div></div>
         <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">vs ${fmt(rev.pyq)} PYQ</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
