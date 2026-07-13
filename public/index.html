@@ -573,7 +573,7 @@ I'm your TLS PM intelligence assistant. Ask me anything:
             <option value="Distributor">Distributor</option>
             <option value="Inside Sales Fulfilled-Digital">Digital</option>
           </select>
-          <button class="abtn" onclick="applyAll()">Apply</button>
+          <button class="abtn" onclick="applyAll()">&#9889; Generate Insights</button>
         </div>
       </div>
       <div class="kstrip">
@@ -936,7 +936,7 @@ Chart.register(ChartDataLabels);
         <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
         <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
       </select>
-      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()">&#9889; Generate Product Intelligence</button>
+      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()">&#9889; Generate Intelligence</button>
     </div>
   </div>
 
@@ -959,7 +959,7 @@ Chart.register(ChartDataLabels);
     <div id="pm-empty-state" class="pm-empty">
       <div class="pm-empty-icon">&#128202;</div>
       <div class="pm-empty-title">No report generated yet</div>
-      <div class="pm-empty-sub">Choose a Portfolio, Offering Area, Geography and Quarter above, then click <strong>Generate Product Intelligence</strong>.</div>
+      <div class="pm-empty-sub">Choose a Portfolio, Offering Area, Geography and Quarter above, then click <strong>Generate Intelligence</strong>.</div>
     </div>
 
     <!-- All sections live in one continuous scroll -->
@@ -1748,7 +1748,7 @@ async function generatePMReport() {
     fetch(`/api/pm-report/industry?${params}`).then(r => r.json()).catch(() => ({})),
   ]);
 
-  if (btn) { btn.disabled = false; btn.textContent = "⚡ Generate Product Intelligence"; }
+  if (btn) { btn.disabled = false; btn.textContent = "⚡ Generate Intelligence"; }
 
   // Show content, hide empty state (anchor nav is always visible now)
   const empty = $("pm-empty-state"); if (empty) empty.style.display = "none";
