@@ -911,30 +911,31 @@ Chart.register(ChartDataLabels);
   <div class="pm-fbar">
     <div class="pm-frow">
       <span class="pm-fl">Portfolio</span>
-      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()" style="min-width:220px;max-width:280px"><option value="">All Portfolios</option></select>
+      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()" style="min-width:180px;max-width:220px"><option value="">All Portfolios</option></select>
       <span class="pm-fl">Offering Area</span>
-      <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()"><option value="ALL">All</option></select>
+      <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()" style="min-width:80px;max-width:140px"><option value="ALL">All</option></select>
       <span class="pm-fl">Offering Name</span>
-      <select class="pm-fs" id="pm-con-sel"><option value="ALL">All</option></select>
-    </div>
-    <div class="pm-frow">
+      <select class="pm-fs" id="pm-con-sel" style="min-width:80px;max-width:150px"><option value="ALL">All</option></select>
+      <span class="pm-fl">Lvl 30</span>
+      <select class="pm-fs" id="pm-lvl30-sel" style="min-width:60px;max-width:130px"><option value="ALL">All</option></select>
       <span class="pm-fl">Geography</span>
-      <select class="pm-fs" id="pm-geo" onchange="pmUpdateCrumb()">
+      <select class="pm-fs" id="pm-geo" onchange="pmUpdateCrumb()" style="min-width:55px">
         <option value="WW">WW</option><option value="Americas">Americas</option>
         <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
       </select>
       <span class="pm-fl">Year</span>
-      <select class="pm-fs" id="pm-year" onchange="pmUpdateCrumb()">
+      <select class="pm-fs" id="pm-year" onchange="pmUpdateCrumb()" style="min-width:48px">
         <option value="ALL">All</option>
         <option value="2026">2026</option>
         <option value="2025">2025</option>
       </select>
       <span class="pm-fl">Quarter</span>
-      <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()">
+      <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()" style="min-width:52px">
         <option value="ALL">All</option>
-        <option value="2Q26">2Q26</option><option value="3Q26">3Q26</option>
-        <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
-        <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
+        <option value="1Q26">1Q26</option><option value="2Q26">2Q26</option>
+        <option value="3Q26">3Q26</option><option value="4Q26">4Q26</option>
+        <option value="1Q25">1Q25</option><option value="2Q25">2Q25</option>
+        <option value="3Q25">3Q25</option><option value="4Q25">4Q25</option>
       </select>
       <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()">&#9889; Generate Intelligence</button>
     </div>
@@ -945,12 +946,13 @@ Chart.register(ChartDataLabels);
     <span class="pm-anav-scope" id="pm-fb-scope"></span>
     <button class="pm-alink active" onclick="pmScrollTo('pm-s-bh')">01 &middot; Business Health</button>
     <button class="pm-alink" onclick="pmScrollTo('pm-s-es')">02 &middot; Exec Summary</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-pipe')">03 &middot; Pipeline</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-sig')">04 &middot; Signings</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-rev')">05 &middot; Revenue</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-wr')">06 &middot; Win Rate</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-act')">07 &middot; Actions</button>
-    <button class="pm-alink" onclick="pmScrollTo('pm-s-ind')">08 &middot; Industry</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-act')">03 &middot; Top Actions</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-pipe')">04 &middot; Pipeline</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-sig')">05 &middot; Signings</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-rev')">06 &middot; Revenue</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-wr')">07 &middot; Win Rate</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-geo')">08 &middot; Geography</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-others')">09 &middot; Others</button>
   </div>
 
   <!-- ── REPORT BODY ── -->
@@ -965,14 +967,15 @@ Chart.register(ChartDataLabels);
     <!-- All sections live in one continuous scroll -->
     <div id="pm-rpt-content" style="display:none">
       <div class="pm-rpt-wrap">
-        <div id="pm-s-bh"   class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-es"   class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-pipe" class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-sig"  class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-rev"  class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-wr"   class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-act"  class="pm-sec-anchor pm-section"></div>
-        <div id="pm-s-ind"  class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-bh"     class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-es"     class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-act"    class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-pipe"   class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-sig"    class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-rev"    class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-wr"     class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-geo"    class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-others" class="pm-sec-anchor pm-section"></div>
       </div>
     </div>
   </div>
@@ -1618,7 +1621,7 @@ function pmOffsetTop(el, container) {
 function pmScrollTo(id) {
   const el = $(id); if (!el) return;
   const body = $("pm-body"); if (!body) return;
-  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-act","pm-s-ind"];
+  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-act","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-geo","pm-s-others"];
   const idx = SEC_IDS.indexOf(id);
   document.querySelectorAll(".pm-alink").forEach((l, i) => l.classList.toggle("active", i === idx));
   body.scrollTo({ top: pmOffsetTop(el, body) - 8, behavior: "smooth" });
@@ -1627,7 +1630,7 @@ function pmScrollTo(id) {
 /* ── scroll-spy: update active link as user scrolls ── */
 function pmInitScrollSpy() {
   const body = $("pm-body"); if (!body) return;
-  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-act","pm-s-ind"];
+  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-act","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-geo","pm-s-others"];
   body.addEventListener("scroll", () => {
     const links = document.querySelectorAll(".pm-alink");
     let active = 0;
@@ -1665,6 +1668,15 @@ function pmOnOAChange() {
   conSel.innerHTML = '<option value="ALL">All</option>';
   cons.forEach(v => {
     const o = document.createElement("option"); o.value = v; o.textContent = v; conSel.appendChild(o);
+  });
+  // Populate Lvl30 from selected OA
+  const lvlSel = $("pm-lvl30-sel"); if (!lvlSel) return;
+  const allLvl30 = oa === "ALL"
+    ? [...new Set((pmMeta.orderedOAs||[]).flatMap(x => (pmMeta.lvl30ByOA||{})[x]||[]))].sort()
+    : ((pmMeta.lvl30ByOA||{})[oa]||[]);
+  lvlSel.innerHTML = '<option value="ALL">All</option>';
+  allLvl30.forEach(v => {
+    const o = document.createElement("option"); o.value = v; o.textContent = v; lvlSel.appendChild(o);
   });
 }
 
@@ -1715,13 +1727,14 @@ async function generatePMReport() {
   const btn = $("pm-gen-btn");
   if (btn) { btn.disabled = true; btn.textContent = "Generating…"; }
 
-  const geo      = ($("pm-geo")     ||{}).value || "WW";
-  const year     = ($("pm-year")    ||{}).value || "ALL";
-  const qtr      = ($("pm-qtr")     ||{}).value || "ALL";
+  const geo      = ($("pm-geo")      ||{}).value || "WW";
+  const year     = ($("pm-year")     ||{}).value || "ALL";
+  const qtr      = ($("pm-qtr")      ||{}).value || "ALL";
   const portSel  = $("pm-port-sel");
   const portId   = portSel ? portSel.value : "";
-  const oaParam  = ($("pm-oa-sel")  ||{}).value || "ALL";
-  const conParam = ($("pm-con-sel") ||{}).value || "ALL";
+  const oaParam  = ($("pm-oa-sel")   ||{}).value || "ALL";
+  const conParam = ($("pm-con-sel")  ||{}).value || "ALL";
+  const lvl30Param = ($("pm-lvl30-sel")||{}).value || "ALL";
 
   // Scope label in anchor nav
   const portfolio = pmMeta.portfolio || [];
@@ -1741,6 +1754,7 @@ async function generatePMReport() {
   const paramObj = { geo, offeringArea: oaParam, consolidatedOffering: conParam };
   if (year !== "ALL") paramObj.year = year;
   if (qtr  !== "ALL") paramObj.quarter = qtr;
+  if (lvl30Param !== "ALL") paramObj.ut30 = lvl30Param;
   const params = new URLSearchParams(paramObj).toString();
 
   const [rpt, ind] = await Promise.all([
@@ -1787,106 +1801,142 @@ function renderPMReport(d, ind, scope) {
   const dCls = v => v==null?"":"kd "+(v>0?"pos":v<0?"neg":"neu");
   const kdH  = (v,pts=false) => v==null?"":`<span class="${dCls(v)}">${v>0?"▲":"▼"} ${dS(v,pts)}</span>`;
   const GCL  = {Americas:"am",EMEA:"em",APAC:"ap",Japan:"jp"};
+  const GC   = {Americas:"var(--c-americas)",EMEA:"var(--c-emea)",APAC:"var(--c-apac)",Japan:"var(--c-japan)"};
+  const ins  = (text) => `<div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;line-height:1.65;color:#1f2328;margin-bottom:10px">${text}</div>`;
 
-  // ── Intelligence narrative helpers ──────────────────────────────────────────
-  const ins = (text) => `<div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;line-height:1.65;color:#1f2328;margin-bottom:10px">${text}</div>`;
-
-  // Business Health
+  // ── 1. Business Health ─────────────────────────────────────────────────────
   const bh = $("pm-s-bh"); if (bh && d.cq) {
     const cq=d.cq, rev=d.revenue||{};
     const accts = (d.topAccounts||[]).slice(0,8);
-    const mpA = Math.max(...accts.map(a=>a.pipeline),1);
-
-    // Intelligence: surface the most important signal across all 4 KPIs
-    const sigDir = d.sigYoY!=null?(d.sigYoY>0?"grew":"declined"):"moved";
-    const sigPct = d.sigYoY!=null?`${d.sigYoY>0?"+":""}${d.sigYoY.toFixed(1)}% YoY`:"";
-    const revDir = d.revYoY!=null?(d.revYoY>0?"ahead":"behind"):"tracking";
+    const mpA   = Math.max(...accts.map(a=>a.pipeline),1);
     const topGeo = (d.byGeo||[]).sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
     const lowWR  = (d.byGeo||[]).filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
-    const bhNarr = `Signings ${sigDir} to <strong>${fmt(cq.signings)}</strong>${sigPct?" ("+sigPct+")":""}, with revenue actuals ${revDir} at <strong>${fmt(rev.cq)}</strong>. `+
-      (topGeo?`<strong>${topGeo.geo}</strong> is the leading geo this quarter with ${fmt(topGeo.signings||0)} in signings. `:"") +
-      (lowWR && lowWR.winRate<60?`Watch <strong>${lowWR.geo}</strong> — win rate of ${fpp(lowWR.winRate)} is the lowest across geos and warrants immediate coaching focus.`:"Overall win rate is healthy across all geographies.");
-
+    const sigDir = d.sigYoY!=null?(d.sigYoY>0?"grew":"declined"):"moved";
+    const sigPct = d.sigYoY!=null?` (${d.sigYoY>0?"+":""}${d.sigYoY.toFixed(1)}% YoY)`:"";
+    const revDir = d.revYoY!=null?(d.revYoY>0?"ahead of":"behind"):"tracking";
+    const bhNarr = `Signings ${sigDir} to <strong>${fmt(cq.signings)}</strong>${sigPct}, revenue actuals ${revDir} prior year at <strong>${fmt(rev.cq)}</strong>. `+
+      (topGeo?`<strong>${topGeo.geo}</strong> leads signings at ${fmt(topGeo.signings||0)}. `:"")+
+      (lowWR&&lowWR.winRate<60?`<strong>${lowWR.geo}</strong> win rate of ${fpp(lowWR.winRate)} is the lowest — needs immediate coaching focus.`:"Win rate is healthy across all geos.");
     bh.innerHTML = `
-      <div class="pm-sec-hd"><div><div class="pm-sec-title">Business Health</div><div class="pm-sec-sub">${scope.quarter} · ${scope.geo} · ${scope.oa!=="ALL"?scope.oa:"All Offerings"}</div></div></div>
+      <div class="pm-sec-hd"><div><div class="pm-sec-title">Business Health</div>
+      <div class="pm-sec-sub">${scope.quarter} · ${scope.geo} · ${scope.oa!=="ALL"?scope.oa:"All Offerings"}</div></div></div>
       ${ins(bhNarr)}
       <div class="pm-kpi-row">
         <div class="pm-kpi-card pm-kc-sig"><div class="pm-kc-lbl">Signings</div><div class="pm-kc-val">${fmt(cq.signings)}</div><div class="pm-kc-sub">${cq.wonCount} won deals</div><div class="pm-kc-deltas">${kdH(d.sigQoQ)} QoQ &nbsp;${kdH(d.sigYoY)} YoY</div></div>
-        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">Direct + Eco</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">vs ${fmt(rev.pyq)} PYQ</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
         <div class="pm-kpi-card pm-kc-pipe"><div class="pm-kc-lbl">Pipeline</div><div class="pm-kc-val">${fmt(cq.pipeline)}</div><div class="pm-kc-sub">${cq.activeCount} active opps</div><div class="pm-kc-deltas">${kdH(d.pipeQoQ)} QoQ &nbsp;${kdH(d.pipeYoY)} YoY</div></div>
         <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
       </div>
       <div class="pm-geo-cards">
-        ${["Americas","EMEA","APAC","Japan"].map(g => {
+        ${["Americas","EMEA","APAC","Japan"].map(g=>{
           const gd=(d.byGeo||[]).find(x=>x.geo===g)||{};
           return `<div class="pm-geo-c ${GCL[g]}">
             <div class="pm-geo-c-name">${g}</div>
-            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Signings</span><span class="pm-geo-c-val">${fmt(gd.signings)}</span></div>
-            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Pipeline</span><span class="pm-geo-c-val">${fmt(gd.pipeline)}</span></div>
-            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Win Rate</span><span class="pm-geo-c-val">${fpp(gd.winRate)}</span></div>
-            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Sig YoY</span><span class="pm-geo-c-val">${gd.sigYoY!=null?dS(gd.sigYoY):"—"}</span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Pipeline</span><span class="pm-geo-c-val">${fmt(gd.pipeline)} <span style="font-size:9px;font-weight:400">${kdH(gd.pipeQoQ)} QoQ</span></span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Signings</span><span class="pm-geo-c-val">${fmt(gd.signings)} <span style="font-size:9px;font-weight:400">${kdH(gd.sigYoY)} YoY</span></span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Revenue</span><span class="pm-geo-c-val">${fmt(gd.revenue)} <span style="font-size:9px;font-weight:400">${kdH(gd.revYoY)} YoY</span></span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Win Rate</span><span class="pm-geo-c-val">${fpp(gd.winRate)} <span style="font-size:9px;font-weight:400">${kdH(gd.wrDeltaQoQ,true)} QoQ</span></span></div>
           </div>`;
         }).join("")}
       </div>
-      ${accts.length ? `<div class="pm-table-wrap" style="margin-top:14px">
+      ${accts.length?`<div class="pm-table-wrap" style="margin-top:10px">
         <div class="pm-table-hd"><span>Top Accounts by Pipeline</span><span class="pm-table-cnt">${accts.length} accounts</span></div>
-        <table class="pm-tbl"><thead><tr>
-          <th>#</th><th>Account</th><th style="text-align:right">Pipeline</th>
+        <table class="pm-tbl"><thead><tr><th>#</th><th>Account</th><th style="text-align:right">Pipeline</th>
           <th style="text-align:right">Signings</th><th style="text-align:right">Win Rate</th><th style="text-align:right">FLM</th>
-        </tr></thead><tbody>
-        ${accts.map((a,i)=>{
-          const bw=Math.max(3,a.pipeline/mpA*70);
-          const wc=a.winRate>=65?"bg":a.winRate>=45?"bb":"br";
-          return `<tr>
-            <td style="color:var(--dim);width:24px">${i+1}</td>
+        </tr></thead><tbody>${accts.map((a,i)=>{
+          const bw=Math.max(3,a.pipeline/mpA*70),wc=a.winRate>=65?"bg":a.winRate>=45?"bb":"br";
+          return `<tr><td style="color:var(--dim);width:24px">${i+1}</td>
             <td><strong>${a.name}</strong><div style="height:2px;background:#0f62fe;width:${bw}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
-            <td style="text-align:right">${fmt(a.pipeline)}</td>
-            <td style="text-align:right">${fmt(a.signings)}</td>
+            <td style="text-align:right">${fmt(a.pipeline)}</td><td style="text-align:right">${fmt(a.signings)}</td>
             <td style="text-align:right"><span class="bdg ${wc}">${fpp(a.winRate)}</span></td>
-            <td style="text-align:right;color:var(--muted)">${a.flmCount}</td>
-          </tr>`;
-        }).join("")}
-        </tbody></table></div>` : ""}`;
+            <td style="text-align:right;color:var(--muted)">${a.flmCount}</td></tr>`;
+        }).join("")}</tbody></table></div>`:""}`;
   }
 
-  // Exec Summary
+  // ── 2. Exec Summary ────────────────────────────────────────────────────────
   const es = $("pm-s-es"); if (es && d.narrative) {
-    es.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Executive Summary</div><div class="pm-sec-sub">AI-generated narrative · ${scope.quarter}</div></div></div>
+    es.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Executive Summary</div>
+      <div class="pm-sec-sub">AI-generated narrative · ${scope.quarter}</div></div></div>
       <div class="pm-narrative">${d.narrative.split("\n\n").map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("")}</div>`;
   }
 
-  // Pipeline
+  // ── 3. Top Actions ─────────────────────────────────────────────────────────
+  const act = $("pm-s-act"); if (act && d.actions) {
+    const indActions = (ind&&ind.gtmActions)||[];
+    const allActions = [...d.actions,...indActions.filter(a=>!d.actions.find(x=>x.category===a.type))].slice(0,10);
+    const watchlist  = (ind&&ind.watchlist)||[];
+    const highPri = allActions.filter(a=>a.priority==="HIGH");
+    const actNarr = allActions.length
+      ? `<strong>${highPri.length} high-priority action${highPri.length!==1?"s":""}</strong> identified for ${scope.quarter}. `+
+        `Assign owners now — these GTM motions have the highest potential impact on ${scope.geo==="WW"?"global":scope.geo} results this quarter.`
+      : "No actions generated for this scope.";
+    act.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Top Actions</div>
+      <div class="pm-sec-sub">Prioritised GTM motions · ${scope.quarter}</div></div></div>
+      ${ins(actNarr)}
+      <div class="pm-action-grid">${allActions.map(a=>{
+        const pri=a.priority==="HIGH"?"HIGH":"MED", cat=a.category||a.type||"Action", geo=a.geo||"WW";
+        return `<div class="pm-action-card ${pri==="HIGH"?"high":"med"}">
+          <div class="pm-act-top"><span class="pm-act-pri ${pri==="HIGH"?"high":"med"}">${pri}</span>
+            <span class="pm-act-cat">${cat}</span><span class="pm-act-geo-badge">${geo}</span></div>
+          <div class="pm-act-body">${a.action}</div>
+          <div class="pm-act-deadline">&#9200; ${a.deadline}</div></div>`;
+      }).join("")}</div>
+      ${d.stalled&&d.stalled.length?`<div class="pm-table-wrap" style="margin-top:10px">
+        <div class="pm-table-hd"><span>Stalled FLM=Y Opportunities (&gt;90 days)</span><span class="pm-table-cnt">${d.stalled.length} opps</span></div>
+        <table class="pm-tbl"><thead><tr><th>Customer</th><th>Geo</th>
+          <th style="text-align:right">Pipeline</th><th style="text-align:right">Age</th><th>Stage</th></tr></thead>
+        <tbody>${d.stalled.map(r=>`<tr><td><strong>${r.customer}</strong></td><td>${r.geo}</td>
+          <td style="text-align:right">${fmt(r.pipeline)}</td>
+          <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
+          <td>${r.stage}</td></tr>`).join("")}</tbody></table></div>`:""}`;
+  }
+
+  // ── 4. Pipeline ────────────────────────────────────────────────────────────
   const pipe = $("pm-s-pipe"); if (pipe && d.byOA) {
-    const rows = d.byOA.slice(0,10), mp = Math.max(...rows.map(r=>r.pipeline),1);
-    const topOA  = rows[0];
-    const atRisk = rows.filter(r=>r.sigQoQ!=null&&r.sigQoQ<-10);
+    const rows=d.byOA.slice(0,10), mp=Math.max(...rows.map(r=>r.pipeline),1);
+    const topOA=rows[0], atRisk=rows.filter(r=>r.sigQoQ!=null&&r.sigQoQ<-10);
     const pipeNarr = topOA
-      ? `<strong>${topOA.oa}</strong> holds the largest active pipeline at <strong>${fmt(topOA.pipeline)}</strong> across ${topOA.activeCount} opportunities. `+
-        (atRisk.length?`${atRisk.map(r=>r.oa).join(", ")} ${atRisk.length>1?"are":"is"} showing signings down QoQ — pipeline may not convert without intervention.`:`All offering areas are showing stable or growing signings momentum.`)
-      : "Pipeline data not available for this scope.";
-    pipe.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Pipeline Breakdown</div><div class="pm-sec-sub">By Offering Area · ${scope.quarter}</div></div></div>
+      ? `<strong>${topOA.oa}</strong> holds the largest pipeline at <strong>${fmt(topOA.pipeline)}</strong> (${topOA.activeCount} active opps). `+
+        (atRisk.length?`${atRisk.map(r=>`<strong>${r.oa}</strong>`).join(", ")} ${atRisk.length>1?"are":"is"} showing signings down QoQ — conversion risk if pipeline stalls.`:`All offering areas show stable or growing momentum.`)
+      : "Pipeline data not available.";
+    // 6-quarter trend table
+    const trendHtml = d.trend?`<div class="pm-table-wrap" style="margin-top:10px">
+      <div class="pm-table-hd"><span>6-Quarter Trend — Pipeline & Signings</span></div>
+      <table class="pm-tbl"><thead><tr><th>Quarter</th><th style="text-align:right">Pipeline</th>
+        <th style="text-align:right">Signings</th><th style="text-align:right">Win Rate</th></tr></thead>
+      <tbody>${d.trend.map(r=>`<tr><td><strong>${r.quarter}</strong></td>
+        <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${fmt(r.signings)}</td>
+        <td style="text-align:right">${fpp(r.winRate)}</td></tr>`).join("")}</tbody></table></div>`:"";
+    pipe.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Pipeline Intelligence</div>
+      <div class="pm-sec-sub">By Offering Area · ${scope.quarter}</div></div></div>
       ${ins(pipeNarr)}
       <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Area</span><span class="pm-table-cnt">${rows.length} rows</span></div>
-      <table class="pm-tbl"><thead><tr><th>Offering Area</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Active Opps</th><th style="text-align:right">Sig QoQ</th><th style="text-align:right">Sig YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr><td><strong>${r.oa}</strong><div style="height:2px;background:#0f62fe;width:${Math.max(3,r.pipeline/mp*80)}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
+      <table class="pm-tbl"><thead><tr><th>Offering Area</th><th style="text-align:right">Pipeline</th>
+        <th style="text-align:right">Active Opps</th><th style="text-align:right">Sig QoQ</th>
+        <th style="text-align:right">Sig YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td><strong>${r.oa}</strong><div style="height:2px;background:#0f62fe;width:${Math.max(3,r.pipeline/mp*80)}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
         <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${r.activeCount}</td>
         <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
         <td style="text-align:right;font-weight:700;color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${fpp(r.winRate)}</td>
-      </tr>`).join("")}</tbody></table></div>`;
+      </tr>`).join("")}</tbody></table></div>${trendHtml}`;
   }
 
-  // Signings
+  // ── 5. Signings ────────────────────────────────────────────────────────────
   const sig = $("pm-s-sig"); if (sig && d.byCon) {
-    const rows = d.byCon.slice(0,10);
-    const topCon = rows[0], botCon = rows.filter(r=>r.sigYoY!=null&&r.sigYoY<0).slice(0,2);
+    const rows=d.byCon.slice(0,10);
+    const topCon=rows[0], botCon=rows.filter(r=>r.sigYoY!=null&&r.sigYoY<0).slice(0,2);
     const sigNarr = topCon
-      ? `<strong>${topCon.con}</strong> leads in signings at <strong>${fmt(topCon.signings)}</strong> with a ${fpp(topCon.winRate)} win rate. `+
-        (botCon.length?`${botCon.map(r=>`<strong>${r.con}</strong>`).join(" and ")} ${botCon.length>1?"are":"is"} declining YoY — assess whether pricing, competition, or coverage is the root cause.`:`No significant YoY declines detected across offering names.`)
+      ? `<strong>${topCon.con}</strong> leads signings at <strong>${fmt(topCon.signings)}</strong> with a ${fpp(topCon.winRate)} win rate. `+
+        (botCon.length?`${botCon.map(r=>`<strong>${r.con}</strong>`).join(" and ")} ${botCon.length>1?"are":"is"} declining YoY — investigate pricing, competition, or coverage gaps.`:`No significant YoY declines across offerings.`)
       : "Signings detail not available.";
-    sig.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Signings — Offering Detail</div><div class="pm-sec-sub">By Consolidated Offering · ${scope.quarter}</div></div></div>
+    sig.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Signings Intelligence</div>
+      <div class="pm-sec-sub">By Offering Name · ${scope.quarter}</div></div></div>
       ${ins(sigNarr)}
       <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Name</span><span class="pm-table-cnt">${rows.length} offerings</span></div>
-      <table class="pm-tbl"><thead><tr><th>Offering</th><th style="text-align:right">Signings</th><th style="text-align:right">Won</th><th style="text-align:right">QoQ</th><th style="text-align:right">YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
+      <table class="pm-tbl"><thead><tr><th>Offering</th><th style="text-align:right">Signings</th>
+        <th style="text-align:right">Won</th><th style="text-align:right">QoQ</th>
+        <th style="text-align:right">YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
       <tbody>${rows.map(r=>`<tr><td><strong>${r.con}</strong></td>
         <td style="text-align:right">${fmt(r.signings)}</td><td style="text-align:right">${r.wonCount}</td>
         <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
@@ -1894,38 +1944,41 @@ function renderPMReport(d, ind, scope) {
       </tr>`).join("")}</tbody></table></div>`;
   }
 
-  // Revenue
+  // ── 6. Revenue ─────────────────────────────────────────────────────────────
   const rev = $("pm-s-rev"); if (rev && d.revenue) {
     const rv=d.revenue;
-    const revGap = rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
+    const revGap=rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
     const revNarr = rv.cq!=null
-      ? `Revenue actuals of <strong>${fmt(rv.cq)}</strong> compare to <strong>${fmt(rv.pyq)}</strong> in the same quarter last year — a <strong>${revGap>=0?"+":""}${fmt(revGap)}</strong> ${revGap>=0?"gain":"shortfall"}. `+
-        (d.revYoY!=null&&d.revYoY<0?`Revenue is tracking behind signings growth, suggesting a conversion lag that should be addressed in the next GTM cycle.`:`Revenue momentum is aligned with signings — this is a healthy signal for the portfolio.`)
-      : "Revenue data not available for this scope.";
-    rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Actuals</div><div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
+      ? `Revenue actuals of <strong>${fmt(rv.cq)}</strong> vs <strong>${fmt(rv.pyq)}</strong> same quarter last year — a <strong>${revGap>=0?"+":""}${fmt(revGap)}</strong> ${revGap>=0?"gain":"shortfall"}. `+
+        (d.revYoY!=null&&d.revYoY<0?`Revenue is lagging behind signings growth — conversion delay that must be addressed in the next GTM cycle.`:`Revenue is aligned with signings momentum — a healthy portfolio signal.`)
+      : "Revenue data not available.";
+    const trendHtml = d.trend?`<div class="pm-table-wrap" style="margin-top:10px">
+      <div class="pm-table-hd"><span>6-Quarter Revenue Trend</span></div>
+      <table class="pm-tbl"><thead><tr><th>Quarter</th><th style="text-align:right">Revenue</th>
+        <th style="text-align:right">Signings</th><th style="text-align:right">Pipeline</th></tr></thead>
+      <tbody>${d.trend.map(r=>`<tr><td><strong>${r.quarter}</strong></td>
+        <td style="text-align:right;font-weight:600">${fmt(r.revenue)}</td>
+        <td style="text-align:right">${fmt(r.signings)}</td>
+        <td style="text-align:right">${fmt(r.pipeline)}</td></tr>`).join("")}</tbody></table></div>`:"";
+    rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Intelligence</div>
+      <div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
       ${ins(revNarr)}
       <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
-        <div class="pm-kpi-card"><div class="pm-kc-lbl">PQ Revenue</div><div class="pm-kc-val">${fmt(rv.pq)}</div></div>
-        <div class="pm-kpi-card"><div class="pm-kc-lbl">PYQ Revenue</div><div class="pm-kc-val">${fmt(rv.pyq)}</div></div>
-      </div>
-      ${d.trend ? `<div class="pm-table-wrap"><div class="pm-table-hd"><span>6-Quarter Trend</span></div>
-        <table class="pm-tbl"><thead><tr><th>Quarter</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Win Rate</th></tr></thead>
-        <tbody>${d.trend.map(r=>`<tr><td><strong>${r.quarter}</strong></td>
-          <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${fmt(r.signings)}</td>
-          <td style="text-align:right">${fmt(r.revenue)}</td><td style="text-align:right">${fpp(r.winRate)}</td>
-        </tr>`).join("")}</tbody></table></div>` : ""}`;
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Quarter</div><div class="pm-kc-val">${fmt(rv.pq)}</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Year Same Qtr</div><div class="pm-kc-val">${fmt(rv.pyq)}</div></div>
+      </div>${trendHtml}`;
   }
 
-  // Win Rate
+  // ── 7. Win Rate ────────────────────────────────────────────────────────────
   const wr = $("pm-s-wr"); if (wr && d.winLoss) {
     const cq=d.cq||{};
-    const topWinReason = d.winLoss.filter(r=>r.won>r.lost)[0];
-    const topLossReason = d.winLoss.filter(r=>r.lost>r.won)[0];
-    const wrNarr = `Win rate stands at <strong>${fpp(cq.winRate)}</strong> — ${cq.wonCount||0} deals won from ${cq.closedCount||0} closed. `+
-      (topWinReason?`The top win driver is <strong>"${topWinReason.reason}"</strong> (${topWinReason.won} wins). `:"") +
-      (topLossReason?`The primary loss reason is <strong>"${topLossReason.reason}"</strong> (${topLossReason.lost} losses) — address this in the next seller enablement cycle.`:"No dominant loss pattern detected.");
-    wr.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Win Rate & Win/Loss Analysis</div><div class="pm-sec-sub">${scope.quarter}</div></div></div>
+    const topWin=d.winLoss.filter(r=>r.won>r.lost)[0], topLoss=d.winLoss.filter(r=>r.lost>r.won)[0];
+    const wrNarr = `Win rate is <strong>${fpp(cq.winRate)}</strong> — ${cq.wonCount||0} won from ${cq.closedCount||0} closed deals. `+
+      (topWin?`Top win driver: <strong>"${topWin.reason}"</strong> (${topWin.won} wins). `:"")+
+      (topLoss?`Primary loss reason: <strong>"${topLoss.reason}"</strong> (${topLoss.lost} losses) — prioritise this in the next seller enablement cycle.`:"No dominant loss pattern.");
+    wr.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Win Rate Intelligence</div>
+      <div class="pm-sec-sub">Win/Loss analysis · ${scope.quarter}</div></div></div>
       ${ins(wrNarr)}
       <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
@@ -1937,170 +1990,183 @@ function renderPMReport(d, ind, scope) {
         <tbody>${d.winLoss.map(r=>`<tr><td>${r.reason}</td>
           <td style="text-align:right;color:#198038;font-weight:600">${r.won}</td>
           <td style="text-align:right;color:#da1e28;font-weight:600">${r.lost}</td>
-          <td style="text-align:right">${r.total}</td>
-        </tr>`).join("")}</tbody></table></div>`;
+          <td style="text-align:right">${r.total}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
-  // Actions
-  const act = $("pm-s-act"); if (act && d.actions) {
-    const indActions = (ind && ind.gtmActions)||[];
-    const allActions = [...d.actions, ...indActions.filter(a=>!d.actions.find(x=>x.category===a.type))].slice(0,10);
-    const watchlist  = (ind && ind.watchlist)||[];
-    const highPri = allActions.filter(a=>a.priority==="HIGH");
-    const actNarr = allActions.length
-      ? `<strong>${highPri.length} high-priority action${highPri.length!==1?"s":""}</strong> identified based on ${scope.quarter} performance data. `+
-        `These are the specific GTM motions that will have the highest impact on ${scope.geo === "WW" ? "global" : scope.geo} results — assign owners and track against next quarter close.`
-      : "No actions generated for this scope.";
-    act.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Recommended Actions</div><div class="pm-sec-sub">GTM motions · ${scope.quarter}</div></div></div>
-      ${ins(actNarr)}
-      <div class="pm-action-grid">${allActions.map(a=>{
-        const pri = a.priority==="HIGH"||a.priority==="HIGH"?"HIGH":"MED";
-        const cat = a.category||a.type||"Action";
-        const geo = a.geo||"WW";
-        return `<div class="pm-action-card ${pri==="HIGH"?"high":"med"}">
-          <div class="pm-act-top">
-            <span class="pm-act-pri ${pri==="HIGH"?"high":"med"}">${pri}</span>
-            <span class="pm-act-cat">${cat}</span>
-            <span class="pm-act-geo-badge">${geo}</span>
-          </div>
-          <div class="pm-act-body">${a.action}</div>
-          <div class="pm-act-deadline">&#9200; ${a.deadline}</div>
-        </div>`;
-      }).join("")}</div>
-      ${watchlist.length ? `<div class="pm-table-wrap" style="margin-top:14px">
-        <div class="pm-table-hd"><span>&#128680; Priority Watchlist</span><span class="pm-table-cnt">${watchlist.length} items</span></div>
-        <table class="pm-tbl"><thead><tr>
-          <th>Industry</th><th>Metric</th><th style="text-align:right">Value</th><th>Risk</th><th>Action</th><th style="text-align:right;white-space:nowrap">Due</th>
-        </tr></thead><tbody>
-        ${watchlist.map(w=>`<tr>
-          <td><strong>${w.industry}</strong></td>
-          <td><span class="bdg br">${w.metric}</span></td>
-          <td style="text-align:right;font-weight:700;color:#da1e28">${w.value}</td>
-          <td style="font-size:10px;color:var(--muted)">${w.risk}</td>
-          <td style="font-size:10px">${w.action}</td>
-          <td style="text-align:right;white-space:nowrap;color:var(--muted);font-size:10px">${w.deadline}</td>
-        </tr>`).join("")}
-        </tbody></table></div>` : ""}
-      ${d.stalled && d.stalled.length ? `<div class="pm-table-wrap" style="margin-top:14px">
-        <div class="pm-table-hd"><span>Stalled FLM=Y Opportunities</span><span class="pm-table-cnt">${d.stalled.length} opps</span></div>
-        <table class="pm-tbl"><thead><tr><th>Customer</th><th>Geo</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Age (days)</th><th>Stage</th></tr></thead>
-        <tbody>${d.stalled.map(r=>`<tr><td><strong>${r.customer}</strong></td><td>${r.geo}</td>
-          <td style="text-align:right">${fmt(r.pipeline)}</td>
-          <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
-          <td>${r.stage}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+  // ── 8. Geography ───────────────────────────────────────────────────────────
+  const geoSec = $("pm-s-geo"); if (geoSec && d.byGeo && d.byGeo.length) {
+    const byGeo = d.byGeo;
+    const topG  = [...byGeo].sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
+    const lowG  = [...byGeo].filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
+    const bestRev = [...byGeo].sort((a,b)=>(b.revenue||0)-(a.revenue||0))[0];
+    const geoNarr = topG
+      ? `<strong>${topG.geo}</strong> leads in signings at <strong>${fmt(topG.signings)}</strong>. `+
+        (bestRev&&bestRev.geo!==topG.geo?`<strong>${bestRev.geo}</strong> generates the highest revenue at <strong>${fmt(bestRev.revenue||0)}</strong>, indicating strong existing contract base. `:"")+
+        (lowG&&lowG.winRate<60?`<strong>${lowG.geo}</strong> has the lowest win rate at ${fpp(lowG.winRate)} — targeted deal coaching and competitive positioning work is needed here.`:"Win rates are broadly healthy — focus on maintaining pipeline velocity across all regions.")
+      : "Geography data not available.";
+    geoSec.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Geography Analysis</div>
+      <div class="pm-sec-sub">Detailed view by Geo · ${scope.quarter}</div></div></div>
+      ${ins(geoNarr)}
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
+        ${["Americas","EMEA","APAC","Japan"].map(g=>{
+          const gd=byGeo.find(x=>x.geo===g)||{};
+          const trend=gd.geoTrend||[];
+          const mp=Math.max(...trend.map(t=>t.signings||0),1);
+          const sparkBars=trend.map(t=>{
+            const h=Math.max(2,Math.round((t.signings||0)/mp*28));
+            return `<div style="width:12px;height:${h}px;background:${GC[g]};border-radius:1px 1px 0 0;margin-right:2px;opacity:.75;align-self:flex-end"></div>`;
+          }).join("");
+          // Two per-geo intelligence bullets
+          const geoI1 = gd.sigYoY!=null
+            ? (gd.sigYoY>10?`Signings momentum strong at <strong>${gd.sigYoY>0?"+":""}${gd.sigYoY.toFixed(1)}%</strong> YoY — replicate winning motion to adjacent markets.`
+              :gd.sigYoY<-10?`Signings declined <strong>${gd.sigYoY.toFixed(1)}%</strong> YoY — engage SDE and partner teams to identify pull-in opportunities.`
+              :`Signings broadly flat YoY at <strong>${gd.sigYoY>0?"+":""}${gd.sigYoY.toFixed(1)}%</strong> — focus on pipeline conversion acceleration.`)
+            : `No prior-year signings baseline for comparison — establish ${g} YoY tracking for next quarter.`;
+          const geoI2 = gd.winRate!=null
+            ? (gd.winRate>=60?`Win rate of <strong>${fpp(gd.winRate)}</strong> is healthy — capture lessons learned and apply competitive playbook across new logos.`
+              :gd.winRate>=45?`Win rate of <strong>${fpp(gd.winRate)}</strong> — deal-level coaching on top stalled opportunities could push above 60% threshold.`
+              :`Win rate of <strong>${fpp(gd.winRate)}</strong> is below threshold — immediate competitive positioning review and FLM deal intervention required.`)
+            : `Win rate data unavailable for ${g} this period.`;
+          return `<div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;border-left:4px solid ${GC[g]}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${GC[g]}">${g}</div>
+                <div style="font-size:9px;color:var(--muted);margin-top:2px">${(gd.activeCount||0)} active opps · ${(gd.oppCount||0)} total</div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:0;height:32px">${sparkBars}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="background:var(--sur);border-radius:4px;padding:6px 8px;text-align:center">
+                <div style="font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Pipeline</div>
+                <div style="font-size:14px;font-weight:700">${fmt(gd.pipeline)}</div>
+                <div style="font-size:9px;margin-top:1px">${kdH(gd.pipeQoQ)}</div>
+              </div>
+              <div style="background:var(--sur);border-radius:4px;padding:6px 8px;text-align:center">
+                <div style="font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Signings</div>
+                <div style="font-size:14px;font-weight:700">${fmt(gd.signings)}</div>
+                <div style="font-size:9px;margin-top:1px">${kdH(gd.sigYoY)}<span style="font-size:8px;color:var(--muted)"> YoY</span></div>
+              </div>
+              <div style="background:var(--sur);border-radius:4px;padding:6px 8px;text-align:center">
+                <div style="font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Revenue</div>
+                <div style="font-size:14px;font-weight:700">${fmt(gd.revenue)}</div>
+                <div style="font-size:9px;margin-top:1px">${kdH(gd.revYoY)}<span style="font-size:8px;color:var(--muted)"> YoY</span></div>
+              </div>
+              <div style="background:var(--sur);border-radius:4px;padding:6px 8px;text-align:center">
+                <div style="font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Win Rate</div>
+                <div style="font-size:14px;font-weight:700;color:${gd.winRate>=60?"#198038":gd.winRate>=45?"#b28600":"#da1e28"}">${fpp(gd.winRate)}</div>
+                <div style="font-size:9px;margin-top:1px">${kdH(gd.wrDeltaQoQ,true)}<span style="font-size:8px;color:var(--muted)"> QoQ</span></div>
+              </div>
+            </div>
+            ${d.geoOAMatrix&&d.geoOAMatrix[g]?`<div style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px">
+              <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin-bottom:5px">By Offering Area</div>
+              ${Object.entries(d.geoOAMatrix[g]).map(([oa,m])=>`
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--bdr);font-size:10px">
+                  <span style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${oa}</span>
+                  <span style="display:flex;gap:10px">
+                    <span><span style="color:var(--dim);font-size:9px">Pipe </span><strong>${fmt(m.pipeline)}</strong></span>
+                    <span><span style="color:var(--dim);font-size:9px">Sig </span><strong>${fmt(m.signings)}</strong></span>
+                    <span><span style="color:var(--dim);font-size:9px">WR </span><strong style="color:${m.winRate>=60?"#198038":m.winRate>=45?"#b28600":"#da1e28"}">${fpp(m.winRate)}</strong></span>
+                  </span>
+                </div>`).join("")}
+            </div>`:""}
+            <div style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:10px;line-height:1.55;color:#1f2328;padding:5px 8px;background:#f0f6ff;border-left:2px solid ${GC[g]};border-radius:0 3px 3px 0">&#128161; ${geoI1}</div>
+              <div style="font-size:10px;line-height:1.55;color:#1f2328;padding:5px 8px;background:#f0f6ff;border-left:2px solid ${GC[g]};border-radius:0 3px 3px 0">&#127919; ${geoI2}</div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
   }
 
-  // Industry (uses ind data from /api/pm-report/industry)
-  const indSec = $("pm-s-ind");
-  if (indSec && ind && ind.byIndustry && ind.byIndustry.length) {
-    const rows = ind.byIndustry;
-    const mpI  = Math.max(...rows.map(r=>r.cq.pipeline),1);
-    const GEOS4 = ["Americas","EMEA","APAC","Japan"];
-    const matrix = ind.geoIndMatrix||{};
-    const topInds = rows.slice(0,6).map(r=>r.industry);
-    const flmRows = (ind.flmByInd||[]).slice(0,8);
-    const tsRows  = (ind.topStalled||[]).slice(0,8);
+  // ── 9. Others (Industry + Channel + Segment) ───────────────────────────────
+  const othersSec = $("pm-s-others");
+  if (othersSec) {
+    const indRows  = (ind&&ind.byIndustry)||[];
+    const mpI = Math.max(...indRows.map(r=>r.cq.pipeline),1);
+    const topInd = indRows[0], weakInd = indRows.filter(r=>r.cq.winRate<45&&r.cq.activeCount>5)[0];
+    const othNarr = topInd
+      ? `<strong>${topInd.industry}</strong> is the dominant vertical with <strong>${fmt(topInd.cq.pipeline)}</strong> in pipeline. `+
+        (weakInd?`<strong>${weakInd.industry}</strong> win rate of ${fpp(weakInd.cq.winRate)} across ${weakInd.cq.activeCount} active deals — a targeted intervention could unlock significant revenue.`:`Win rates are broadly acceptable across verticals.`)
+      : "Industry data not available for this scope.";
+    const watchlist = (ind&&ind.watchlist)||[];
 
-    const topInd2  = rows[0];
-    const weakInd  = rows.filter(r=>r.cq.winRate<45&&r.cq.activeCount>5)[0];
-    const indNarr  = topInd2
-      ? `<strong>${topInd2.industry}</strong> is the dominant vertical with <strong>${fmt(topInd2.cq.pipeline)}</strong> in pipeline and ${topInd2.cq.activeCount} active opportunities. `+
-        (weakInd?`<strong>${weakInd.industry}</strong> has a win rate of only ${fpp(weakInd.cq.winRate)} across ${weakInd.cq.activeCount} active deals — a targeted intervention here could unlock significant untapped revenue.`:`Win rates are broadly acceptable across verticals — focus on deepening penetration in the top 3 industries.`)
-      : "Industry breakdown not available.";
-    indSec.innerHTML = `
-      <div class="pm-sec-hd"><div><div class="pm-sec-title">Industry Breakdown</div><div class="pm-sec-sub">Pipeline · Signings · Win Rate by vertical · ${scope.quarter}</div></div></div>
-      ${ins(indNarr)}
+    // Channel intelligence
+    const chRows = (ind&&ind.byChannel)||[];
+    const topCh  = chRows[0], lowCh = chRows.filter(c=>c.winRate<50&&c.pipeline>1)[0];
+    const chNarr = chRows.length
+      ? `<strong>${topCh.channel}</strong> is the dominant channel with <strong>${fmt(topCh.pipeline)}</strong> in pipeline and ${fpp(topCh.winRate)} win rate. `+
+        (lowCh?`<strong>${lowCh.channel}</strong> win rate of ${fpp(lowCh.winRate)} on ${fmt(lowCh.pipeline)} pipeline — review seller readiness and competitive collateral for this channel.`:`All channels show win rates above 50% threshold.`)
+      : "Channel data not available for this scope.";
 
-      <div class="pm-table-wrap" style="margin-bottom:14px">
-        <div class="pm-table-hd"><span>By Industry — ${scope.quarter}</span><span class="pm-table-cnt">${rows.length} verticals</span></div>
-        <table class="pm-tbl"><thead><tr>
-          <th>Industry</th>
-          <th style="text-align:right">Pipeline</th>
-          <th style="text-align:right">Signings</th>
-          <th style="text-align:right">Win Rate</th>
-          <th style="text-align:right">Pipe QoQ</th>
-          <th style="text-align:right">Sig YoY</th>
-          <th style="text-align:right">Active</th>
-        </tr></thead><tbody>
-        ${rows.map(r=>{
-          const bw = Math.max(3, r.cq.pipeline/mpI*60);
-          const wc = r.cq.winRate>=65?"bg":r.cq.winRate>=45?"bb":"br";
+    // Client Segment intelligence
+    const segRows = (ind&&ind.byClientType)||[];
+    const topSeg  = segRows[0], lowSeg = segRows.filter(s=>s.winRate<50&&s.pipeline>1)[0];
+    const segNarr = segRows.length
+      ? `<strong>${topSeg.clientType}</strong> accounts for the largest segment with <strong>${fmt(topSeg.pipeline)}</strong> pipeline and ${fpp(topSeg.winRate)} win rate. `+
+        (lowSeg?`<strong>${lowSeg.clientType}</strong> win rate of ${fpp(lowSeg.winRate)} — targeted segment play and executive sponsorship could improve close rates.`:`Win rates are solid across all client segments.`)
+      : "Client segment data not available for this scope.";
+
+    othersSec.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Others — Industry, Channel &amp; Segment</div>
+      <div class="pm-sec-sub">Cross-cutting analysis · ${scope.quarter}</div></div></div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:0 0 6px">Industry Intelligence</div>
+      ${ins(othNarr)}
+      ${indRows.length?`<div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>By Industry</span><span class="pm-table-cnt">${indRows.length} verticals</span></div>
+        <table class="pm-tbl"><thead><tr><th>Industry</th>
+          <th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th>
+          <th style="text-align:right">Win Rate</th><th style="text-align:right">Pipe QoQ</th>
+          <th style="text-align:right">Sig YoY</th><th style="text-align:right">Active</th></tr></thead>
+        <tbody>${indRows.map(r=>{
+          const bw=Math.max(3,r.cq.pipeline/mpI*60),wc=r.cq.winRate>=65?"bg":r.cq.winRate>=45?"bb":"br";
           return `<tr>
             <td><strong>${r.industry}</strong><div style="height:2px;background:#0f62fe;width:${bw}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
-            <td style="text-align:right">${fmt(r.cq.pipeline)}</td>
-            <td style="text-align:right">${fmt(r.cq.signings)}</td>
+            <td style="text-align:right">${fmt(r.cq.pipeline)}</td><td style="text-align:right">${fmt(r.cq.signings)}</td>
             <td style="text-align:right"><span class="bdg ${wc}">${fpp(r.cq.winRate)}</span></td>
-            <td style="text-align:right">${kdH(r.pipeQoQ)}</td>
-            <td style="text-align:right">${kdH(r.sigYoY)}</td>
-            <td style="text-align:right;color:var(--muted)">${r.cq.activeCount}</td>
-          </tr>`;
-        }).join("")}
-        </tbody></table>
-      </div>
+            <td style="text-align:right">${kdH(r.pipeQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
+            <td style="text-align:right;color:var(--muted)">${r.cq.activeCount}</td></tr>`;
+        }).join("")}</tbody></table></div>`:""}
 
-      ${topInds.length && Object.keys(matrix).length ? `
-      <div class="pm-table-wrap" style="margin-bottom:14px">
-        <div class="pm-table-hd"><span>Pipeline — Geo × Industry Matrix</span><span class="pm-table-cnt">Top ${topInds.length} industries</span></div>
-        <div style="overflow-x:auto"><table class="pm-tbl"><thead><tr>
-          <th>Geo</th>
-          ${topInds.map(inm=>`<th style="text-align:right;max-width:90px;white-space:normal;font-size:8px">${inm}</th>`).join("")}
-        </tr></thead><tbody>
-        ${GEOS4.map(g=>`<tr>
-          <td><strong>${g}</strong></td>
-          ${topInds.map(iv=>{
-            const v=(matrix[g]&&matrix[g][iv]&&matrix[g][iv].pipeline)||0;
-            return `<td style="text-align:right;font-size:11px">${v>0?fmt(v):"—"}</td>`;
-          }).join("")}
-        </tr>`).join("")}
-        </tbody></table></div>
-      </div>` : ""}
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:0 0 6px">Channel Intelligence</div>
+      ${ins(chNarr)}
+      ${chRows.length?`<div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>By Channel</span><span class="pm-table-cnt">${chRows.length} channels</span></div>
+        <table class="pm-tbl"><thead><tr><th>Channel</th>
+          <th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th>
+          <th style="text-align:right">Win Rate</th><th style="text-align:right">Active</th></tr></thead>
+        <tbody>${chRows.map(r=>{
+          const wc=r.winRate>=65?"bg":r.winRate>=45?"bb":"br";
+          return `<tr><td><strong>${r.channel}</strong></td>
+            <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${fmt(r.signings)}</td>
+            <td style="text-align:right"><span class="bdg ${wc}">${fpp(r.winRate)}</span></td>
+            <td style="text-align:right;color:var(--muted)">${r.activeCount}</td></tr>`;
+        }).join("")}</tbody></table></div>`:""}
 
-      ${flmRows.length ? `
-      <div class="pm-table-wrap" style="margin-bottom:14px">
-        <div class="pm-table-hd"><span>FLM Conviction by Industry</span><span class="pm-table-cnt">Active opps only</span></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:0 0 6px">Client Segment Intelligence</div>
+      ${ins(segNarr)}
+      ${segRows.length?`<div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>By Client Segment</span><span class="pm-table-cnt">${segRows.length} segments</span></div>
+        <table class="pm-tbl"><thead><tr><th>Client Segment</th>
+          <th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th>
+          <th style="text-align:right">Win Rate</th><th style="text-align:right">Active</th></tr></thead>
+        <tbody>${segRows.map(r=>{
+          const wc=r.winRate>=65?"bg":r.winRate>=45?"bb":"br";
+          return `<tr><td><strong>${r.clientType}</strong></td>
+            <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${fmt(r.signings)}</td>
+            <td style="text-align:right"><span class="bdg ${wc}">${fpp(r.winRate)}</span></td>
+            <td style="text-align:right;color:var(--muted)">${r.activeCount}</td></tr>`;
+        }).join("")}</tbody></table></div>`:""}
+
+      ${watchlist.length?`<div class="pm-table-wrap" style="margin-bottom:10px">
+        <div class="pm-table-hd"><span>Priority Watchlist</span><span class="pm-table-cnt">${watchlist.length} items</span></div>
         <table class="pm-tbl"><thead><tr>
-          <th>Industry</th>
-          <th style="text-align:right">Pipeline</th>
-          <th style="text-align:right">Active Opps</th>
-          <th style="text-align:right">FLM=Y</th>
-          <th style="text-align:right">FLM %</th>
-          <th style="text-align:right">FLM Pipeline</th>
-        </tr></thead><tbody>
-        ${flmRows.map(r=>{
-          const fc = r.flmPct>=60?"bg":r.flmPct>=35?"bb":"br";
-          return `<tr>
-            <td><strong>${r.industry}</strong></td>
-            <td style="text-align:right">${fmt(r.pipeline)}</td>
-            <td style="text-align:right;color:var(--muted)">${r.total}</td>
-            <td style="text-align:right;color:var(--green);font-weight:600">${r.flmY}</td>
-            <td style="text-align:right"><span class="bdg ${fc}">${fpp(r.flmPct)}</span></td>
-            <td style="text-align:right">${fmt(r.flmPipeline)}</td>
-          </tr>`;
-        }).join("")}
-        </tbody></table>
-      </div>` : ""}
-
-      ${tsRows.length ? `
-      <div class="pm-table-wrap">
-        <div class="pm-table-hd"><span>Top Stalled Opportunities (FLM=Y, ≥30 days)</span><span class="pm-table-cnt">${tsRows.length} opps</span></div>
-        <table class="pm-tbl"><thead><tr>
-          <th>Customer</th><th>Industry</th><th>Geo</th>
-          <th style="text-align:right">Pipeline</th><th style="text-align:right">Age</th>
-          <th>Stage</th><th>Offering</th>
-        </tr></thead><tbody>
-        ${tsRows.map(r=>`<tr>
-          <td><strong>${r.customer}</strong></td>
-          <td style="color:var(--muted);font-size:10px">${r.industry||"—"}</td>
-          <td>${r.geo}</td>
-          <td style="text-align:right">${fmt(r.oppVal)}</td>
-          <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
-          <td style="font-size:10px">${r.stage}</td>
-          <td style="font-size:10px;color:var(--muted);max-width:120px;white-space:normal">${r.offering||"—"}</td>
-        </tr>`).join("")}
-        </tbody></table>
-      </div>` : ""}`;
-  } else if (indSec) {
-    indSec.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Industry Breakdown</div><div class="pm-sec-sub">No industry data available for this scope</div></div></div>`;
+          <th>Industry</th><th>Metric</th><th style="text-align:right">Value</th><th>Risk</th><th>Action</th></tr></thead>
+        <tbody>${watchlist.map(w=>`<tr>
+          <td><strong>${w.industry}</strong></td><td><span class="bdg br">${w.metric}</span></td>
+          <td style="text-align:right;font-weight:700;color:#da1e28">${w.value}</td>
+          <td style="font-size:10px;color:var(--muted)">${w.risk}</td>
+          <td style="font-size:10px">${w.action}</td></tr>`).join("")}
+        </tbody></table></div>`:""}`;
   }
 }
 

@@ -1838,6 +1838,9 @@ app.get("/api/pm-report", (req, res) => {
   // base filter — honour year if passed, pass quarter only if explicitly chosen
   const base = { geo, offeringArea, consolidatedOffering, offering, ut30 };
   if (year && year !== "ALL") base.year = year;
+  // Revenue base: never filter by year — revenue rows are already tied to specific quarters,
+  // and passing year="2025" would block lookup of 2025 quarters when CQ is resolved as a 2026 quarter.
+  const revBase = { geo, offeringArea, consolidatedOffering, ut30 };
 
   // ── Helper: aggregate a set of records ──
   const aggRecs = (recs) => {
@@ -1868,9 +1871,9 @@ app.get("/api/pm-report", (req, res) => {
   const pyq = aggQ(PYQ);
 
   // ── Revenue actuals ──
-  const revCQ  = filterRev({ ...base, quarter: CQ  }).reduce((s,r) => s + r.revActM, 0);
-  const revPQ  = filterRev({ ...base, quarter: PQ  }).reduce((s,r) => s + r.revActM, 0);
-  const revPYQ = filterRev({ ...base, quarter: PYQ }).reduce((s,r) => s + r.revActM, 0);
+  const revCQ  = filterRev({ ...revBase, quarter: CQ  }).reduce((s,r) => s + r.revActM, 0);
+  const revPQ  = filterRev({ ...revBase, quarter: PQ  }).reduce((s,r) => s + r.revActM, 0);
+  const revPYQ = filterRev({ ...revBase, quarter: PYQ }).reduce((s,r) => s + r.revActM, 0);
 
   // ── By Geo (CQ) ──
   const GEOS = ["Americas","EMEA","APAC","Japan"];
@@ -1881,12 +1884,26 @@ app.get("/api/pm-report", (req, res) => {
     const a = aggRecs(recs);
     const ap = aggRecs(recsP);
     const ay = aggRecs(recsY);
+    // per-geo revenue from revenue actuals table
+    const revG   = +filterRev({ ...revBase, quarter: CQ,  geo: g }).reduce((s,r) => s + r.revActM, 0).toFixed(2);
+    const revGPQ = +filterRev({ ...revBase, quarter: PQ,  geo: g }).reduce((s,r) => s + r.revActM, 0).toFixed(2);
+    const revGPY = +filterRev({ ...revBase, quarter: PYQ, geo: g }).reduce((s,r) => s + r.revActM, 0).toFixed(2);
+    // per-geo trend (last 4 quarters)
+    const geoTrend = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort().slice(-4).map(q => {
+      const gr = aggRecs(filter({ ...base, quarter: q, geo: g }));
+      const grev = +filterRev({ ...revBase, quarter: q, geo: g }).reduce((s,r) => s + r.revActM, 0).toFixed(2);
+      return { quarter: q, pipeline: gr.pipeline, signings: gr.signings, revenue: grev, winRate: gr.winRate };
+    });
     return {
       geo: g, ...a,
+      revenue: revG,
+      revQoQ: revGPQ > 0 ? +((revG / revGPQ - 1) * 100).toFixed(1) : null,
+      revYoY: revGPY > 0 ? +((revG / revGPY - 1) * 100).toFixed(1) : null,
       sigQoQ: ap.signings > 0 ? +((a.signings / ap.signings - 1) * 100).toFixed(1) : null,
       sigYoY: ay.signings > 0 ? +((a.signings / ay.signings - 1) * 100).toFixed(1) : null,
       pipeQoQ: ap.pipeline > 0 ? +((a.pipeline / ap.pipeline - 1) * 100).toFixed(1) : null,
       wrDeltaQoQ: +(a.winRate - ap.winRate).toFixed(1),
+      geoTrend,
     };
   });
 
@@ -1968,7 +1985,7 @@ app.get("/api/pm-report", (req, res) => {
   const trend = trendQtrs.map(q => {
     const r = filter({ ...base, quarter: q });
     const a = aggRecs(r);
-    const rv = filterRev({ ...base, quarter: q }).reduce((s,x) => s + x.revActM, 0);
+    const rv = filterRev({ ...revBase, quarter: q }).reduce((s,x) => s + x.revActM, 0);
     return { quarter: q, pipeline: a.pipeline, signings: a.signings, winRate: a.winRate, revenue: +rv.toFixed(2) };
   });
 
@@ -2251,9 +2268,42 @@ app.get("/api/pm-report/industry", (req, res) => {
     });
   });
 
+  // ── By Channel ──
+  const allChannels = [...new Set(recsAll.map(r=>r.channel))].filter(Boolean);
+  const byChannel = allChannels.map(ch => {
+    const r  = filter({ ...base, quarter: CQ }).filter(x => x.channel === ch);
+    const active = r.filter(x => !["Won","Lost"].includes(x.stage));
+    const closed = r.filter(x => x.stage==="Won"||x.stage==="Lost");
+    const won    = closed.filter(x => x.stage==="Won");
+    return {
+      channel:     ch,
+      pipeline:    +active.reduce((s,x)=>s+x.oppVal,0).toFixed(2),
+      signings:    +r.reduce((s,x)=>s+x.wonDollar,0).toFixed(2),
+      activeCount: active.length,
+      winRate:     closed.length>0 ? +((won.length/closed.length)*100).toFixed(1) : 0,
+    };
+  }).sort((a,b)=>b.pipeline-a.pipeline);
+
+  // ── By Client Type (Segment) ──
+  const allClientTypes = [...new Set(recsAll.map(r=>r.clientType))].filter(Boolean);
+  const byClientType = allClientTypes.map(ct => {
+    const r  = filter({ ...base, quarter: CQ }).filter(x => x.clientType === ct);
+    const active = r.filter(x => !["Won","Lost"].includes(x.stage));
+    const closed = r.filter(x => x.stage==="Won"||x.stage==="Lost");
+    const won    = closed.filter(x => x.stage==="Won");
+    return {
+      clientType:  ct,
+      pipeline:    +active.reduce((s,x)=>s+x.oppVal,0).toFixed(2),
+      signings:    +r.reduce((s,x)=>s+x.wonDollar,0).toFixed(2),
+      activeCount: active.length,
+      winRate:     closed.length>0 ? +((won.length/closed.length)*100).toFixed(1) : 0,
+    };
+  }).sort((a,b)=>b.pipeline-a.pipeline);
+
   res.json({
     scope: { geo, quarter: CQ, pq: PQ, pyq: PYQ, offeringArea, consolidatedOffering },
     byIndustry, geoIndMatrix, topStalled, flmByInd, sigTrend,
+    byChannel, byClientType,
     gtmActions: gtmActions.slice(0,14),
     watchlist: watchlist.sort((a,b)=>b.dollars-a.dollars).slice(0,9),
     industries: industries.slice(0,10),
@@ -2274,6 +2324,14 @@ app.get("/api/pm-meta", (req, res) => {
     const cons = [...new Set(records.filter(r => r.offeringArea === oa).map(r => r.consolidatedOffering))]
       .filter(v => v && v !== "NotCross" && v !== "Unassigned").sort();
     conByOA[oa] = cons;
+  }
+
+  // Lvl 30 names per OA
+  const lvl30ByOA = {};
+  for (const oa of orderedOAs) {
+    const vals = [...new Set(records.filter(r => r.offeringArea === oa).map(r => r.ut30))]
+      .filter(v => v && v !== "NotCross" && v !== "Unassigned").sort();
+    lvl30ByOA[oa] = vals;
   }
 
   // Offering Names per Consolidated Offering (from Offering Name column)
@@ -2310,7 +2368,7 @@ app.get("/api/pm-meta", (req, res) => {
   // legacy shape kept for backward compat
   const productLines = { "Cross-Portfolio Infrastructure Services": orderedOAs };
 
-  res.json({ portfolio, productLines, conByOA, offeringsByCon, orderedOAs, qtrs, years });
+  res.json({ portfolio, productLines, conByOA, offeringsByCon, orderedOAs, lvl30ByOA, qtrs, years });
 });
 
 // ─── Feedback log (in-memory) ────────────────────────────────────────────────
