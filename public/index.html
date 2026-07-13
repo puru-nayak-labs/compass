@@ -203,41 +203,44 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 
 <div id="rm-overlay" class="overlay">
   <div class="rm-box">
-    <h2>IBM Compass &mdash; Product Roadmap</h2>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <h2 style="margin-bottom:0">IBM Compass &mdash; Product Roadmap</h2>
+      <button onclick="closeOverlay('rm-overlay')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;padding:0 2px;flex-shrink:0">&times;</button>
+    </div>
     <p class="rm-sub">TLS Performance Intelligence &nbsp;&middot;&nbsp; Internship Build &nbsp;&middot;&nbsp; watsonx Challenge deadline <strong style="color:var(--red)">Jul 21 2026</strong></p>
 
     <div class="rm-phases">
       <!-- Phase 0 -->
       <div class="rm-phase done">
         <div class="rm-dot"></div>
-        <div class="rm-ph-label">Phase 0 &#10003;</div>
+        <div class="rm-ph-label">Phase 0 &mdash; Done</div>
         <div class="rm-ph-name">Product Definition</div>
         <div class="rm-ph-time">Jun 2026</div>
         <ul class="rm-ph-items">
-          <li>&#10003; Locked KPI priority order</li>
-          <li>&#10003; Defined PM personas &amp; questions</li>
-          <li>&#10003; Set success criteria &lt;5 min</li>
-          <li>&#10003; Product vision &amp; OBR drafted</li>
+          <li>Locked KPI priority order</li>
+          <li>Defined PM personas &amp; questions</li>
+          <li>Set success criteria &lt;5 min</li>
+          <li>Product vision &amp; OBR drafted</li>
         </ul>
       </div>
 
-      <!-- Phase 1 — done by Jul 21 -->
+      <!-- Phase 1 -->
       <div class="rm-phase active">
         <div class="rm-dot"></div>
-        <div class="rm-ph-label" style="color:var(--red)">&#9888; Jul 21 Deadline</div>
+        <div class="rm-ph-label" style="color:var(--red)">Jul 21 Deadline</div>
         <div class="rm-ph-name">Full KPI Intelligence MVP</div>
         <div class="rm-ph-time">Jul 2026</div>
         <ul class="rm-ph-items">
-          <li>&#10003; Pipeline + Revenue data ingestion</li>
-          <li>&#10003; 4 KPI tiles (Pipeline · Signings · Revenue · Win Rate)</li>
-          <li>&#10003; Trend charts · Tabular breakdown</li>
-          <li>&#10003; Ask Compass chat interface</li>
-          <li>&#10003; AI Exec Summary + Insights panel</li>
-          <li>&#10003; Analyst persona (filters, geo, OA)</li>
-          <li>&#10003; PM persona · BI report flipbook</li>
-          <li>&#10003; Portfolio Leader persona view</li>
-          <li>&#10003; Industry breakdown tab</li>
-          <li>&#10003; Product Roadmap &amp; Feedback log</li>
+          <li>Pipeline + Revenue data ingestion</li>
+          <li>4 KPI tiles (Pipeline, Signings, Revenue, Win Rate)</li>
+          <li>Trend charts and Tabular breakdown</li>
+          <li>Ask Compass chat interface</li>
+          <li>AI Exec Summary + Insights panel</li>
+          <li>Analyst persona (filters, geo, OA)</li>
+          <li>PM persona with BI report flipbook</li>
+          <li>Portfolio Leader persona view</li>
+          <li>Industry breakdown tab</li>
+          <li>Product Roadmap and Feedback log</li>
         </ul>
       </div>
 
@@ -250,10 +253,10 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
         <ul class="rm-ph-items">
           <li>IBM Intranet hosting (w3 / internal URL)</li>
           <li>Automated weekly email digest</li>
-          <li>IBM Z · IBM Power · IBM Storage personas</li>
+          <li>IBM Z, IBM Power, IBM Storage personas</li>
           <li>MVS Networking &amp; Security persona</li>
           <li>Auto-ingest new data files on upload</li>
-          <li>KPI Correlation Engine (Rev&uarr; + Sig&darr; = risk)</li>
+          <li>KPI Correlation Engine (Rev up + Sig down = risk)</li>
           <li>Win/Loss root cause narrative</li>
         </ul>
       </div>
@@ -325,12 +328,12 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
   <span class="ibm-badge">IBM</span>
   <span class="h-title">Compass</span>
   <span class="h-sub">TLS Performance Intelligence</span>
+  <span class="ldot" style="margin-left:14px"></span>
+  <span id="h-data-dates" style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap">Pipeline Data &middot; &hellip; &nbsp;|&nbsp; Revenue Data &middot; &hellip;</span>
   <div class="h-right">
-    <span class="ldot"></span>
-    <span id="h-data-dates">Pipeline Data &middot; &hellip; &nbsp;|&nbsp; Revenue Data &middot; &hellip;</span>
+    <button class="h-action-btn" onclick="openRoadmap()">&#128204; Roadmap</button>
+    <button class="h-action-btn" onclick="openFeedbackLog()">&#128172; Feedback</button>
   </div>
-  <button class="h-action-btn" onclick="openRoadmap()">&#128204; Roadmap</button>
-  <button class="h-action-btn" onclick="openFeedbackLog()">&#128172; Feedback</button>
 </header>
 
 <!-- UNIFIED 3-PANEL APP SHELL -->
@@ -2054,6 +2057,8 @@ window.addEventListener("load", async () => {
   try { await Promise.all([ loadMeta(), initPMWizard() ]); } catch(e) { console.warn("Boot warning:", e); }
   try { await Promise.all([ loadKPIs(), loadTrend(), loadInsights() ]); } catch(e) { console.warn(e); }
   const lov = $("lov"); if (lov) lov.style.display = "none";
+  // Auto-generate PM report with defaults (CPIS, 2026, 2Q26, WW)
+  generatePMReport();
 });
 </script>
 </body>
