@@ -88,8 +88,9 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 .rm-ph-time{font-size:9px;color:var(--muted);text-align:center;margin-bottom:8px}
 .rm-ph-items{background:var(--sur);border:1px solid var(--bdr);border-radius:6px;
              padding:8px 10px;width:calc(100% - 12px);font-size:10px;line-height:1.7;color:var(--muted)}
-.rm-ph-items li{list-style:none;padding:1px 0}
-.rm-ph-items li::before{content:"&#9658; ";color:inherit}
+.rm-ph-items{counter-reset:rm-item}
+.rm-ph-items li{list-style:none;padding:1px 0 1px 18px;position:relative;counter-increment:rm-item}
+.rm-ph-items li::before{content:counter(rm-item)". ";position:absolute;left:0;font-weight:700;color:inherit;font-size:9px}
 .rm-phase.done .rm-dot{background:var(--green)}.rm-phase.done .rm-ph-label{color:var(--green)}
 .rm-phase.active .rm-dot{background:var(--blue)}.rm-phase.active .rm-ph-label{color:var(--blue)}
 .rm-phase.next .rm-dot{background:var(--yellow)}.rm-phase.next .rm-ph-label{color:var(--yellow)}
@@ -452,12 +453,17 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 .a-rp{background:#fff;overflow-y:auto;display:flex;flex-direction:column}
 .a-rp::-webkit-scrollbar{width:3px}
 .a-rp::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
-.rp-sec{padding:10px 12px;border-bottom:1px solid var(--bdr)}
-.rp-hd{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
-       color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.rp-hd-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.ins-item{padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.55}
+.rp-sec{margin:8px;border-radius:6px;border:1px solid var(--bdr);overflow:hidden}
+.rp-hd{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+       padding:7px 11px 6px;display:flex;align-items:center;gap:7px;margin-bottom:0}
+.rp-hd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rp-hd-lbl{flex:1}
+.rp-body{padding:6px 11px 10px}
+.ins-item{padding:6px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.55}
 .ins-item:last-child{border-bottom:none}
+.rp-highlight-hd{background:rgba(25,128,56,.08)}
+.rp-focus-hd{background:rgba(218,30,40,.08)}
+.rp-action-hd{background:rgba(105,41,196,.08)}
 /* Top Accounts overlay */
 .ta-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
         padding:24px 28px;max-width:680px;width:90%;max-height:86vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.12)}
@@ -655,26 +661,26 @@ I'm your TLS PM intelligence assistant. Ask me anything:
   </div><!-- /center-panel -->
 
   <!-- PANEL 3: INSIGHTS (shared) -->
-  <div class="a-panel a-rp">
+  <div class="a-panel a-rp" style="padding-top:4px">
     <!-- filter context header -->
-    <div style="padding:8px 12px 6px;border-bottom:2px solid var(--ibm);background:#fff;flex-shrink:0">
+    <div style="padding:8px 12px 7px;border-bottom:2px solid var(--ibm);background:#fff;flex-shrink:0;margin-bottom:4px">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ibm);margin-bottom:3px">Intelligence Panel</div>
       <div id="rp-filter-ctx" style="font-size:9px;color:var(--muted);line-height:1.5">All Offerings &middot; WW &middot; All Quarters</div>
     </div>
-    <!-- Top Highlights card -->
-    <div class="rp-sec" style="border-left:3px solid var(--green)">
-      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--green)"></span>&#11088; Top Highlights</div>
-      <div id="rpHigh"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    <!-- Card 1: Top Highlights -->
+    <div class="rp-sec" style="border-left:4px solid var(--green)">
+      <div class="rp-hd rp-highlight-hd"><span class="rp-hd-dot" style="background:var(--green)"></span><span class="rp-hd-lbl" style="color:var(--green)">&#11088; Top Highlights</span></div>
+      <div class="rp-body" id="rpHigh"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
     </div>
-    <!-- Top Focus Areas card -->
-    <div class="rp-sec" style="border-left:3px solid var(--red)">
-      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--red)"></span>&#128308; Top Focus Areas</div>
-      <div id="rpFocus"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    <!-- Card 2: Top Focus Areas -->
+    <div class="rp-sec" style="border-left:4px solid var(--red)">
+      <div class="rp-hd rp-focus-hd"><span class="rp-hd-dot" style="background:var(--red)"></span><span class="rp-hd-lbl" style="color:var(--red)">&#128308; Top Focus Areas</span></div>
+      <div class="rp-body" id="rpFocus"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
     </div>
-    <!-- Top Recommended Actions card -->
-    <div class="rp-sec" style="border-bottom:none;border-left:3px solid var(--purple)">
-      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--purple)"></span>&#127919; Top Recommended Actions</div>
-      <div id="rpAct"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    <!-- Card 3: Top Recommended Actions -->
+    <div class="rp-sec" style="border-left:4px solid var(--purple)">
+      <div class="rp-hd rp-action-hd"><span class="rp-hd-dot" style="background:var(--purple)"></span><span class="rp-hd-lbl" style="color:var(--purple)">&#127919; Top Recommended Actions</span></div>
+      <div class="rp-body" id="rpAct"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
     </div>
   </div>
 </div><!-- /a-app -->
@@ -1629,6 +1635,23 @@ async function loadExec() {
     narEl.innerHTML = summ.narrative.split("\n\n")
       .map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("");
   }
+
+  // ── Refresh right panel with exec filter context ──
+  const rpInsF = { geo, offeringArea: oa };
+  if (year !== "ALL") rpInsF.year = year;
+  if (qtr  !== "2Q26") rpInsF.quarter = qtr;
+  const rpInsD = await fetch(`/api/insights?${qs(rpInsF)}`).then(r=>r.json()).catch(()=>({highlights:[],focus:[],actions:[]}));
+  const rpRender=(el,items)=>{ const e=$(el); if(!e) return; e.innerHTML=items.length?items.map(i=>`<div class="ins-item"><span style="margin-right:5px">${i.icon}</span>${i.text}</div>`).join(""):`<div style="color:var(--muted);font-size:10px">No data</div>`; };
+  rpRender("rpHigh",rpInsD.highlights); rpRender("rpFocus",rpInsD.focus); rpRender("rpAct",rpInsD.actions);
+  const rpCtxEl = $("rp-filter-ctx");
+  if (rpCtxEl) {
+    rpCtxEl.innerHTML = [
+      oa !== "ALL" ? oa : "All Offerings",
+      geo,
+      year !== "ALL" ? year : "",
+      qtr  || "All Qtrs"
+    ].filter(Boolean).join(" &middot; ");
+  }
 }
 </script>
 
@@ -1853,9 +1876,10 @@ function renderPMReport(d, ind, scope) {
   const GCL  = {Americas:"am",EMEA:"em",APAC:"ap",Japan:"jp"};
   const GC   = {Americas:"var(--c-americas)",EMEA:"var(--c-emea)",APAC:"var(--c-apac)",Japan:"var(--c-japan)"};
   const ins  = (text) => `<div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;line-height:1.65;color:#1f2328;margin-bottom:10px">${text}</div>`;
+  const noData = (sec,title) => { const el=$(sec); if(el) el.innerHTML=`<div class="pm-sec-hd"><div><div class="pm-sec-title">${title}</div></div></div><div style="padding:24px;color:var(--muted);font-size:11px;text-align:center">No data available for this filter scope.</div>`; };
 
   // ── 1. Business Health ─────────────────────────────────────────────────────
-  const bh = $("pm-s-bh"); if (bh && d.cq) {
+  const bh = $("pm-s-bh"); if (bh) { if (!d.cq) { noData("pm-s-bh","Business Health"); } else {
     const cq=d.cq, rev=d.revenue||{};
     const accts = (d.topAccounts||[]).slice(0,8);
     const mpA   = Math.max(...accts.map(a=>a.pipeline),1);
@@ -1904,17 +1928,21 @@ function renderPMReport(d, ind, scope) {
             <td style="text-align:right"><span class="bdg ${wc}">${fpp(a.winRate)}</span></td>
             <td style="text-align:right;color:var(--muted)">${a.flmCount}</td></tr>`;
         }).join("")}</tbody></table></div>`:""}`;
-  }
+  }} // end bh guard
 
   // ── 2. Exec Summary ────────────────────────────────────────────────────────
-  const es = $("pm-s-es"); if (es && d.narrative) {
+  const es = $("pm-s-es");
+  if (es) {
+    if (!d.narrative) { noData("pm-s-es","Executive Summary"); } else {
     es.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Executive Summary</div>
       <div class="pm-sec-sub">AI-generated narrative · ${scope.quarter}</div></div></div>
       <div class="pm-narrative">${d.narrative.split("\n\n").map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("")}</div>`;
+    }
   }
 
   // ── 3. Top Actions ─────────────────────────────────────────────────────────
-  const act = $("pm-s-act"); if (act && d.actions) {
+  const act = $("pm-s-act");
+  if (act) { if (!d.actions) { noData("pm-s-act","Top Actions"); } else {
     const indActions = (ind&&ind.gtmActions)||[];
     const allActions = [...d.actions,...indActions.filter(a=>!d.actions.find(x=>x.category===a.type))].slice(0,10);
     const watchlist  = (ind&&ind.watchlist)||[];
@@ -1942,10 +1970,11 @@ function renderPMReport(d, ind, scope) {
           <td style="text-align:right">${fmt(r.pipeline)}</td>
           <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
           <td>${r.stage}</td></tr>`).join("")}</tbody></table></div>`:""}`;
-  }
+  }}
 
   // ── 4. Pipeline ────────────────────────────────────────────────────────────
-  const pipe = $("pm-s-pipe"); if (pipe && d.byOA) {
+  const pipe = $("pm-s-pipe");
+  if (pipe) { if (!d.byOA||!d.byOA.length) { noData("pm-s-pipe","Pipeline Intelligence"); } else {
     const rows=d.byOA.slice(0,10), mp=Math.max(...rows.map(r=>r.pipeline),1);
     const topOA=rows[0], atRisk=rows.filter(r=>r.sigQoQ!=null&&r.sigQoQ<-10);
     const pipeNarr = topOA
@@ -1973,10 +2002,11 @@ function renderPMReport(d, ind, scope) {
         <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
         <td style="text-align:right;font-weight:700;color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${fpp(r.winRate)}</td>
       </tr>`).join("")}</tbody></table></div>${trendHtml}`;
-  }
+  }}
 
   // ── 5. Signings ────────────────────────────────────────────────────────────
-  const sig = $("pm-s-sig"); if (sig && d.byCon) {
+  const sig = $("pm-s-sig");
+  if (sig) { if (!d.byCon||!d.byCon.length) { noData("pm-s-sig","Signings Intelligence"); } else {
     const rows=d.byCon.slice(0,10);
     const topCon=rows[0], botCon=rows.filter(r=>r.sigYoY!=null&&r.sigYoY<0).slice(0,2);
     const sigNarr = topCon
@@ -1995,10 +2025,11 @@ function renderPMReport(d, ind, scope) {
         <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
         <td style="text-align:right;font-weight:700;color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${fpp(r.winRate)}</td>
       </tr>`).join("")}</tbody></table></div>`;
-  }
+  }}
 
   // ── 6. Revenue ─────────────────────────────────────────────────────────────
-  const rev = $("pm-s-rev"); if (rev && d.revenue) {
+  const rev = $("pm-s-rev");
+  if (rev) { if (!d.revenue) { noData("pm-s-rev","Revenue Intelligence"); } else {
     const rv=d.revenue;
     const revGap=rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
     // Actionable intelligence: tell the PM what to DO, not just what happened
@@ -2062,10 +2093,11 @@ function renderPMReport(d, ind, scope) {
         });
       });
     }
-  }
+  }}
 
   // ── 7. Win Rate ────────────────────────────────────────────────────────────
-  const wr = $("pm-s-wr"); if (wr && d.winLoss) {
+  const wr = $("pm-s-wr");
+  if (wr) { if (!d.winLoss||!d.winLoss.length) { noData("pm-s-wr","Win Rate Intelligence"); } else {
     const cq=d.cq||{};
     const topWin=d.winLoss.filter(r=>r.won>r.lost)[0], topLoss=d.winLoss.filter(r=>r.lost>r.won)[0];
     const wrNarr = `Win rate is <strong>${fpp(cq.winRate)}</strong> — ${cq.wonCount||0} won from ${cq.closedCount||0} closed deals. `+
@@ -2085,10 +2117,11 @@ function renderPMReport(d, ind, scope) {
           <td style="text-align:right;color:#198038;font-weight:600">${r.won}</td>
           <td style="text-align:right;color:#da1e28;font-weight:600">${r.lost}</td>
           <td style="text-align:right">${r.total}</td></tr>`).join("")}</tbody></table></div>`;
-  }
+  }}
 
   // ── 8. Geography ───────────────────────────────────────────────────────────
-  const geoSec = $("pm-s-geo"); if (geoSec && d.byGeo && d.byGeo.length) {
+  const geoSec = $("pm-s-geo");
+  if (geoSec) { if (!d.byGeo||!d.byGeo.length) { noData("pm-s-geo","Geography Analysis"); } else {
     const byGeo = d.byGeo;
     const topG  = [...byGeo].sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
     const lowG  = [...byGeo].filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
@@ -2166,11 +2199,12 @@ function renderPMReport(d, ind, scope) {
             <div style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px;display:flex;flex-direction:column;gap:4px">
               <div style="font-size:10px;line-height:1.55;color:#1f2328;padding:5px 8px;background:#f0f6ff;border-left:2px solid ${GC[g]};border-radius:0 3px 3px 0">&#128161; ${geoI1}</div>
               <div style="font-size:10px;line-height:1.55;color:#1f2328;padding:5px 8px;background:#f0f6ff;border-left:2px solid ${GC[g]};border-radius:0 3px 3px 0">&#127919; ${geoI2}</div>
+              ${(()=>{ const topA=(d.topAccounts||[]).filter(a=>a.geo===g).slice(0,2); if(!topA.length) return ""; return `<div style="font-size:10px;line-height:1.55;color:#1f2328;padding:5px 8px;background:#fff8e1;border-left:2px solid #b28600;border-radius:0 3px 3px 0">&#128188; Top account${topA.length>1?"s":""}: ${topA.map(a=>`<strong>${a.name}</strong> (${fmt(a.pipeline)} pipe, ${fpp(a.winRate)} WR)`).join(" · ")}</div>`; })()}
             </div>
           </div>`;
         }).join("")}
       </div>`;
-  }
+  }}
 
   // ── 9. Others (Industry + Channel + Segment) ───────────────────────────────
   const othersSec = $("pm-s-others");
