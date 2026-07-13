@@ -671,57 +671,77 @@ Chart.register(ChartDataLabels);
 (function buildExec() {
   document.getElementById("center-exec").innerHTML = `
 <style>
-.exec-wrap{max-width:1100px;margin:0 auto;padding:28px 24px;width:100%}
-.exec-scope-bar{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
-.exec-scope-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.exec-wrap{max-width:1100px;margin:0 auto;padding:0;width:100%;display:flex;flex-direction:column;height:100%}
+.exec-wip-bar{background:repeating-linear-gradient(45deg,#b28600,#b28600 6px,#fff3cd 6px,#fff3cd 14px);
+              padding:6px 16px;font-size:10px;font-weight:700;color:#7a4f00;letter-spacing:.3px;flex-shrink:0;
+              display:flex;align-items:center;gap:8px}
+.exec-fbar{background:#f4f4f4;border-bottom:1px solid var(--bdr);padding:6px 14px 7px;
+           display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.exec-frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.exec-scope-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 .exec-scope-sel{background:#fff;border:1px solid var(--bdr2);color:var(--text);
-                padding:4px 9px;border-radius:3px;font-size:11px;outline:none;cursor:pointer}
+                padding:3px 7px;border-radius:3px;font-size:10px;outline:none;cursor:pointer}
 .exec-scope-sel:focus{border-color:var(--blue)}
-.exec-gen-btn{background:var(--ibm);border:none;color:#fff;padding:5px 16px;
-              border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto}
-.exec-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.exec-gen-btn{background:var(--ibm);border:none;color:#fff;padding:4px 12px;
+              border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;margin-left:auto;white-space:nowrap}
+.exec-scroll{flex:1;overflow-y:auto;padding:14px 16px}
+.exec-scroll::-webkit-scrollbar{width:4px}
+.exec-scroll::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.exec-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .exec-kpi-tile{background:#fff;border:1px solid var(--bdr);border-radius:8px;
-               padding:18px 20px;position:relative;overflow:hidden}
+               padding:14px 16px;position:relative;overflow:hidden}
 .exec-kpi-tile::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px}
 .exec-kt-sig::after{background:var(--green)}.exec-kt-rev::after{background:var(--blue)}
 .exec-kt-pipe::after{background:var(--yellow)}.exec-kt-wr::after{background:var(--purple)}
 .exec-kpi-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.exec-kpi-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:6px}
-.exec-kpi-sub{font-size:10px;color:var(--muted);margin-bottom:6px}
+.exec-kpi-val{font-size:24px;font-weight:700;line-height:1;margin-bottom:6px}
+.exec-kpi-sub{font-size:10px;color:var(--muted);margin-bottom:4px}
 .exec-kpi-deltas{display:flex;gap:5px;flex-wrap:wrap}
-.exec-geo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
-.exec-geo-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;border-top:3px solid}
+.exec-geo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.exec-geo-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;border-top:3px solid}
 .exec-geo-card.americas{border-top-color:var(--c-americas)}
 .exec-geo-card.emea{border-top-color:var(--c-emea)}
 .exec-geo-card.apac{border-top-color:var(--c-apac)}
 .exec-geo-card.japan{border-top-color:var(--c-japan)}
-.exec-geo-name{font-size:11px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
-.exec-geo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px}
+.exec-geo-name{font-size:10px;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.exec-geo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:11px}
 .exec-geo-lbl{color:var(--muted)}.exec-geo-val{font-weight:700}
-.exec-narrative-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;margin-bottom:18px}
-.exec-narrative-hd{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
-                   color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.exec-narrative-body{font-size:13px;line-height:1.75;color:var(--text)}
-.exec-narrative-body p{margin-bottom:12px}.exec-narrative-body p:last-child{margin-bottom:0}
+.exec-narrative-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:16px 18px;margin-bottom:14px}
+.exec-narrative-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+                   color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.exec-narrative-body{font-size:12px;line-height:1.75;color:var(--text)}
+.exec-narrative-body p{margin-bottom:10px}.exec-narrative-body p:last-child{margin-bottom:0}
 .exec-narrative-body strong{color:var(--ibm)}
 .exec-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:20px 0}
 </style>
 <div class="exec-wrap">
-  <div class="exec-scope-bar">
-    <span class="exec-scope-lbl">Geo</span>
-    <select class="exec-scope-sel" id="ex-geo">
-      <option value="WW">Worldwide</option><option value="Americas">Americas</option>
-      <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
-    </select>
-    <span class="exec-scope-lbl">Quarter</span>
-    <select class="exec-scope-sel" id="ex-qtr">
-      <option value="2Q26" selected>2Q26</option><option value="3Q26">3Q26</option>
-      <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option><option value="3Q25">3Q25</option>
-    </select>
-    <span class="exec-scope-lbl">Offering</span>
-    <select class="exec-scope-sel" id="ex-oa"><option value="ALL">All Offerings</option></select>
-    <button class="exec-gen-btn" onclick="loadExec()">Refresh &#8635;</button>
+  <div class="exec-wip-bar">&#9888; WORK IN PROGRESS &nbsp;&mdash;&nbsp; Portfolio Leader View is under active development. Data shown is live but layout and features will evolve.</div>
+  <div class="exec-fbar">
+    <div class="exec-frow">
+      <span class="exec-scope-lbl">Portfolio</span>
+      <select class="exec-scope-sel" id="ex-port" onchange="execOnPortChange()" style="min-width:200px"></select>
+      <span class="exec-scope-lbl">Offering Area</span>
+      <select class="exec-scope-sel" id="ex-oa"><option value="ALL">All</option></select>
+    </div>
+    <div class="exec-frow">
+      <span class="exec-scope-lbl">Geo</span>
+      <select class="exec-scope-sel" id="ex-geo">
+        <option value="WW">Worldwide</option><option value="Americas">Americas</option>
+        <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
+      </select>
+      <span class="exec-scope-lbl">Year</span>
+      <select class="exec-scope-sel" id="ex-year">
+        <option value="ALL">All</option><option value="2026">2026</option><option value="2025">2025</option>
+      </select>
+      <span class="exec-scope-lbl">Quarter</span>
+      <select class="exec-scope-sel" id="ex-qtr">
+        <option value="2Q26" selected>2Q26</option><option value="3Q26">3Q26</option>
+        <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option><option value="3Q25">3Q25</option>
+      </select>
+      <button class="exec-gen-btn" onclick="loadExec()">&#9889; Generate</button>
+    </div>
   </div>
+  <div class="exec-scroll">
   <div class="exec-kpi-grid" id="ex-kpi-grid">
     <div class="exec-kpi-tile exec-kt-sig">
       <div class="exec-kpi-lbl">Signings</div>
@@ -760,6 +780,7 @@ Chart.register(ChartDataLabels);
       <div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating executive narrative&hellip;</div>
     </div>
   </div>
+  </div>
 </div>`;
 })();
 </script>
@@ -794,9 +815,7 @@ Chart.register(ChartDataLabels);
          padding:0 12px;flex-shrink:0;overflow-x:auto;flex-wrap:nowrap}
 .pm-anav::-webkit-scrollbar{height:0}
 .pm-anav.show{display:flex}
-.pm-anav-scope{font-size:10px;color:var(--muted);padding:9px 10px 9px 0;
-               border-right:1px solid var(--bdr);margin-right:4px;white-space:nowrap;flex-shrink:0}
-.pm-anav-scope strong{color:var(--text)}
+.pm-anav-scope{display:none}
 .pm-alink{padding:9px 11px;font-size:10px;font-weight:600;color:var(--muted);
           text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent;
           flex-shrink:0;transition:color .13s,border-color .13s;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none}
@@ -1509,14 +1528,29 @@ async function taSortBy(s){
 /* ═══════════════════════════════════════════════════════
    SCRIPT 5 — Exec JS: loadExec
 ═══════════════════════════════════════════════════════ */
+/* populate exec portfolio + OA dropdowns from pmMeta */
+function execOnPortChange() {
+  const portSel = $("ex-port"); if (!portSel) return;
+  const portId  = portSel.value;
+  const portfolio = pmMeta.portfolio || [];
+  const port = portfolio.find(p => p.id === portId);
+  const oas  = port ? (port.offeringAreas || []) : (pmMeta.orderedOAs || []);
+  const oaSel = $("ex-oa"); if (!oaSel) return;
+  oaSel.innerHTML = '<option value="ALL">All</option>';
+  oas.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; oaSel.appendChild(o); });
+}
+
 async function loadExec() {
-  const geo = ($("ex-geo")||{}).value||"WW";
-  const qtr = ($("ex-qtr")||{}).value||"2Q26";
-  const oa  = ($("ex-oa") ||{}).value||"ALL";
+  const geo  = ($("ex-geo") ||{}).value||"WW";
+  const qtr  = ($("ex-qtr") ||{}).value||"2Q26";
+  const oa   = ($("ex-oa")  ||{}).value||"ALL";
+  const year = ($("ex-year")||{}).value||"ALL";
   const narEl = $("ex-narrative");
   if (narEl) narEl.innerHTML = `<div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating\u2026</div>`;
 
-  const params = qs({ geo, quarter: qtr, offeringArea: oa });
+  const paramObj = { geo, quarter: qtr, offeringArea: oa };
+  if (year !== "ALL") paramObj.year = year;
+  const params = qs(paramObj);
   const [kpi, rev, summ] = await Promise.all([
     fetch(`/api/kpi/summary?${params}`).then(r=>r.json()),
     fetch(`/api/revenue/summary?${params}`).then(r=>r.json()),
@@ -1646,20 +1680,23 @@ async function initPMWizard() {
     });
   }
 
-  // Portfolio dropdown — "Cross-Portfolio Infrastructure Services" pre-selected (live), others labelled Phase 2
-  const portSel = $("pm-port-sel"); if (!portSel) return;
-  portSel.innerHTML = '<option value="">All Portfolios</option>';
-  (pmMeta.portfolio || []).forEach(p => {
-    const o = document.createElement("option");
-    o.value = p.id;
-    o.textContent = p.phase === "live" ? p.name : p.name + " (Phase 2)";
-    if (p.phase !== "live") o.disabled = true;
-    portSel.appendChild(o);
-  });
-
-  // Pre-select the live portfolio (CPIS)
-  const livePort = (pmMeta.portfolio || []).find(p => p.phase === "live");
-  if (livePort) portSel.value = livePort.id;
+  // Portfolio dropdown — same list for PM + Exec views
+  const buildPortSel = (selId) => {
+    const sel = $(selId); if (!sel) return;
+    sel.innerHTML = '<option value="">All Portfolios</option>';
+    (pmMeta.portfolio || []).forEach(p => {
+      const o = document.createElement("option");
+      o.value = p.id;
+      o.textContent = p.phase === "live" ? p.name : p.name + " (Phase 2)";
+      if (p.phase !== "live") o.disabled = true;
+      sel.appendChild(o);
+    });
+    const live = (pmMeta.portfolio || []).find(p => p.phase === "live");
+    if (live) sel.value = live.id;
+  };
+  buildPortSel("pm-port-sel");
+  buildPortSel("ex-port");
+  execOnPortChange(); // seed exec OA from live portfolio
 
   // Set Year default to current year
   const pmYear = $("pm-year");
@@ -1719,6 +1756,14 @@ async function generatePMReport() {
 
   renderPMReport(rpt, ind, { geo, year, quarter: qtr !== "ALL" ? qtr : "All Qtrs", oa: oaParam });
 
+  // Refresh right panel using PM filter context
+  const insF = { geo, offeringArea: oaParam, consolidatedOffering: conParam };
+  if (year !== "ALL") insF.year = year;
+  if (qtr  !== "ALL") insF.quarter = qtr;
+  const insD = await fetch(`/api/insights?${qs(insF)}`).then(r=>r.json()).catch(()=>({highlights:[],focus:[],actions:[]}));
+  const render=(el,items)=>{ const e=$(el); if(!e) return; e.innerHTML=items.length?items.map(i=>`<div class="ins-item"><span style="margin-right:5px">${i.icon}</span>${i.text}</div>`).join(""):`<div style="color:var(--muted);font-size:10px">No data</div>`; };
+  render("rpHigh",insD.highlights); render("rpFocus",insD.focus); render("rpAct",insD.actions);
+
   // Scroll to top of report
   const body = $("pm-body"); if (body) body.scrollTop = 0;
   // Activate first nav link
@@ -1743,13 +1788,28 @@ function renderPMReport(d, ind, scope) {
   const kdH  = (v,pts=false) => v==null?"":`<span class="${dCls(v)}">${v>0?"▲":"▼"} ${dS(v,pts)}</span>`;
   const GCL  = {Americas:"am",EMEA:"em",APAC:"ap",Japan:"jp"};
 
+  // ── Intelligence narrative helpers ──────────────────────────────────────────
+  const ins = (text) => `<div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;line-height:1.65;color:#1f2328;margin-bottom:10px">${text}</div>`;
+
   // Business Health
   const bh = $("pm-s-bh"); if (bh && d.cq) {
     const cq=d.cq, rev=d.revenue||{};
     const accts = (d.topAccounts||[]).slice(0,8);
     const mpA = Math.max(...accts.map(a=>a.pipeline),1);
+
+    // Intelligence: surface the most important signal across all 4 KPIs
+    const sigDir = d.sigYoY!=null?(d.sigYoY>0?"grew":"declined"):"moved";
+    const sigPct = d.sigYoY!=null?`${d.sigYoY>0?"+":""}${d.sigYoY.toFixed(1)}% YoY`:"";
+    const revDir = d.revYoY!=null?(d.revYoY>0?"ahead":"behind"):"tracking";
+    const topGeo = (d.byGeo||[]).sort((a,b)=>(b.signings||0)-(a.signings||0))[0];
+    const lowWR  = (d.byGeo||[]).filter(g=>g.winRate!=null).sort((a,b)=>a.winRate-b.winRate)[0];
+    const bhNarr = `Signings ${sigDir} to <strong>${fmt(cq.signings)}</strong>${sigPct?" ("+sigPct+")":""}, with revenue actuals ${revDir} at <strong>${fmt(rev.cq)}</strong>. `+
+      (topGeo?`<strong>${topGeo.geo}</strong> is the leading geo this quarter with ${fmt(topGeo.signings||0)} in signings. `:"") +
+      (lowWR && lowWR.winRate<60?`Watch <strong>${lowWR.geo}</strong> — win rate of ${fpp(lowWR.winRate)} is the lowest across geos and warrants immediate coaching focus.`:"Overall win rate is healthy across all geographies.");
+
     bh.innerHTML = `
       <div class="pm-sec-hd"><div><div class="pm-sec-title">Business Health</div><div class="pm-sec-sub">${scope.quarter} · ${scope.geo} · ${scope.oa!=="ALL"?scope.oa:"All Offerings"}</div></div></div>
+      ${ins(bhNarr)}
       <div class="pm-kpi-row">
         <div class="pm-kpi-card pm-kc-sig"><div class="pm-kc-lbl">Signings</div><div class="pm-kc-val">${fmt(cq.signings)}</div><div class="pm-kc-sub">${cq.wonCount} won deals</div><div class="pm-kc-deltas">${kdH(d.sigQoQ)} QoQ &nbsp;${kdH(d.sigYoY)} YoY</div></div>
         <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">Direct + Eco</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
@@ -1798,7 +1858,14 @@ function renderPMReport(d, ind, scope) {
   // Pipeline
   const pipe = $("pm-s-pipe"); if (pipe && d.byOA) {
     const rows = d.byOA.slice(0,10), mp = Math.max(...rows.map(r=>r.pipeline),1);
+    const topOA  = rows[0];
+    const atRisk = rows.filter(r=>r.sigQoQ!=null&&r.sigQoQ<-10);
+    const pipeNarr = topOA
+      ? `<strong>${topOA.oa}</strong> holds the largest active pipeline at <strong>${fmt(topOA.pipeline)}</strong> across ${topOA.activeCount} opportunities. `+
+        (atRisk.length?`${atRisk.map(r=>r.oa).join(", ")} ${atRisk.length>1?"are":"is"} showing signings down QoQ — pipeline may not convert without intervention.`:`All offering areas are showing stable or growing signings momentum.`)
+      : "Pipeline data not available for this scope.";
     pipe.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Pipeline Breakdown</div><div class="pm-sec-sub">By Offering Area · ${scope.quarter}</div></div></div>
+      ${ins(pipeNarr)}
       <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Area</span><span class="pm-table-cnt">${rows.length} rows</span></div>
       <table class="pm-tbl"><thead><tr><th>Offering Area</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Active Opps</th><th style="text-align:right">Sig QoQ</th><th style="text-align:right">Sig YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
       <tbody>${rows.map(r=>`<tr><td><strong>${r.oa}</strong><div style="height:2px;background:#0f62fe;width:${Math.max(3,r.pipeline/mp*80)}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
@@ -1811,7 +1878,13 @@ function renderPMReport(d, ind, scope) {
   // Signings
   const sig = $("pm-s-sig"); if (sig && d.byCon) {
     const rows = d.byCon.slice(0,10);
+    const topCon = rows[0], botCon = rows.filter(r=>r.sigYoY!=null&&r.sigYoY<0).slice(0,2);
+    const sigNarr = topCon
+      ? `<strong>${topCon.con}</strong> leads in signings at <strong>${fmt(topCon.signings)}</strong> with a ${fpp(topCon.winRate)} win rate. `+
+        (botCon.length?`${botCon.map(r=>`<strong>${r.con}</strong>`).join(" and ")} ${botCon.length>1?"are":"is"} declining YoY — assess whether pricing, competition, or coverage is the root cause.`:`No significant YoY declines detected across offering names.`)
+      : "Signings detail not available.";
     sig.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Signings — Offering Detail</div><div class="pm-sec-sub">By Consolidated Offering · ${scope.quarter}</div></div></div>
+      ${ins(sigNarr)}
       <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Name</span><span class="pm-table-cnt">${rows.length} offerings</span></div>
       <table class="pm-tbl"><thead><tr><th>Offering</th><th style="text-align:right">Signings</th><th style="text-align:right">Won</th><th style="text-align:right">QoQ</th><th style="text-align:right">YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
       <tbody>${rows.map(r=>`<tr><td><strong>${r.con}</strong></td>
@@ -1824,7 +1897,13 @@ function renderPMReport(d, ind, scope) {
   // Revenue
   const rev = $("pm-s-rev"); if (rev && d.revenue) {
     const rv=d.revenue;
+    const revGap = rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
+    const revNarr = rv.cq!=null
+      ? `Revenue actuals of <strong>${fmt(rv.cq)}</strong> compare to <strong>${fmt(rv.pyq)}</strong> in the same quarter last year — a <strong>${revGap>=0?"+":""}${fmt(revGap)}</strong> ${revGap>=0?"gain":"shortfall"}. `+
+        (d.revYoY!=null&&d.revYoY<0?`Revenue is tracking behind signings growth, suggesting a conversion lag that should be addressed in the next GTM cycle.`:`Revenue momentum is aligned with signings — this is a healthy signal for the portfolio.`)
+      : "Revenue data not available for this scope.";
     rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Actuals</div><div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
+      ${ins(revNarr)}
       <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
         <div class="pm-kpi-card"><div class="pm-kc-lbl">PQ Revenue</div><div class="pm-kc-val">${fmt(rv.pq)}</div></div>
@@ -1841,7 +1920,13 @@ function renderPMReport(d, ind, scope) {
   // Win Rate
   const wr = $("pm-s-wr"); if (wr && d.winLoss) {
     const cq=d.cq||{};
+    const topWinReason = d.winLoss.filter(r=>r.won>r.lost)[0];
+    const topLossReason = d.winLoss.filter(r=>r.lost>r.won)[0];
+    const wrNarr = `Win rate stands at <strong>${fpp(cq.winRate)}</strong> — ${cq.wonCount||0} deals won from ${cq.closedCount||0} closed. `+
+      (topWinReason?`The top win driver is <strong>"${topWinReason.reason}"</strong> (${topWinReason.won} wins). `:"") +
+      (topLossReason?`The primary loss reason is <strong>"${topLossReason.reason}"</strong> (${topLossReason.lost} losses) — address this in the next seller enablement cycle.`:"No dominant loss pattern detected.");
     wr.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Win Rate & Win/Loss Analysis</div><div class="pm-sec-sub">${scope.quarter}</div></div></div>
+      ${ins(wrNarr)}
       <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
         <div class="pm-kpi-card"><div class="pm-kc-lbl">Deals Won</div><div class="pm-kc-val" style="color:#198038">${cq.wonCount||0}</div></div>
@@ -1861,7 +1946,13 @@ function renderPMReport(d, ind, scope) {
     const indActions = (ind && ind.gtmActions)||[];
     const allActions = [...d.actions, ...indActions.filter(a=>!d.actions.find(x=>x.category===a.type))].slice(0,10);
     const watchlist  = (ind && ind.watchlist)||[];
+    const highPri = allActions.filter(a=>a.priority==="HIGH");
+    const actNarr = allActions.length
+      ? `<strong>${highPri.length} high-priority action${highPri.length!==1?"s":""}</strong> identified based on ${scope.quarter} performance data. `+
+        `These are the specific GTM motions that will have the highest impact on ${scope.geo === "WW" ? "global" : scope.geo} results — assign owners and track against next quarter close.`
+      : "No actions generated for this scope.";
     act.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Recommended Actions</div><div class="pm-sec-sub">GTM motions · ${scope.quarter}</div></div></div>
+      ${ins(actNarr)}
       <div class="pm-action-grid">${allActions.map(a=>{
         const pri = a.priority==="HIGH"||a.priority==="HIGH"?"HIGH":"MED";
         const cat = a.category||a.type||"Action";
@@ -1910,8 +2001,15 @@ function renderPMReport(d, ind, scope) {
     const flmRows = (ind.flmByInd||[]).slice(0,8);
     const tsRows  = (ind.topStalled||[]).slice(0,8);
 
+    const topInd2  = rows[0];
+    const weakInd  = rows.filter(r=>r.cq.winRate<45&&r.cq.activeCount>5)[0];
+    const indNarr  = topInd2
+      ? `<strong>${topInd2.industry}</strong> is the dominant vertical with <strong>${fmt(topInd2.cq.pipeline)}</strong> in pipeline and ${topInd2.cq.activeCount} active opportunities. `+
+        (weakInd?`<strong>${weakInd.industry}</strong> has a win rate of only ${fpp(weakInd.cq.winRate)} across ${weakInd.cq.activeCount} active deals — a targeted intervention here could unlock significant untapped revenue.`:`Win rates are broadly acceptable across verticals — focus on deepening penetration in the top 3 industries.`)
+      : "Industry breakdown not available.";
     indSec.innerHTML = `
       <div class="pm-sec-hd"><div><div class="pm-sec-title">Industry Breakdown</div><div class="pm-sec-sub">Pipeline · Signings · Win Rate by vertical · ${scope.quarter}</div></div></div>
+      ${ins(indNarr)}
 
       <div class="pm-table-wrap" style="margin-bottom:14px">
         <div class="pm-table-hd"><span>By Industry — ${scope.quarter}</span><span class="pm-table-cnt">${rows.length} verticals</span></div>
