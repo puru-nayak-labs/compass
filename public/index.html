@@ -458,8 +458,8 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
        padding:7px 11px 6px;display:flex;align-items:center;gap:7px;margin-bottom:0}
 .rp-hd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .rp-hd-lbl{flex:1}
-.rp-body{padding:6px 11px 10px}
-.ins-item{padding:6px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.55}
+.rp-body{padding:6px 11px 10px;overflow:visible}
+.ins-item{padding:6px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.55;white-space:normal;word-break:break-word;overflow:visible}
 .ins-item:last-child{border-bottom:none}
 .rp-highlight-hd{background:rgba(25,128,56,.08)}
 .rp-focus-hd{background:rgba(218,30,40,.08)}
@@ -1993,7 +1993,7 @@ function renderPMReport(d, ind, scope) {
         (lowWR&&lowWR.winRate<60?` ⚠ <strong>${lowWR.geo}</strong> win rate ${fpp(lowWR.winRate)} — needs coaching focus.`:" Win rates broadly healthy across all geos.")
       : "";
     const bullet4 = (topCh||topSeg)
-      ? `📌 `+(topCh?`<strong>${topCh.channel}</strong> is the top channel (${fmt(topCh.pipeline)} pipe, ${fpp(topCh.winRate)} WR). `:"")+(topSeg?`<strong>${topSeg.clientType}</strong> is the largest client segment (${fmt(topSeg.pipeline)} pipe).`:"")
+      ? `📌 `+(topCh?`<strong>${topCh.channel}</strong> is the top channel (${fmt(topCh.signings)} signings, ${fpp(topCh.winRate)} WR). `:"")+(topSeg?`<strong>${topSeg.clientType}</strong> is the largest client segment (${fmt(topSeg.signings)} signings).`:"")
       : "";
     const bullets = [bullet1,bullet2,bullet3,bullet4].filter(Boolean);
     bh.innerHTML = `
@@ -2150,9 +2150,13 @@ function renderPMReport(d, ind, scope) {
         :d.revQoQ<-5?`QoQ revenue dropped <strong style="color:#da1e28">${d.revQoQ.toFixed(1)}%</strong> — identify delayed recognitions or contract slippage and course-correct before quarter close.`
         :`QoQ revenue is broadly stable at <strong>${d.revQoQ>0?"+":""}${(d.revQoQ||0).toFixed(1)}%</strong>.`)
       : "";
-    const revNarr = rv.cq!=null
-      ? `Revenue actuals: <strong>${fmt(rv.cq)}</strong> — <strong>${revDir} ${Math.abs(d.revYoY||0).toFixed(1)}%</strong> YoY vs ${fmt(rv.pyq)} (same quarter prior year). ${momLine} ${lagLead}`
-      : "Revenue data not available for this scope.";
+    // 3Q26 special case: data is only through Jun 18 2026 — near-zero revenue is expected
+    const is3Q26Empty = (scope.quarter === "3Q26") && (rv.cq == null || rv.cq < 1);
+    const revNarr = is3Q26Empty
+      ? `<span style="color:#b28600">⚠ Revenue data is through <strong>Jun 18, 2026</strong> (end of 2Q26). 3Q26 begins Jul 1 — near-zero revenue for this quarter is <strong>expected</strong> and is not a data error. Check back as July actuals are posted.</span>`
+      : rv.cq!=null
+        ? `Revenue actuals: <strong>${fmt(rv.cq)}</strong> — <strong>${revDir} ${Math.abs(d.revYoY||0).toFixed(1)}%</strong> YoY vs ${fmt(rv.pyq)} (same quarter prior year). ${momLine} ${lagLead}`
+        : "Revenue data not available for this scope.";
     rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Intelligence</div>
       <div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
       ${ins(revNarr)}
@@ -2329,7 +2333,7 @@ function renderPMReport(d, ind, scope) {
     const chRows = (ind&&ind.byChannel)||[];
     const topCh  = chRows[0], lowCh = chRows.filter(c=>c.winRate<50&&c.pipeline>1)[0];
     const chNarr = chRows.length
-      ? `<strong>${topCh.channel}</strong> is the dominant channel with <strong>${fmt(topCh.pipeline)}</strong> in pipeline and ${fpp(topCh.winRate)} win rate. `+
+      ? `<strong>${topCh.channel}</strong> is the top channel with <strong>${fmt(topCh.signings)}</strong> in signings and ${fpp(topCh.winRate)} win rate. `+
         (lowCh?`<strong>${lowCh.channel}</strong> win rate of ${fpp(lowCh.winRate)} on ${fmt(lowCh.pipeline)} pipeline — review seller readiness and competitive collateral for this channel.`:`All channels show win rates above 50% threshold.`)
       : "Channel data not available for this scope.";
 
@@ -2337,7 +2341,7 @@ function renderPMReport(d, ind, scope) {
     const segRows = (ind&&ind.byClientType)||[];
     const topSeg  = segRows[0], lowSeg = segRows.filter(s=>s.winRate<50&&s.pipeline>1)[0];
     const segNarr = segRows.length
-      ? `<strong>${topSeg.clientType}</strong> accounts for the largest segment with <strong>${fmt(topSeg.pipeline)}</strong> pipeline and ${fpp(topSeg.winRate)} win rate. `+
+      ? `<strong>${topSeg.clientType}</strong> is the top client segment with <strong>${fmt(topSeg.signings)}</strong> in signings and ${fpp(topSeg.winRate)} win rate. `+
         (lowSeg?`<strong>${lowSeg.clientType}</strong> win rate of ${fpp(lowSeg.winRate)} — targeted segment play and executive sponsorship could improve close rates.`:`Win rates are solid across all client segments.`)
       : "Client segment data not available for this scope.";
 

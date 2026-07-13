@@ -2282,7 +2282,7 @@ app.get("/api/pm-report/industry", (req, res) => {
       activeCount: active.length,
       winRate:     closed.length>0 ? +((won.length/closed.length)*100).toFixed(1) : 0,
     };
-  }).sort((a,b)=>b.pipeline-a.pipeline);
+  }).sort((a,b)=>b.signings-a.signings);
 
   // ── By Client Type (Segment) ──
   const allClientTypes = [...new Set(recsAll.map(r=>r.clientType))].filter(Boolean);
@@ -2298,7 +2298,7 @@ app.get("/api/pm-report/industry", (req, res) => {
       activeCount: active.length,
       winRate:     closed.length>0 ? +((won.length/closed.length)*100).toFixed(1) : 0,
     };
-  }).sort((a,b)=>b.pipeline-a.pipeline);
+  }).sort((a,b)=>b.signings-a.signings);
 
   res.json({
     scope: { geo, quarter: CQ, pq: PQ, pyq: PYQ, offeringArea, consolidatedOffering },
