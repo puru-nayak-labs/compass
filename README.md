@@ -358,18 +358,22 @@ ibmcloud login --sso
 ibmcloud plugin install code-engine
 
 # 3. Run the one-command deploy script
+# Default — uses the data dump that already lives at .bob/tmp/xlsx-dumps/...
 .\deploy.ps1
+
+# OR — point at any data folder on your machine (useful if data lives elsewhere)
+.\deploy.ps1 -DataDir "C:\Users\yourname\Downloads\TLS Performance Data-e90c662f31f06851"
 ```
 
 The script will:
-1. Build the Docker image from `Dockerfile`
+1. Build the Docker image, injecting your data folder via `--build-arg DATA_SRC=<path>`
 2. Push to IBM Container Registry (`us.icr.io/ibm-compass/compass-app:latest`)
 3. Create / update the `compass-app` application in the `ibm-compass` Code Engine project
 4. Print the live URL (e.g. `https://compass-app.<region>.codeengine.appdomain.cloud`)
 
 **Share that URL** with your colleagues — it's publicly accessible to all IBMers.
 
-> **Note:** The `Dockerfile` copies the `.bob/tmp/xlsx-dumps/` data folder into the image. Make sure your data dumps are present before running `deploy.ps1`.
+> **How data gets into the image:** `Dockerfile` accepts a `DATA_SRC` build arg (the folder path) and copies it to `/app/data` inside the container. `server.js` reads the `DATA_DIR` env var (set to `/app/data` by the `Dockerfile`) to find the JSON files. You can also override at runtime: `docker run -e DATA_DIR=/some/other/path ...`
 
 ---
 
@@ -390,6 +394,13 @@ Cloud Foundry auto-detects the Node.js app via `package.json`, installs dependen
 
 You'll get a URL like: `https://ibm-compass.<cf-domain>.mybluemix.net`
 
+To point at a custom data folder, set the env var before pushing:
+```bash
+# Create a manifest.yml with DATA_DIR set, or use:
+ibmcloud cf set-env ibm-compass DATA_DIR /home/vcap/app/.bob/tmp/xlsx-dumps/TLS\ Performance\ Data-e90c662f31f06851
+ibmcloud cf restage ibm-compass
+```
+
 ---
 
 ### Option C — IBM Virtual Server / Any Linux VM (Most Control)
@@ -403,11 +414,14 @@ cd ibm-compass
 npm install
 
 # Copy your data dumps to the server (scp or rsync)
-scp -r .bob/tmp/xlsx-dumps/ user@your-server:/path/to/ibm-compass/.bob/tmp/
+scp -r .bob/tmp/xlsx-dumps/ user@your-server:/opt/compass-data/
+
+# Set DATA_DIR so server.js finds the JSON files
+export DATA_DIR=/opt/compass-data/TLS\ Performance\ Data-e90c662f31f06851
 
 # Run with PM2 (keeps it alive, restarts on crash)
 npm install -g pm2
-pm2 start server.js --name compass
+pm2 start server.js --name compass --env DATA_DIR=$DATA_DIR
 pm2 save
 
 # The app runs on port 3000 — expose via nginx reverse proxy or open firewall port
@@ -457,10 +471,14 @@ When a new `TLS Performance Data.xlsx` is available:
 2. In IBM Bob, run `read_xlsx` with `dump:true` to produce fresh JSON dumps.
    This creates a new folder: `.bob/tmp/xlsx-dumps/TLS Performance Data-<new-hash>/`
 
-3. Update the two path constants at the top of `server.js`:
-   ```js
-   const PIPE_DUMP = path.join(__dirname, ".bob/tmp/xlsx-dumps/TLS Performance Data-<new-hash>/Pipeline_<date>.json");
-   const REV_DUMP  = path.join(__dirname, ".bob/tmp/xlsx-dumps/TLS Performance Data-<new-hash>/Revenue_<date>.json");
+3. Point `server.js` at the new dump — **no code change needed** if you use the env var:
+   ```bash
+   # Local dev — set before starting the server
+   $env:DATA_DIR = ".bob\tmp\xlsx-dumps\TLS Performance Data-<new-hash>"
+   node server.js
+
+   # Or update the fallback constant in server.js line 13 if you prefer:
+   # const DATA_DUMP_DIR = process.env.DATA_DIR || ".bob/tmp/xlsx-dumps/TLS Performance Data-<new-hash>";
    ```
 
 4. Rebuild the geo hierarchy (only if geo/market structure changed):
@@ -475,7 +493,8 @@ When a new `TLS Performance Data.xlsx` is available:
 
 6. Re-deploy if running on Code Engine:
    ```powershell
-   .\deploy.ps1
+   # Pass the new dump folder — it gets baked into the Docker image
+   .\deploy.ps1 -DataDir ".bob\tmp\xlsx-dumps\TLS Performance Data-<new-hash>"
    ```
 
 ---
@@ -538,7 +557,7 @@ const result = await model.generateText({ input: prompt, modelId: "ibm/granite-1
 - [ ] Wire real Granite LLM for exec narrative (current `/api/exec-summary` uses rule-based generation)
 - [ ] Add `insight → action → outcome` schema to feedback loop (memory moat)
 - [ ] Email subscription: automated weekly summary to PM subscribers
-- [ ] Make data path configurable via `DATA_DIR` environment variable for multi-user deployments
+- [x] Data path configurable via `DATA_DIR` env var — no code changes needed to use different data
 
 ---
 

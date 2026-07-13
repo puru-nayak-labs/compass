@@ -10,7 +10,14 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ─── Data source manifest (sheet name encodes the date) ──────────────────────
 // Pipeline: "Pipeline 2026.07.11"  Revenue: "Revenue 2026.06.18"
-const DATA_DUMP_DIR = ".bob/tmp/xlsx-dumps/TLS Performance Data-e90c662f31f06851";
+//
+// DATA_DIR env var overrides the default dump folder so the Docker image can be
+// built once and pointed at any data location at runtime (or via --build-arg).
+//   Local dev:    DATA_DIR is unset → falls back to the default below
+//   Docker/CE:    DATA_DIR=/app/data (set in Dockerfile ENV instruction)
+//   Custom:       DATA_DIR=/path/to/your/dump  node server.js
+const DATA_DUMP_DIR = process.env.DATA_DIR ||
+  ".bob/tmp/xlsx-dumps/TLS Performance Data-e90c662f31f06851";
 
 function parseDateFromSheetName(name) {
   // "Pipeline 2026.07.11" → "Jul 11 2026"
@@ -25,8 +32,15 @@ const REV_SHEET  = "Revenue 2026.06.18";
 const PIPE_DATE  = parseDateFromSheetName(PIPE_SHEET);  // "Jul 11 2026"
 const REV_DATE   = parseDateFromSheetName(REV_SHEET);   // "Jun 18 2026"
 
+// ─── Resolve dump file paths ─────────────────────────────────────────────────
+// If DATA_DIR is an absolute path (Docker / CE), use it directly.
+// If it is relative, resolve it relative to __dirname (local dev).
+function resolveDump(dir, file) {
+  return path.isAbsolute(dir) ? path.join(dir, file) : path.join(__dirname, dir, file);
+}
+
 // ─── Load & pre-process Pipeline data ───────────────────────────────────────
-const PIPE_DUMP = path.join(__dirname, `${DATA_DUMP_DIR}/Pipeline_2026_07_11.json`);
+const PIPE_DUMP = resolveDump(DATA_DUMP_DIR, "Pipeline_2026_07_11.json");
 const { rows: pipeRows, headers: pipeHeaders } = JSON.parse(fs.readFileSync(PIPE_DUMP, "utf8"));
 const pipeIdx = Object.fromEntries(pipeHeaders.map((h, i) => [h, i]));
 
@@ -89,7 +103,7 @@ const records = pipeRows.map(r => ({
 }));
 
 // ─── Load & pre-process Revenue Actuals data ────────────────────────────────
-const REV_DUMP = path.join(__dirname, `${DATA_DUMP_DIR}/Revenue_2026_06_18.json`);
+const REV_DUMP = resolveDump(DATA_DUMP_DIR, "Revenue_2026_06_18.json");
 const { rows: revRows, headers: revHeaders } = JSON.parse(fs.readFileSync(REV_DUMP, "utf8"));
 const revIdx = Object.fromEntries(revHeaders.map((h, i) => [h, i]));
 
