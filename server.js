@@ -1956,7 +1956,7 @@ app.get("/api/pm-report", (req, res) => {
   for (const r of filter({ ...base, quarter: CQ })) {
     const k = r.customer || "Unknown";
     if (!k || k === "Unknown") continue;
-    if (!acctMap[k]) acctMap[k] = { pipeline:0, signings:0, won:0, closed:0, flm:0 };
+    if (!acctMap[k]) acctMap[k] = { pipeline:0, signings:0, won:0, closed:0, flm:0, geo:r.geo, market:r.market };
     acctMap[k].pipeline += r.oppVal;
     acctMap[k].signings += r.wonDollar;
     if (r.stage === "Won" || r.stage === "Lost") {
@@ -1968,7 +1968,7 @@ app.get("/api/pm-report", (req, res) => {
   const topAccounts = Object.entries(acctMap)
     .map(([name,d]) => ({ name, pipeline: +d.pipeline.toFixed(2), signings: +d.signings.toFixed(2),
       winRate: d.closed > 0 ? +((d.won/d.closed)*100).toFixed(1) : 0,
-      flmCount: d.flm }))
+      flmCount: d.flm, geo: d.geo||"", market: d.market||"" }))
     .sort((a,b) => b.pipeline - a.pipeline).slice(0,10);
 
   // ── Stalled opps (FLM=Y, active, age > 90 days) ──

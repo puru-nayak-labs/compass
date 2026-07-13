@@ -258,6 +258,7 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
           <li>Auto-ingest new data files on upload</li>
           <li>KPI Correlation Engine (Rev up + Sig down = risk)</li>
           <li>Win/Loss root cause narrative</li>
+          <li><strong>KPI Targets</strong> — define signings/revenue/win-rate targets per OA and Geo; track vs actuals with RAG status on all KPI tiles</li>
         </ul>
       </div>
 
@@ -655,9 +656,26 @@ I'm your TLS PM intelligence assistant. Ask me anything:
 
   <!-- PANEL 3: INSIGHTS (shared) -->
   <div class="a-panel a-rp">
-    <div class="rp-sec"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--green)"></span>&#11088; Top Highlights</div><div id="rpHigh"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
-    <div class="rp-sec"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--red)"></span>&#128308; Need to Focus</div><div id="rpFocus"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
-    <div class="rp-sec" style="border-bottom:none"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--purple)"></span>&#127919; Recommended Actions</div><div id="rpAct"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
+    <!-- filter context header -->
+    <div style="padding:8px 12px 6px;border-bottom:2px solid var(--ibm);background:#fff;flex-shrink:0">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ibm);margin-bottom:3px">Intelligence Panel</div>
+      <div id="rp-filter-ctx" style="font-size:9px;color:var(--muted);line-height:1.5">All Offerings &middot; WW &middot; All Quarters</div>
+    </div>
+    <!-- Top Highlights card -->
+    <div class="rp-sec" style="border-left:3px solid var(--green)">
+      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--green)"></span>&#11088; Top Highlights</div>
+      <div id="rpHigh"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    </div>
+    <!-- Top Focus Areas card -->
+    <div class="rp-sec" style="border-left:3px solid var(--red)">
+      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--red)"></span>&#128308; Top Focus Areas</div>
+      <div id="rpFocus"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    </div>
+    <!-- Top Recommended Actions card -->
+    <div class="rp-sec" style="border-bottom:none;border-left:3px solid var(--purple)">
+      <div class="rp-hd"><span class="rp-hd-dot" style="background:var(--purple)"></span>&#127919; Top Recommended Actions</div>
+      <div id="rpAct"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div>
+    </div>
   </div>
 </div><!-- /a-app -->
 </div><!-- /shell-analyst -->
@@ -909,35 +927,35 @@ Chart.register(ChartDataLabels);
 
   <!-- ── FILTER BAR ── -->
   <div class="pm-fbar">
-    <div class="pm-frow">
-      <span class="pm-fl">Portfolio</span>
-      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()" style="min-width:180px;max-width:220px"><option value="">All Portfolios</option></select>
+    <div class="pm-frow" style="flex-wrap:wrap;gap:4px">
+      <span class="pm-fl">Infra Service</span>
+      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()" style="min-width:145px;max-width:185px"><option value="">All</option></select>
       <span class="pm-fl">Offering Area</span>
-      <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()" style="min-width:80px;max-width:140px"><option value="ALL">All</option></select>
+      <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()" style="min-width:70px;max-width:120px"><option value="ALL">All</option></select>
       <span class="pm-fl">Offering Name</span>
-      <select class="pm-fs" id="pm-con-sel" style="min-width:80px;max-width:150px"><option value="ALL">All</option></select>
+      <select class="pm-fs" id="pm-con-sel" multiple size="1" style="min-width:70px;max-width:130px"><option value="ALL">All</option></select>
       <span class="pm-fl">Lvl 30</span>
-      <select class="pm-fs" id="pm-lvl30-sel" style="min-width:60px;max-width:130px"><option value="ALL">All</option></select>
-      <span class="pm-fl">Geography</span>
-      <select class="pm-fs" id="pm-geo" onchange="pmUpdateCrumb()" style="min-width:55px">
+      <select class="pm-fs" id="pm-lvl30-sel" multiple size="1" style="min-width:55px;max-width:110px"><option value="ALL">All</option></select>
+      <span class="pm-fl">Geo</span>
+      <select class="pm-fs" id="pm-geo" onchange="pmUpdateCrumb()" style="min-width:52px">
         <option value="WW">WW</option><option value="Americas">Americas</option>
         <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
       </select>
       <span class="pm-fl">Year</span>
-      <select class="pm-fs" id="pm-year" onchange="pmUpdateCrumb()" style="min-width:48px">
+      <select class="pm-fs" id="pm-year" onchange="pmUpdateCrumb()" style="min-width:46px">
         <option value="ALL">All</option>
         <option value="2026">2026</option>
         <option value="2025">2025</option>
       </select>
-      <span class="pm-fl">Quarter</span>
-      <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()" style="min-width:52px">
+      <span class="pm-fl">Qtr</span>
+      <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()" style="min-width:50px">
         <option value="ALL">All</option>
         <option value="1Q26">1Q26</option><option value="2Q26">2Q26</option>
         <option value="3Q26">3Q26</option><option value="4Q26">4Q26</option>
         <option value="1Q25">1Q25</option><option value="2Q25">2Q25</option>
         <option value="3Q25">3Q25</option><option value="4Q25">4Q25</option>
       </select>
-      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()">&#9889; Generate Intelligence</button>
+      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()" style="margin-left:4px">&#9889; Generate Intelligence</button>
     </div>
   </div>
 
@@ -1390,6 +1408,20 @@ async function loadInsights() {
       :`<div style="color:var(--muted);font-size:10px">No data available</div>`;
   };
   render("rpHigh",d.highlights); render("rpFocus",d.focus); render("rpAct",d.actions);
+  // Update filter context header
+  const ctx = $("rp-filter-ctx");
+  if (ctx) {
+    const oa  = ($("fOA")||{}).value || "ALL";
+    const geo = ($("fGeo")||{}).value || "WW";
+    const yr  = ($("fYear")||{}).value || "ALL";
+    const qtr = ($("fQtr")||{}).value || "ALL";
+    ctx.innerHTML = [
+      oa !== "ALL" ? oa : "All Offerings",
+      geo,
+      yr  !== "ALL" ? yr : "",
+      qtr !== "ALL" ? qtr : "All Qtrs"
+    ].filter(Boolean).join(" &middot; ");
+  }
 }
 
 async function applyAll() {
@@ -1722,19 +1754,26 @@ async function initPMWizard() {
   pmInitScrollSpy();
 }
 
+// ── helper: read multi-select — returns first selected non-ALL value, or "ALL" ──
+function pmMultiVal(selId) {
+  const sel = $(selId); if (!sel) return "ALL";
+  const chosen = [...sel.selectedOptions].map(o => o.value).filter(v => v && v !== "ALL");
+  return chosen.length ? chosen[0] : "ALL"; // server takes single value; multi for UI clarity
+}
+
 /* ── generate report ── */
 async function generatePMReport() {
   const btn = $("pm-gen-btn");
   if (btn) { btn.disabled = true; btn.textContent = "Generating…"; }
 
-  const geo      = ($("pm-geo")      ||{}).value || "WW";
-  const year     = ($("pm-year")     ||{}).value || "ALL";
-  const qtr      = ($("pm-qtr")      ||{}).value || "ALL";
-  const portSel  = $("pm-port-sel");
-  const portId   = portSel ? portSel.value : "";
-  const oaParam  = ($("pm-oa-sel")   ||{}).value || "ALL";
-  const conParam = ($("pm-con-sel")  ||{}).value || "ALL";
-  const lvl30Param = ($("pm-lvl30-sel")||{}).value || "ALL";
+  const geo        = ($("pm-geo")      ||{}).value || "WW";
+  const year       = ($("pm-year")     ||{}).value || "ALL";
+  const qtr        = ($("pm-qtr")      ||{}).value || "ALL";
+  const portSel    = $("pm-port-sel");
+  const portId     = portSel ? portSel.value : "";
+  const oaParam    = ($("pm-oa-sel")   ||{}).value || "ALL";
+  const conParam   = pmMultiVal("pm-con-sel");
+  const lvl30Param = pmMultiVal("pm-lvl30-sel");
 
   // Scope label in anchor nav
   const portfolio = pmMeta.portfolio || [];
@@ -1743,18 +1782,19 @@ async function generatePMReport() {
   const scopeEl = $("pm-fb-scope");
   if (scopeEl) {
     const parts = [];
-    if (oaParam  !== "ALL") parts.push(oaParam);
-    if (conParam !== "ALL") parts.push(conParam);
+    if (oaParam    !== "ALL") parts.push(oaParam);
+    if (conParam   !== "ALL") parts.push(conParam);
+    if (lvl30Param !== "ALL") parts.push(lvl30Param);
     const yearStr = year !== "ALL" ? ` ${year}` : "";
     const qtrStr  = qtr  !== "ALL" ? ` ${qtr}`  : "";
     scopeEl.innerHTML = `<strong>${portLabel}</strong>${parts.length ? " &nbsp;&middot;&nbsp; " + parts.join(" · ") : ""} &nbsp;&middot;&nbsp; <span style="color:var(--green)">${geo}</span><span style="color:var(--yellow)">${yearStr}${qtrStr || " · All Qtrs"}</span>`;
   }
 
-  // Build params — pass year if set, quarter if set
+  // Build params
   const paramObj = { geo, offeringArea: oaParam, consolidatedOffering: conParam };
-  if (year !== "ALL") paramObj.year = year;
-  if (qtr  !== "ALL") paramObj.quarter = qtr;
-  if (lvl30Param !== "ALL") paramObj.ut30 = lvl30Param;
+  if (year       !== "ALL") paramObj.year    = year;
+  if (qtr        !== "ALL") paramObj.quarter = qtr;
+  if (lvl30Param !== "ALL") paramObj.ut30    = lvl30Param;
   const params = new URLSearchParams(paramObj).toString();
 
   const [rpt, ind] = await Promise.all([
@@ -1764,19 +1804,29 @@ async function generatePMReport() {
 
   if (btn) { btn.disabled = false; btn.textContent = "⚡ Generate Intelligence"; }
 
-  // Show content, hide empty state (anchor nav is always visible now)
+  // Show content, hide empty state
   const empty = $("pm-empty-state"); if (empty) empty.style.display = "none";
   const rptContent = $("pm-rpt-content"); if (rptContent) rptContent.style.display = "";
 
   renderPMReport(rpt, ind, { geo, year, quarter: qtr !== "ALL" ? qtr : "All Qtrs", oa: oaParam });
 
-  // Refresh right panel using PM filter context
+  // Refresh right panel using PM filter context + update filter header
   const insF = { geo, offeringArea: oaParam, consolidatedOffering: conParam };
   if (year !== "ALL") insF.year = year;
   if (qtr  !== "ALL") insF.quarter = qtr;
   const insD = await fetch(`/api/insights?${qs(insF)}`).then(r=>r.json()).catch(()=>({highlights:[],focus:[],actions:[]}));
   const render=(el,items)=>{ const e=$(el); if(!e) return; e.innerHTML=items.length?items.map(i=>`<div class="ins-item"><span style="margin-right:5px">${i.icon}</span>${i.text}</div>`).join(""):`<div style="color:var(--muted);font-size:10px">No data</div>`; };
   render("rpHigh",insD.highlights); render("rpFocus",insD.focus); render("rpAct",insD.actions);
+  // Update right panel filter context header
+  const rpCtx = $("rp-filter-ctx");
+  if (rpCtx) {
+    rpCtx.innerHTML = [
+      oaParam    !== "ALL" ? oaParam    : (conParam !== "ALL" ? conParam : "All Offerings"),
+      geo,
+      year !== "ALL" ? year : "",
+      qtr  !== "ALL" ? qtr  : "All Qtrs"
+    ].filter(Boolean).join(" &middot; ");
+  }
 
   // Scroll to top of report
   const body = $("pm-body"); if (body) body.scrollTop = 0;
@@ -1841,12 +1891,15 @@ function renderPMReport(d, ind, scope) {
       </div>
       ${accts.length?`<div class="pm-table-wrap" style="margin-top:10px">
         <div class="pm-table-hd"><span>Top Accounts by Pipeline</span><span class="pm-table-cnt">${accts.length} accounts</span></div>
-        <table class="pm-tbl"><thead><tr><th>#</th><th>Account</th><th style="text-align:right">Pipeline</th>
+        <table class="pm-tbl"><thead><tr><th>#</th><th>Account</th><th>Geo</th><th>Market</th>
+          <th style="text-align:right">Pipeline</th>
           <th style="text-align:right">Signings</th><th style="text-align:right">Win Rate</th><th style="text-align:right">FLM</th>
         </tr></thead><tbody>${accts.map((a,i)=>{
           const bw=Math.max(3,a.pipeline/mpA*70),wc=a.winRate>=65?"bg":a.winRate>=45?"bb":"br";
           return `<tr><td style="color:var(--dim);width:24px">${i+1}</td>
             <td><strong>${a.name}</strong><div style="height:2px;background:#0f62fe;width:${bw}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
+            <td style="color:var(--muted);white-space:nowrap">${a.geo||"—"}</td>
+            <td style="color:var(--muted);font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.market||"—"}</td>
             <td style="text-align:right">${fmt(a.pipeline)}</td><td style="text-align:right">${fmt(a.signings)}</td>
             <td style="text-align:right"><span class="bdg ${wc}">${fpp(a.winRate)}</span></td>
             <td style="text-align:right;color:var(--muted)">${a.flmCount}</td></tr>`;
@@ -1948,26 +2001,67 @@ function renderPMReport(d, ind, scope) {
   const rev = $("pm-s-rev"); if (rev && d.revenue) {
     const rv=d.revenue;
     const revGap=rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
+    // Actionable intelligence: tell the PM what to DO, not just what happened
+    const revTrend = d.trend||[];
+    const revDir   = d.revYoY!=null?(d.revYoY>=0?"growing":"declining"):"tracking";
+    const lagLead  = (rv.cq!=null&&cq.signings!=null&&rv.cq<cq.signings*0.6)
+      ? `Revenue conversion rate is low — only <strong>${(rv.cq/(cq.signings||1)*100).toFixed(0)}%</strong> of signings have converted. Review contract recognition timing and accelerate billing milestones.`
+      : `Revenue conversion is tracking signings — maintain billing cadence and proactively manage any contract delays.`;
+    const momLine = d.revQoQ!=null
+      ? (d.revQoQ>5?`QoQ momentum is <strong style="color:#198038">+${d.revQoQ.toFixed(1)}%</strong> — strong execution signal.`
+        :d.revQoQ<-5?`QoQ revenue dropped <strong style="color:#da1e28">${d.revQoQ.toFixed(1)}%</strong> — identify delayed recognitions or contract slippage and course-correct before quarter close.`
+        :`QoQ revenue is broadly stable at <strong>${d.revQoQ>0?"+":""}${(d.revQoQ||0).toFixed(1)}%</strong>.`)
+      : "";
     const revNarr = rv.cq!=null
-      ? `Revenue actuals of <strong>${fmt(rv.cq)}</strong> vs <strong>${fmt(rv.pyq)}</strong> same quarter last year — a <strong>${revGap>=0?"+":""}${fmt(revGap)}</strong> ${revGap>=0?"gain":"shortfall"}. `+
-        (d.revYoY!=null&&d.revYoY<0?`Revenue is lagging behind signings growth — conversion delay that must be addressed in the next GTM cycle.`:`Revenue is aligned with signings momentum — a healthy portfolio signal.`)
-      : "Revenue data not available.";
-    const trendHtml = d.trend?`<div class="pm-table-wrap" style="margin-top:10px">
-      <div class="pm-table-hd"><span>6-Quarter Revenue Trend</span></div>
-      <table class="pm-tbl"><thead><tr><th>Quarter</th><th style="text-align:right">Revenue</th>
-        <th style="text-align:right">Signings</th><th style="text-align:right">Pipeline</th></tr></thead>
-      <tbody>${d.trend.map(r=>`<tr><td><strong>${r.quarter}</strong></td>
-        <td style="text-align:right;font-weight:600">${fmt(r.revenue)}</td>
-        <td style="text-align:right">${fmt(r.signings)}</td>
-        <td style="text-align:right">${fmt(r.pipeline)}</td></tr>`).join("")}</tbody></table></div>`:"";
+      ? `Revenue actuals: <strong>${fmt(rv.cq)}</strong> — <strong>${revDir} ${Math.abs(d.revYoY||0).toFixed(1)}%</strong> YoY vs ${fmt(rv.pyq)} (same quarter prior year). ${momLine} ${lagLead}`
+      : "Revenue data not available for this scope.";
     rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Intelligence</div>
       <div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
       ${ins(revNarr)}
-      <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="pm-kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
         <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
-        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Quarter</div><div class="pm-kc-val">${fmt(rv.pq)}</div></div>
-        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Year Same Qtr</div><div class="pm-kc-val">${fmt(rv.pyq)}</div></div>
-      </div>${trendHtml}`;
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Quarter</div><div class="pm-kc-val">${fmt(rv.pq)}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">${fmt(rv.cq)} CQ</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Year Same Qtr</div><div class="pm-kc-val">${fmt(rv.pyq)}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">${revGap!=null?(revGap>=0?"+":"")+fmt(revGap)+" YoY":""}</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Rev / Signings Ratio</div><div class="pm-kc-val">${cq.signings>0?((rv.cq/cq.signings)*100).toFixed(0)+"%":"—"}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">conversion rate</div></div>
+      </div>
+      ${revTrend.length?`<div class="pm-table-wrap" style="padding:12px 14px">
+        <div class="pm-table-hd" style="margin-bottom:8px"><span>6-Quarter Revenue vs Signings Trend</span></div>
+        <div style="position:relative;height:160px"><canvas id="pmRevChart"></canvas></div>
+      </div>`:""}`;
+    // Draw line chart after DOM is set
+    if (revTrend.length) {
+      requestAnimationFrame(() => {
+        const cvs = document.getElementById("pmRevChart"); if (!cvs) return;
+        if (cvs._pmChart) { cvs._pmChart.destroy(); }
+        cvs._pmChart = new Chart(cvs, {
+          type: "line",
+          data: {
+            labels: revTrend.map(r => r.quarter),
+            datasets: [
+              { label: "Revenue", data: revTrend.map(r => +(r.revenue||0).toFixed(1)),
+                borderColor: "#0f62fe", backgroundColor: "rgba(15,98,254,.08)",
+                borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#0f62fe", tension: 0.3, fill: true },
+              { label: "Signings", data: revTrend.map(r => +(r.signings||0).toFixed(1)),
+                borderColor: "#198038", backgroundColor: "rgba(25,128,56,.06)",
+                borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#198038", tension: 0.3, fill: false,
+                borderDash: [4,3] },
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position:"top", labels:{ font:{size:9}, boxWidth:12, padding:8 } },
+              datalabels: { align:"top", anchor:"end", font:{size:8}, formatter: v => v>0?`$${v}M`:"",
+                            color: ctx => ctx.datasetIndex===0?"#0f62fe":"#198038" }
+            },
+            scales: {
+              x: { ticks:{ font:{size:9} }, grid:{ display:false } },
+              y: { ticks:{ font:{size:9}, callback: v=>`$${v}M` }, grid:{ color:"rgba(0,0,0,.04)" } }
+            }
+          }
+        });
+      });
+    }
   }
 
   // ── 7. Win Rate ────────────────────────────────────────────────────────────
