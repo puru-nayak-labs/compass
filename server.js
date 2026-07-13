@@ -1821,12 +1821,13 @@ app.get("/api/revenue/tabular", (req, res) => {
 // params: geo, quarter, offeringArea, consolidatedOffering, offering, ut30
 app.get("/api/pm-report", (req, res) => {
   const {
-    geo = "WW", quarter = "2Q26",
+    geo = "WW", quarter = "ALL", year = "ALL",
     offeringArea = "ALL", consolidatedOffering = "ALL", offering = "ALL", ut30 = "ALL"
   } = req.query;
 
-  // Derive comparison quarters
-  const CQ   = quarter;
+  // When quarter is ALL, derive a sensible current quarter for comparisons
+  const allQtrsAvail = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort().reverse();
+  const CQ = (quarter && quarter !== "ALL") ? quarter : (allQtrsAvail[0] || "2Q26");
   const qNum = parseInt(CQ[0]);
   const qYr  = parseInt(CQ.slice(2));
   const pqNum = qNum === 1 ? 4 : qNum - 1;
@@ -1834,7 +1835,9 @@ app.get("/api/pm-report", (req, res) => {
   const PQ  = `${pqNum}Q${pqYr}`;
   const PYQ = `${qNum}Q${qYr - 1}`;
 
+  // base filter — honour year if passed, pass quarter only if explicitly chosen
   const base = { geo, offeringArea, consolidatedOffering, offering, ut30 };
+  if (year && year !== "ALL") base.year = year;
 
   // ── Helper: aggregate a set of records ──
   const aggRecs = (recs) => {
@@ -2075,17 +2078,19 @@ app.get("/api/pm-report", (req, res) => {
 // GET /api/pm-report/industry — industry × geo matrix + deep dives for PM view
 app.get("/api/pm-report/industry", (req, res) => {
   const {
-    geo = "WW", quarter = "2Q26",
+    geo = "WW", quarter = "ALL", year = "ALL",
     offeringArea = "ALL", consolidatedOffering = "ALL", offering = "ALL", ut30 = "ALL"
   } = req.query;
 
-  const CQ   = quarter;
+  const allQtrsAvail2 = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort().reverse();
+  const CQ   = (quarter && quarter !== "ALL") ? quarter : (allQtrsAvail2[0] || "2Q26");
   const qNum = parseInt(CQ[0]);
   const qYr  = parseInt(CQ.slice(2));
   const PQ   = `${qNum===1?4:qNum-1}Q${qNum===1?qYr-1:qYr}`;
   const PYQ  = `${qNum}Q${qYr-1}`;
 
   const base = { geo, offeringArea, consolidatedOffering, offering, ut30 };
+  if (year && year !== "ALL") base.year = year;
   const GEOS = ["Americas","EMEA","APAC","Japan"];
 
   const aggI = (recs) => {

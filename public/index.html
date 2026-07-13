@@ -889,7 +889,7 @@ Chart.register(ChartDataLabels);
   <div class="pm-fbar">
     <div class="pm-frow">
       <span class="pm-fl">Portfolio</span>
-      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()"><option value="">All</option></select>
+      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()" style="min-width:220px;max-width:280px"><option value="">All Portfolios</option></select>
       <span class="pm-fl">Offering Area</span>
       <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()"><option value="ALL">All</option></select>
       <span class="pm-fl">Offering Name</span>
@@ -901,8 +901,15 @@ Chart.register(ChartDataLabels);
         <option value="WW">WW</option><option value="Americas">Americas</option>
         <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
       </select>
+      <span class="pm-fl">Year</span>
+      <select class="pm-fs" id="pm-year" onchange="pmUpdateCrumb()">
+        <option value="ALL">All</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
       <span class="pm-fl">Quarter</span>
       <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()">
+        <option value="ALL">All</option>
         <option value="2Q26">2Q26</option><option value="3Q26">3Q26</option>
         <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
         <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
@@ -911,8 +918,8 @@ Chart.register(ChartDataLabels);
     </div>
   </div>
 
-  <!-- ── ANCHOR NAV (appears after first generate) ── -->
-  <div class="pm-anav" id="pm-anav">
+  <!-- ── ANCHOR NAV — always visible ── -->
+  <div class="pm-anav show" id="pm-anav">
     <span class="pm-anav-scope" id="pm-fb-scope"></span>
     <button class="pm-alink active" onclick="pmScrollTo('pm-s-bh')">01 &middot; Business Health</button>
     <button class="pm-alink" onclick="pmScrollTo('pm-s-es')">02 &middot; Exec Summary</button>
@@ -1636,17 +1643,30 @@ async function initPMWizard() {
     });
   }
 
-  // Portfolio dropdown
+  // Portfolio dropdown — "Cross-Portfolio Infrastructure Services" pre-selected (live), others labelled Phase 2
   const portSel = $("pm-port-sel"); if (!portSel) return;
   portSel.innerHTML = '<option value="">All Portfolios</option>';
   (pmMeta.portfolio || []).forEach(p => {
     const o = document.createElement("option");
-    o.value = p.id; o.textContent = p.name;
-    if (p.phase !== "live") { o.disabled = true; o.textContent += " (Phase 2)"; }
+    o.value = p.id;
+    o.textContent = p.phase === "live" ? p.name : p.name + " (Phase 2)";
+    if (p.phase !== "live") o.disabled = true;
     portSel.appendChild(o);
   });
 
-  pmOnPortChange(); // populate OA and Con from default selection
+  // Pre-select the live portfolio (CPIS)
+  const livePort = (pmMeta.portfolio || []).find(p => p.phase === "live");
+  if (livePort) portSel.value = livePort.id;
+
+  // Set Year default to current year
+  const pmYear = $("pm-year");
+  if (pmYear) {
+    const yr4 = String(new Date().getFullYear());
+    const yopt = [...pmYear.options].find(o => o.value === yr4);
+    if (yopt) pmYear.value = yr4;
+  }
+
+  pmOnPortChange(); // cascade: populate OA and Con from pre-selected portfolio
   pmInitScrollSpy();
 }
 
@@ -1655,26 +1675,34 @@ async function generatePMReport() {
   const btn = $("pm-gen-btn");
   if (btn) { btn.disabled = true; btn.textContent = "Generating…"; }
 
-  const geo = ($("pm-geo")||{}).value || "WW";
-  const qtr = ($("pm-qtr")||{}).value || "2Q26";
-  const portSel = $("pm-port-sel"); const portId = portSel ? portSel.value : "";
-  const oaParam  = ($("pm-oa-sel") ||{}).value || "ALL";
-  const conParam = ($("pm-con-sel")||{}).value || "ALL";
+  const geo      = ($("pm-geo")     ||{}).value || "WW";
+  const year     = ($("pm-year")    ||{}).value || "ALL";
+  const qtr      = ($("pm-qtr")     ||{}).value || "ALL";
+  const portSel  = $("pm-port-sel");
+  const portId   = portSel ? portSel.value : "";
+  const oaParam  = ($("pm-oa-sel")  ||{}).value || "ALL";
+  const conParam = ($("pm-con-sel") ||{}).value || "ALL";
 
-  // Scope label
+  // Scope label in anchor nav
   const portfolio = pmMeta.portfolio || [];
   const port = portfolio.find(p => p.id === portId);
-  const portLabel = port ? port.name : "TLS";
+  const portLabel = port ? port.name : "All TLS";
   const scopeEl = $("pm-fb-scope");
   if (scopeEl) {
-    const parts = [portLabel];
-    if (oaParam !== "ALL") parts.push(oaParam);
+    const parts = [];
+    if (oaParam  !== "ALL") parts.push(oaParam);
     if (conParam !== "ALL") parts.push(conParam);
-    const first = parts.shift();
-    scopeEl.innerHTML = `<strong>${first}</strong>${parts.length ? " &nbsp;&middot;&nbsp; " + parts.join(" · ") : ""} &nbsp;&middot;&nbsp; <span style="color:var(--green)">${geo}</span> &nbsp;&middot;&nbsp; <span style="color:var(--yellow)">${qtr}</span>`;
+    const yearStr = year !== "ALL" ? ` ${year}` : "";
+    const qtrStr  = qtr  !== "ALL" ? ` ${qtr}`  : "";
+    scopeEl.innerHTML = `<strong>${portLabel}</strong>${parts.length ? " &nbsp;&middot;&nbsp; " + parts.join(" · ") : ""} &nbsp;&middot;&nbsp; <span style="color:var(--green)">${geo}</span><span style="color:var(--yellow)">${yearStr}${qtrStr || " · All Qtrs"}</span>`;
   }
 
-  const params = new URLSearchParams({ geo, quarter: qtr, offeringArea: oaParam, consolidatedOffering: conParam }).toString();
+  // Build params — pass year if set, quarter if set
+  const paramObj = { geo, offeringArea: oaParam, consolidatedOffering: conParam };
+  if (year !== "ALL") paramObj.year = year;
+  if (qtr  !== "ALL") paramObj.quarter = qtr;
+  const params = new URLSearchParams(paramObj).toString();
+
   const [rpt, ind] = await Promise.all([
     fetch(`/api/pm-report?${params}`).then(r => r.json()).catch(() => ({})),
     fetch(`/api/pm-report/industry?${params}`).then(r => r.json()).catch(() => ({})),
@@ -1682,12 +1710,11 @@ async function generatePMReport() {
 
   if (btn) { btn.disabled = false; btn.textContent = "⚡ Generate Product Intelligence"; }
 
-  // Show anchor nav + content, hide empty state
-  const anav = $("pm-anav"); if (anav) anav.classList.add("show");
+  // Show content, hide empty state (anchor nav is always visible now)
   const empty = $("pm-empty-state"); if (empty) empty.style.display = "none";
   const rptContent = $("pm-rpt-content"); if (rptContent) rptContent.style.display = "";
 
-  renderPMReport(rpt, ind, { geo, quarter: qtr, oa: oaParam });
+  renderPMReport(rpt, ind, { geo, year, quarter: qtr !== "ALL" ? qtr : "All Qtrs", oa: oaParam });
 
   // Scroll to top of report
   const body = $("pm-body"); if (body) body.scrollTop = 0;
@@ -2003,11 +2030,17 @@ function setFilterDefaults() {
     const eopt = [...exQtr.options].find(o => o.value === cq);
     if (eopt) exQtr.value = cq;
   }
-  // PM wizard quarter picker
+  // PM wizard year + quarter pickers
   const pmQtr = $("pm-qtr");
   if (pmQtr) {
     const popt = [...pmQtr.options].find(o => o.value === cq);
     if (popt) pmQtr.value = cq;
+  }
+  const pmYear2 = $("pm-year");
+  if (pmYear2) {
+    const yr4 = String(now.getFullYear());
+    const yopt2 = [...pmYear2.options].find(o => o.value === yr4);
+    if (yopt2) pmYear2.value = yr4;
   }
 }
 
