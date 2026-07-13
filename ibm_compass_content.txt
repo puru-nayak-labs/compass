@@ -1,0 +1,380 @@
+﻿=== SLIDE 1 ===
+IBM TLS
+Compass
+Agentic AI for Performance Intelligence
+Transform weekly and monthly KPI reporting from a
+manual data analysis process
+into an
+AI-powered intelligence and recommendation engine
+, enabling PM leaders to quickly understand what happened, why it happened, and what actions to take next.
+Conversational Q&A
+Ask anything about KPIs
+Agentic Insights
+Root cause + recommendations
+Continuous Learning
+Feedback loop & memory
+Prepared for TLS Product Management Leadership  ·  June 2026
+< 4 min
+vs
+2-
+4 hrs today
+4 KPIs
+Revenue · Signings · Pipeline · Win/Loss
+4 phases
+MVP → Decision Intelligence
+
+=== SLIDE 2 ===
+Outcome-based
+R
+oadmap (OBR)
+—
+TLS Compass
+Product Vision
+Statement
+:
+Compass transforms weekly and monthly KPI reporting from a manual analysis process into an AI-powered intelligence and recommendation engine, enabling PM leaders to quickly understand what happened, why it happened, and what actions to take next.
+Value:
+(1) Faster insights (2) Less manual effort (3) More business action
+North Star Metrics (NSM):
+Reduce Time-To-Action from KPI Data by 80%
+Total # Hours Saved in Performance Analysis, Report Preparation, and
+IBM business objectives
+Product outcomes
+Customer / buyer outcomes
+2026 – June – Aug-Mid
+(
+INTERNSHIP
+)
+2026 – Aug-Mid – Dec-End
+FUTURE (2027)
+Accelerate business decision-making through KPI intelligence
+reducing time-to-action from KPI Data by 80%
+1. Automate KPI Analysis
+Eliminate manual reporting and pivot creation
+(MVP) Revenue KPI Agent
+• Auto-ingest spreadsheet
+• Auto-pivots
+• YoY/
+QtQ
+analysis
+• WW & Geo views
+• Trend views
+• Executive summary generation
+•
+Add Signings
+•
+Add Pipeline
+•
+Add Win/Loss Rate
+Unified KPI experience
+Multi-KPI correlation engine
+Integration to EPM
+AI-generated strategic recommendations with business impact estimates
+2. Generate Actionable Insights
+Understand what happened and why
+Growth drivers
+Risk identification
+Outlier detection
+Top opportunities
+What Worked / Not Working
+Recommended Actions
+Executive narratives
+3. Enable Conversational Analytics
+Ask questions instead of reading reports
+Compass Chat:
+"How did Revenue perform?“
+"Which Geo grew fastest?"
+Executive Business Advisor:
+"Where should I focus next quarter?“
+Leadership Copilot
+– Prepare me for Monthly Review Meetings
+*Roadmaps are subject to change
+Draft v1
+
+=== SLIDE 3 ===
+The Problem & The Opportunity
+Today's KPI workflow is manual, inconsistent, and analyst-dependent. InsightsIQ eliminates that entirely.
+CURRENT STATE
+Manual KPI Workflow
+Excel files exported from multiple systems
+Business Analyst builds pivot tables manually
+Manual analysis — takes 1–2 days per cycle
+Insights vary by analyst; no standard narrative
+PowerPoint deck emailed to leadership
+No memory; same work repeated every cycle
+→
+FUTURE STATE
+InsightsIQ Agentic Workflow
+Excel/CSV auto-ingested by KPI Data Agent
+Metrics auto-generated: Pipeline, Signings, Revenue, Win/Loss
+Insight Agent identifies trends, risks, outliers instantly
+Recommendation Agent suggests actions by geo/offering
+InsightsIQ
+chatbot delivers answers conversationally in seconds
+Feedback loop trains the system continuously
+
+=== SLIDE 4 ===
+InsightsIQ — System Architecture
+Four-layer agentic stack built on IBM watsonx · Bob · Orchestrate
+Data Layer
+Excel / CSV / PowerBI
+Auto-ingested KPI feeds
+1
+→
+KPI Agent
+Revenue · Signings
+Pipeline · Win/Loss · Backlog
+2
+→
+Insight + Rec Agent
+Trend analysis · Root cause
+Recommendations by Geo/Offering
+3
+→
+Chatbot
+Conversational interface
+Context-aware Q&A
+4
+CONTEXT WINDOW — Filters applied to every query
+Year
+2025 · 2026 · Trailing 12M
+Geography
+Americas · EMEA · APAC · Japan. WW
+KPI
+Pipeline · Signings · Revenue · Win/Loss
+View
+Weekly · Monthly · QoQ · YoY
+
+=== SLIDE 5 ===
+KPIs
+IBM Compass —
+MVP View of the Product Experience
+CONTEXT
+Channel
+CHATBOT
+OUTPUT
+PM:
+How is PSI Americas signings this quarter?
+Compass:
+Americas signings declined 63% QoQ — driven by low renewal coverage (42%) and limited PSI attach. Pipeline is 38% below target. Recommended: increase SSR enablement + expand DNSO leads referrals.
+PM:
+What should PSI PM focus on this month?
+Compass:
+Priority 1: Americas pipeline creation. Priority 2: APAC revenue conversion (signings +61% YoY but revenue -11%). Priority 3: Replicate EMEA sales motion globally.
+Ask Compass anything about TLS performance...
+Tabular View
+<< Web-hosted Link – Accessible within IBM Intranet Only >>
+DIMENSIONS
+Pipeline
+Revenue
+Win/Loss
+Signings
+Product (L30)
+Offering (L40)
+Geo
+Market
+Segment
+Channel
+Country
+Year
+Quarter
+Month
+Revenue
+$29.6M
++19% YoY
+Signings
+$33.0M
++71% YoY
+Pipeline
+$148M
++12% QoQ
+Win Rate
+82%
+-3pts QoQ
+Trend View
+1. An automated weekly email to subscribers with web-hosted link to the agent + a complete executive level summary on the KPIs for the current quarter based on current data.
+
+=== SLIDE 6 ===
+Compass — system architecture & workflow
+Data layer → agent layer → conversation layer → feedback loop
+Box folder
+Weekly KPI files
+▼
+Data agent — watsonx.data
+Read Excel · all worksheets · normalize → KPI JSON
+▼
+KPI memory store
+2-year history · month · geo · offering · product
+▼
+▼
+▼
+Analytics agent
+YoY · QoQ · Geo
+Insight agent
+Trends · risks · root cause
+GTM agent
+Motions · impact · priority
+
+=== SLIDE 7 ===
+8-step build sequence & IBM tool stack
+Phases 1–2: Revenue MVP through Multi-KPI intelligence
+1
+Box repository
+Box
+Create /Compass/Revenue folder. Consistent file naming: Revenue_MMM-YYYY.xlsx.
+2
+Data agent
+watsonx.data
+Orchestrate skill: read Excel, all worksheets, normalize → KPI JSON with Month/Geo/Revenue/YoY.
+3
+KPI memory store
+watsonx.data / DB2
+Store 2-year history indexed by month, geo, offering. Initially JSON/CSV — migrate to vector store in Phase 3.
+4
+Revenue insight prompt
+watsonx.ai Granite
+Structured prompt: Executive Summary · Top 3 trends · Top 3 risks · Best/worst geo · Recommendation.
+5
+Chat interface MVP
+Watsonx Assistant
+Connect Assistant to Revenue Insight skill. Enable 4 core PM questions. Test with real Revenue file.
+6
+KPI correlation engine
+watsonx.ai Granite
+Phase 2: detect Revenue up + Signings down patterns. Generate risk narratives for PM leaders.
+7
+GTM agent
+watsonx.ai + Orchestrate
+Prompt: based on KPI performance, recommend GTM motions. Estimate revenue impact. Prioritize.
+8
+Executive narratives
+watsonx.ai Granite
+Auto-produce: What Went Well / What Didn't / Actions / Help Needed — exactly like your monthly reviews.
+IBM stack: Box (data) · watsonx.data (ingestion) · watsonx.ai Granite (LLM) · Watsonx Orchestrate (agent routing) · Watsonx Assistant / Bob (chat UI)
+
+=== SLIDE 8 ===
+Compass prompts & Bob configuration
+Configure once. Compass answers every PM question automatically.
+Bob system prompt
+Watsonx Assistant / Bob — configure once
+You are Compass, the PM intelligence assistant
+for IBM TLS Project Services (PSI).
+Context window applied to every query:
+— KPI: Revenue · Signings · Pipeline · Win/Loss
+— Geo: Americas · EMEA · APAC · WW
+— Time: This week / Month / QTD / YTD
+For each query, route to the correct skill:
+• KPI data → Revenue_Query skill
+• Trend analysis → Insight_Agent skill
+• Action needed → GTM_Agent skill
+Respond in executive language.
+Always end with a recommended action.
+Revenue insight prompt
+watsonx.ai Granite — Step 4
+You are Compass.
+Analyze Revenue KPI data for {geo}
+in {time_period}:
+{kpi_json}
+Historical context:
+{historical_kpi_json}
+Produce:
+1. Executive summary (2 sentences)
+2. Top 3 positive trends (with numbers)
+3. Top 3 risks (with attribution)
+4. Best performing geo — and why
+5. Worst performing geo — and why
+6. One specific recommended action
+Be specific. Use numbers. No vague language.
+GTM agent prompt
+watsonx.ai Granite — Step 7
+You are a GTM strategist for IBM TLS PSI.
+KPI insight summary:
+{insight_output}
+Historical action-outcome memory:
+{memory_store}
+Generate 2 specific GTM motions.
+For each provide:
+— Motion name
+— Target: geo / offering / accounts
+— Specific seller/SSR action
+— Expected revenue impact ($M or %)
+— Priority: High / Medium / Low
+— Confidence: % (based on history)
+Output: structured JSON for Compass UI.
+
+=== SLIDE 9 ===
+4 intelligence layers & success metrics
+Compass evolves from reporting to decision intelligence as each layer activates.
+1
+What happened?
+KPI reporting
+Auto-generated metrics: Revenue, Signings, Pipeline, Win/Loss by Geo, Offering, Account.
+2
+Why did it happen?
+Insight agent
+Trend analysis, root cause hypothesis, anomaly detection — explained in executive language.
+3
+What should we do?
+GTM agent
+Specific GTM motions with target accounts, expected $M impact, and confidence score.
+4
+What worked before?
+Memory agent
+Stores insight → action → outcome. Recalls historical patterns. This is the moat.
+Success metrics
+Report time
+< 4 min
+vs 2–4 hrs today
+Analyst effort
+−90%
+freed for strategic work
+PM questions
+4 core
+answered instantly
+IBM tool stack
+Box
+Data source — weekly KPI files
+watsonx.data
+Ingestion + KPI memory store
+watsonx.ai (Granite)
+Insight, GTM, narrative generation
+Watsonx Orchestrate
+Agent routing + skill coordination
+Watsonx Assistant/Bob
+Conversational PM interface
+Layer 4 (memory) is the long-term moat. Design the {insight → action → outcome} schema from day one — retrofitting it later loses months of institutional intelligence.
+
+=== SLIDE 10 ===
+Compass build roadmap — 4 phases
+Start with Revenue MVP. Layer intelligence. Build the moat.
+Phase 0
+This week
+Product definition
+Lock KPI priority: Revenue → Signings → Pipeline → Win/Loss
+Define core PM personas and questions Compass must answer
+Set success criteria: < 5 min vs 2–4 hrs analyst today
+Design Box folder structure and file naming convention
+Phase 1
+July → Mid-Aug
+Revenue MVP
+Box connector: auto-ingest Revenue.xlsx weekly
+KPI memory store: 2-year history, normalized JSON
+Revenue Insight Prompt (watsonx.ai Granite)
+Chat interface: Watsonx Assistant or Orchestrate Chat
+Phase 2
+Mid-Aug → Sept
+Multi-KPI intelligence
+Add Signings, Pipeline, Win/Loss agents
+KPI Correlation Engine: Revenue up + Signings down = risk
+GTM Agent: recommended motions with impact estimate
+Executive narratives: What Worked / Didn't / Actions / Help
+Phase 3
+Q4 2026
+Decision intelligence
+Full Watsonx Orchestrate multi-agent architecture
+5 agents: Data, Analytics, Insight, GTM, Review Agent
+PPT / MBR / QBR auto-generation on demand
+Feedback loop: thumbs up/down + outcome memory
+First 30-day deliverable: Box ingestion → Revenue KPI analysis → Executive summary → Chat interface. This alone proves product-market fit.
+
+

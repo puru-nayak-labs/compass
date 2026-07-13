@@ -1,0 +1,13 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Bob internal — exclude everything except the data dumps the server needs
+.bob/
+!.bob/tmp/
+!.bob/tmp/xlsx-dumps/
+!.bob/tmp/xlsx-dumps/**
+
+# OS
+.DS_Store
+Thumbs.db

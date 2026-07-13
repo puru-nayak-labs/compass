@@ -1,0 +1,2336 @@
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+// ─── Data source manifest (sheet name encodes the date) ──────────────────────
+// Pipeline: "Pipeline 2026.07.11"  Revenue: "Revenue 2026.06.18"
+const DATA_DUMP_DIR = ".bob/tmp/xlsx-dumps/TLS Performance Data-e90c662f31f06851";
+
+function parseDateFromSheetName(name) {
+  // "Pipeline 2026.07.11" → "Jul 11 2026"
+  const m = name.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+  if (!m) return name;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[parseInt(m[2],10)-1]} ${parseInt(m[3],10)} ${m[1]}`;
+}
+
+const PIPE_SHEET = "Pipeline 2026.07.11";
+const REV_SHEET  = "Revenue 2026.06.18";
+const PIPE_DATE  = parseDateFromSheetName(PIPE_SHEET);  // "Jul 11 2026"
+const REV_DATE   = parseDateFromSheetName(REV_SHEET);   // "Jun 18 2026"
+
+// ─── Load & pre-process Pipeline data ───────────────────────────────────────
+const PIPE_DUMP = path.join(__dirname, `${DATA_DUMP_DIR}/Pipeline_2026_07_11.json`);
+const { rows: pipeRows, headers: pipeHeaders } = JSON.parse(fs.readFileSync(PIPE_DUMP, "utf8"));
+const pipeIdx = Object.fromEntries(pipeHeaders.map((h, i) => [h, i]));
+
+// Pipeline column accessors
+const pg = (row, col) => row[pipeIdx[col]];
+const pn = (row, col) => parseFloat(row[pipeIdx[col]]) || 0;
+const ps = (row, col) => String(row[pipeIdx[col]] || "").trim();
+
+// ─── Pipeline schema ─────────────────────────────────────────────────────────
+// Source: Pipeline 2026.07.04 tab  (20,575 rows × 71 cols)
+// Key financials: oppVal / wonDollar / lostDollar in $M (as-is from sheet)
+// Estimated Rev columns also in $M
+const records = pipeRows.map(r => ({
+  geo:                  ps(r, "Geography Name"),
+  market:               ps(r, "Market Name"),
+  country:              ps(r, "Country Name"),
+  quarter:              ps(r, "Quarter In Year"),
+  year:                 String(ps(r, "Year")),
+  stage:                ps(r, "ISC Sales Stage Name"),
+  forecastCat:          ps(r, "Sales Forecast Category Shortname"),
+  forecastGrp:          ps(r, "Forecast Grouping"),
+  offering:             ps(r, "Offering Name"),
+  consolidatedOffering: ps(r, "Consolidated Offering Name"),
+  ut30:                 ps(r, "UT Lvl 30 Name Dynamic"),
+  offeringArea:         ps(r, "Offering Area"),
+  channel:              ps(r, "Channel Name"),
+  clientType:           ps(r, "Client Type Name"),
+  customer:             ps(r, "Customer Name"),
+  oppVal:               pn(r, "Oppty Value"),        // $M
+  wonDollar:            pn(r, "Won $M"),              // $M
+  lostDollar:           pn(r, "Lost $M"),             // $M
+  call:                 pn(r, "Call"),                // $M
+  upside:               pn(r, "Upside"),              // $M
+  ppv:                  pn(r, "PPV"),
+  wonFlag:              pn(r, "Won"),
+  dnso:                 ps(r, "DNSO"),
+  winLossReason:        ps(r, "Won Lost Reason Name"),
+  oppAge:               pn(r, "Opp Age"),
+  fcstMonth:            ps(r, "Opp Forecast Month"),
+  wlMonth:              ps(r, "Opp Win/Loss Month"),
+  flmJudgment:          ps(r, "FLM Forecast Judgement Indicator"),  // "Y" / "N" / ""
+  industry:             ps(r, "Traditional Industry Name"),
+  sector:               ps(r, "Traditional Sector Name"),
+  allInIndustry:        ps(r, "All In Industry Name"),
+  top500:               ps(r, "TLS Top 500"),
+  classification:       ps(r, "Classification Name"),
+  oppSource:            ps(r, "Opportunity Source Name"),
+  dealSize:             ps(r, "Deal Size Component Name"),
+  nextStep:             ps(r, "Opp Next Step (P2P)"),
+  estRev: {
+    "1Q26": parseFloat(pg(r, "Estimated Rev - 1Q26")) || 0,
+    "2Q26": parseFloat(pg(r, "Estimated Rev - 2Q26")) || 0,
+    "3Q26": parseFloat(pg(r, "Estimated Rev - 3Q26")) || 0,
+    "4Q26": parseFloat(pg(r, "Estimated Rev - 4Q26")) || 0,
+    "1Q27": parseFloat(pg(r, "Estimated Rev - 1Q27")) || 0,
+    "2Q27": parseFloat(pg(r, "Estimated Rev - 2Q27")) || 0,
+    "3Q27": parseFloat(pg(r, "Estimated Rev - 3Q27")) || 0,
+    "4Q27": parseFloat(pg(r, "Estimated Rev - 4Q27")) || 0,
+  }
+}));
+
+// ─── Load & pre-process Revenue Actuals data ────────────────────────────────
+const REV_DUMP = path.join(__dirname, `${DATA_DUMP_DIR}/Revenue_2026_06_18.json`);
+const { rows: revRows, headers: revHeaders } = JSON.parse(fs.readFileSync(REV_DUMP, "utf8"));
+const revIdx = Object.fromEntries(revHeaders.map((h, i) => [h, i]));
+
+// Revenue column accessors
+const rg = (row, col) => row[revIdx[col]];
+const rn = (row, col) => parseFloat(row[revIdx[col]]) || 0;
+const rs = (row, col) => String(row[revIdx[col]] || "").trim();
+
+// Normalise market shortnames (Revenue tab uses abbreviated forms: "ASEAN Mkt", "DACH Mkt", etc.)
+// Strip " Market" / " Mkt" suffix so they align with Pipeline market names where possible
+function normMarket(m) {
+  return m.replace(/ Market$/, "").replace(/ Mkt$/, "").trim();
+}
+
+// ─── Revenue schema ──────────────────────────────────────────────────────────
+// Source: Revenue 2026.06.18 tab  (163,497 rows × 23 cols)
+// Rev Act @ PC is in raw USD — divide by 1,000,000 to store as $M (consistent with Pipeline)
+// Adjustment rows ("Transfer of Sub Rev to Power") are kept but flagged so callers can exclude
+// Cross column is always "Yes" — not used as a filter dimension
+const revRecords = revRows.map(r => ({
+  year:                 String(Math.round(rn(r, "Year"))),
+  quarter:              rs(r, "Quarter In Year"),
+  month:                Math.round(rn(r, "Month")),             // 1-12
+  geo:                  rs(r, "Geography Name"),
+  market:               normMarket(rs(r, "Market Shortname")),
+  country:              rs(r, "Country Name"),
+  clientType:           rs(r, "Client Type Name"),
+  customer:             rs(r, "Customer Name"),
+  ecoVsDirect:          rs(r, "Eco vs Direct"),                 // "Direct" | "Ecosystem" | "Adjustment"
+  ut17:                 rs(r, "UT Lvl 17 Name"),
+  ut20:                 rs(r, "UT Lvl 20 Name"),
+  ut30:                 rs(r, "UT Lvl 30 Name"),
+  offeringArea:         rs(r, "Offering Area"),
+  offering:             rs(r, "Offering Name"),
+  consolidatedOffering: rs(r, "Consolidated Offering Name"),
+  groupingType1:        rs(r, "Grouping Type 1"),
+  groupingType2:        rs(r, "Grouping Type 2"),
+  isAdjustment:         rs(r, "Adjustment") !== "No Adjustment", // true = transfer/adj row
+  revActM:              rn(r, "Rev Act @ PC") / 1e6,            // converted to $M
+}));
+
+// ─── Revenue filter helper ────────────────────────────────────────────────────
+// Mirrors the Pipeline filter() signature so callers are consistent.
+// By default excludes Adjustment eco-vs-direct rows (ecoVsDirect === "Adjustment").
+function filterRev(opts = {}) {
+  return revRecords.filter(r => {
+    if (r.ecoVsDirect === "Adjustment")                                                           return false; // exclude transfer rows
+    if (opts.geo          && opts.geo !== "WW"   && r.geo !== opts.geo)                          return false;
+    if (opts.quarter      && opts.quarter !== "ALL" && r.quarter !== opts.quarter)                return false;
+    if (opts.year         && opts.year !== "ALL" && r.year !== opts.year)                         return false;
+    if (opts.month        && opts.month !== "ALL" && String(r.month) !== String(opts.month))      return false;
+    if (opts.market       && opts.market !== "ALL" && r.market !== opts.market)                   return false;
+    if (opts.country      && opts.country !== "ALL" && r.country !== opts.country)                return false;
+    if (opts.offeringArea && opts.offeringArea !== "ALL" && r.offeringArea !== opts.offeringArea) return false;
+    if (opts.consolidatedOffering && opts.consolidatedOffering !== "ALL" && r.consolidatedOffering !== opts.consolidatedOffering) return false;
+    if (opts.ut30         && opts.ut30 !== "ALL" && r.ut30 !== opts.ut30)                         return false;
+    if (opts.clientType   && opts.clientType !== "ALL" && r.clientType !== opts.clientType)       return false;
+    if (opts.ecoVsDirect  && opts.ecoVsDirect !== "ALL" && r.ecoVsDirect !== opts.ecoVsDirect)   return false;
+    return true;
+  });
+}
+
+// ─── Helper: filter records ──────────────────────────────────────────────────
+function filter(opts = {}) {
+  return records.filter(r => {
+    if (opts.geo                  && opts.geo !== "WW"                  && r.geo !== opts.geo)                                     return false;
+    if (opts.quarter              && opts.quarter !== "ALL"              && r.quarter !== opts.quarter)                             return false;
+    if (opts.year                 && opts.year !== "ALL"                 && r.year !== opts.year)                                   return false;
+    if (opts.month                && opts.month !== "ALL"                && r.fcstMonth !== opts.month && r.wlMonth !== opts.month) return false;
+    if (opts.market               && opts.market !== "ALL"               && r.market !== opts.market)                               return false;
+    if (opts.channel              && opts.channel !== "ALL"              && r.channel !== opts.channel)                             return false;
+    if (opts.country              && opts.country !== "ALL"              && r.country !== opts.country)                             return false;
+    if (opts.offeringArea         && opts.offeringArea !== "ALL"         && r.offeringArea !== opts.offeringArea)                   return false;
+    if (opts.consolidatedOffering && opts.consolidatedOffering !== "ALL" && r.consolidatedOffering !== opts.consolidatedOffering)   return false;
+    if (opts.offering             && opts.offering !== "ALL"             && r.offering !== opts.offering)                           return false;
+    if (opts.ut30                 && opts.ut30 !== "ALL"                 && r.ut30 !== opts.ut30)                                   return false;
+    if (opts.clientType           && opts.clientType !== "ALL"           && r.clientType !== opts.clientType)                       return false;
+    if (opts.stage                && r.stage !== opts.stage)                                                                        return false;
+    return true;
+  });
+}
+
+// ─── Aggregate helpers ───────────────────────────────────────────────────────
+function sumBy(recs, keyFn, valFn) {
+  const m = {};
+  for (const r of recs) {
+    const k = keyFn(r);
+    if (!m[k]) m[k] = 0;
+    m[k] += valFn(r);
+  }
+  return m;
+}
+
+function winRateBy(recs, keyFn) {
+  const m = {};
+  for (const r of recs) {
+    if (r.stage !== "Won" && r.stage !== "Lost") continue;
+    const k = keyFn(r);
+    if (!m[k]) m[k] = { won: 0, lost: 0 };
+    if (r.stage === "Won") m[k].won++;
+    else m[k].lost++;
+  }
+  return Object.fromEntries(
+    Object.entries(m).map(([k, v]) => [k, {
+      won: v.won, lost: v.lost,
+      total: v.won + v.lost,
+      rate: v.won + v.lost > 0 ? +((v.won / (v.won + v.lost)) * 100).toFixed(1) : 0
+    }])
+  );
+}
+
+// ─── Routes ─────────────────────────────────────────────────────────────────
+
+// GET /api/data-info — data source dates for the header bar
+app.get("/api/data-info", (req, res) => {
+  res.json({ pipelineDate: PIPE_DATE, revenueDate: REV_DATE });
+});
+
+// GET /api/meta — all filter dimensions (pipeline + revenue combined)
+app.get("/api/meta", (req, res) => {
+  const geos      = [...new Set(records.map(r => r.geo))].filter(Boolean).sort();
+
+  // Quarters: merge pipeline + revenue quarters, sort chronologically
+  const allQtrs = [...new Set([
+    ...records.map(r => r.quarter),
+    ...revRecords.map(r => r.quarter)
+  ])].filter(Boolean).sort();
+
+  const years = [...new Set([
+    ...records.map(r => r.year),
+    ...revRecords.map(r => r.year)
+  ])].filter(Boolean).sort();
+
+  // Offering Area — custom order: Project Services first, then Interoperability, Custom, Other, rest
+  const OA_ORDER = ["Project Services","Interoperability Services","Custom Services","Other Services"];
+  const allOAs = [...new Set([
+    ...records.map(r => r.offeringArea),
+    ...revRecords.map(r => r.offeringArea)
+  ])].filter(v => v && v !== "NotCross");
+  const offeringAreas = [
+    ...OA_ORDER.filter(o => allOAs.includes(o)),
+    ...allOAs.filter(o => !OA_ORDER.includes(o)).sort()
+  ];
+
+  // Consolidated offerings: merge pipeline + revenue
+  const consolidatedOfferings = [...new Set([
+    ...records.map(r => r.consolidatedOffering),
+    ...revRecords.map(r => r.consolidatedOffering)
+  ])].filter(v => v && v !== "NotCross").sort();
+
+  // UT30: pipeline uses "UT Lvl 30 Name Dynamic"; revenue uses "UT Lvl 30 Name" — merge both
+  const ut30s = [...new Set([
+    ...records.map(r => r.ut30),
+    ...revRecords.map(r => r.ut30)
+  ])].filter(Boolean).sort();
+
+  const clientTypes = [...new Set([
+    ...records.map(r => r.clientType),
+    ...revRecords.map(r => r.clientType)
+  ])].filter(v => v && !["Unassigned","Adjustment"].includes(v)).sort();
+
+  const markets  = [...new Set(records.map(r => r.market))].filter(v => v && v !== "Unassigned").sort();
+  const channels = [...new Set(records.map(r => r.channel))].filter(Boolean).sort();
+  const countries= [...new Set([
+    ...records.map(r => r.country),
+    ...revRecords.map(r => r.country)
+  ])].filter(Boolean).sort();
+
+  // Months: pipeline uses named months ("Jan 2025"); revenue uses integers 1-12
+  const monthSet = new Set();
+  for (const r of records) {
+    if (r.fcstMonth) monthSet.add(r.fcstMonth);
+    if (r.wlMonth)   monthSet.add(r.wlMonth);
+  }
+  const months = [...monthSet].filter(Boolean).sort((a, b) => new Date(a) - new Date(b));
+
+  // Revenue-specific dimensions
+  const revQuarters   = [...new Set(revRecords.map(r => r.quarter))].filter(Boolean).sort();
+  const ecoVsDirectOpts = [...new Set(revRecords.map(r => r.ecoVsDirect))].filter(v => v && v !== "Adjustment").sort();
+
+  res.json({
+    geos, quarters: allQtrs, years,
+    offeringAreas, consolidatedOfferings, ut30s,
+    clientTypes, markets, channels, countries, months,
+    // Revenue-specific
+    revQuarters, ecoVsDirectOpts
+  });
+});
+
+// GET /api/kpi/summary — headline KPI cards
+app.get("/api/kpi/summary", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", month = "ALL" } = req.query;
+
+  const recs = filter({ geo, quarter, year, market, channel, country, offeringArea, consolidatedOffering, ut30, clientType, month });
+  const closed = recs.filter(r => r.stage === "Won" || r.stage === "Lost");
+  const won = closed.filter(r => r.stage === "Won");
+  const active = recs.filter(r => !["Won","Lost"].includes(r.stage));
+
+  const activePipelineVal = active.reduce((s, r) => s + r.oppVal, 0);
+  const pipeline = recs.reduce((s, r) => s + r.oppVal, 0); // total opp value (all stages) for headline
+  const signings = recs.reduce((s, r) => s + r.wonDollar, 0);
+  const call = recs.reduce((s, r) => s + r.call, 0);
+  const upside = recs.reduce((s, r) => s + r.upside, 0);
+  const winRate = closed.length > 0 ? (won.length / closed.length) * 100 : 0;
+  const lostDollar = recs.reduce((s, r) => s + r.lostDollar, 0);
+  const dnso = recs.filter(r => r.dnso === "Yes").length;
+
+  // QoQ comparison
+  let pipelineQoQ = null, signingsQoQ = null, winRateQoQ = null;
+  // YoY comparison — find same quarter one year prior
+  let pipelineYoY = null, signingsYoY = null, winRateYoY = null;
+
+  const allQtrs = [...new Set(records.map(r => r.quarter))].sort();
+
+  if (quarter !== "ALL") {
+    const qi = allQtrs.indexOf(quarter);
+    // QoQ: previous quarter
+    if (qi > 0) {
+      const prev = filter({ geo, quarter: allQtrs[qi - 1], year: "ALL", market, channel, country, offeringArea, clientType });
+      const prevClosed = prev.filter(r => r.stage === "Won" || r.stage === "Lost");
+      const prevWon = prevClosed.filter(r => r.stage === "Won");
+      const prevPipeline = prev.reduce((s, r) => s + r.oppVal, 0);
+      const prevSignings = prev.reduce((s, r) => s + r.wonDollar, 0);
+      const prevWinRate = prevClosed.length > 0 ? (prevWon.length / prevClosed.length) * 100 : 0;
+      pipelineQoQ = prevPipeline > 0 ? +((pipeline / prevPipeline - 1) * 100).toFixed(1) : null;
+      signingsQoQ = prevSignings > 0 ? +((signings / prevSignings - 1) * 100).toFixed(1) : null;
+      winRateQoQ  = +(winRate - prevWinRate).toFixed(1);
+    }
+    // YoY: same quarter name, year -1 (e.g. 2Q26 → 2Q25)
+    const qLabel = quarter.slice(0, 2); // "2Q"
+    const qYear  = parseInt(quarter.slice(2)); // 26
+    const pyQtr  = `${qLabel}${qYear - 1}`; // "2Q25"
+    if (allQtrs.includes(pyQtr)) {
+      const py = filter({ geo, quarter: pyQtr, year: "ALL", market, channel, country, offeringArea, clientType });
+      const pyClosed = py.filter(r => r.stage === "Won" || r.stage === "Lost");
+      const pyWon = pyClosed.filter(r => r.stage === "Won");
+      const pyPipeline = py.reduce((s, r) => s + r.oppVal, 0);
+      const pySignings = py.reduce((s, r) => s + r.wonDollar, 0);
+      const pyWinRate = pyClosed.length > 0 ? (pyWon.length / pyClosed.length) * 100 : 0;
+      pipelineYoY = pyPipeline > 0 ? +((pipeline / pyPipeline - 1) * 100).toFixed(1) : null;
+      signingsYoY = pySignings > 0 ? +((signings / pySignings - 1) * 100).toFixed(1) : null;
+      winRateYoY  = +(winRate - pyWinRate).toFixed(1);
+    }
+  }
+
+  res.json({
+    pipeline: +pipeline.toFixed(2),
+    signings: +signings.toFixed(2),
+    call: +call.toFixed(2),
+    upside: +upside.toFixed(2),
+    winRate: +winRate.toFixed(1),
+    lostDollar: +lostDollar.toFixed(2),
+    dnsoCount: dnso,
+    oppCount: recs.length,
+    wonCount: won.length,
+    lostCount: closed.length - won.length,
+    pipelineQoQ, signingsQoQ, winRateQoQ,
+    pipelineYoY, signingsYoY, winRateYoY
+  });
+});
+
+// GET /api/kpi/by-geo
+app.get("/api/kpi/by-geo", (req, res) => {
+  const { quarter = "ALL", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", clientType = "ALL", month = "ALL" } = req.query;
+  const recs = filter({ quarter, year, market, channel, country, offeringArea, clientType, month });
+
+  const geos = [...new Set(recs.map(r => r.geo))].filter(g => g && g !== "Unassigned");
+  const result = geos.map(geo => {
+    const g = recs.filter(r => r.geo === geo);
+    const closed = g.filter(r => r.stage === "Won" || r.stage === "Lost");
+    const won = closed.filter(r => r.stage === "Won");
+    const active = g.filter(r => !["Won","Lost"].includes(r.stage));
+    return {
+      geo,
+      pipeline: +active.reduce((s, r) => s + r.oppVal, 0).toFixed(2),
+      signings: +g.reduce((s, r) => s + r.wonDollar, 0).toFixed(2),
+      call: +g.reduce((s, r) => s + r.call, 0).toFixed(2),
+      upside: +g.reduce((s, r) => s + r.upside, 0).toFixed(2),
+      winRate: closed.length > 0 ? +((won.length / closed.length) * 100).toFixed(1) : 0,
+      oppCount: g.length,
+      wonCount: won.length,
+      lostCount: closed.length - won.length
+    };
+  }).sort((a, b) => b.pipeline - a.pipeline);
+
+  res.json(result);
+});
+
+// GET /api/kpi/by-quarter
+app.get("/api/kpi/by-quarter", (req, res) => {
+  const { geo = "WW", market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", clientType = "ALL" } = req.query;
+  const recs = filter({ geo, market, channel, country, offeringArea, clientType });
+
+  const qtrs = [...new Set(recs.map(r => r.quarter))].filter(Boolean).sort();
+  const result = qtrs.map(qtr => {
+    const g = recs.filter(r => r.quarter === qtr);
+    const closed = g.filter(r => r.stage === "Won" || r.stage === "Lost");
+    const won = closed.filter(r => r.stage === "Won");
+    const active = g.filter(r => !["Won","Lost"].includes(r.stage));
+    return {
+      quarter: qtr,
+      pipeline: +active.reduce((s, r) => s + r.oppVal, 0).toFixed(2),
+      signings: +g.reduce((s, r) => s + r.wonDollar, 0).toFixed(2),
+      call: +g.reduce((s, r) => s + r.call, 0).toFixed(2),
+      winRate: closed.length > 0 ? +((won.length / closed.length) * 100).toFixed(1) : 0,
+      oppCount: g.length
+    };
+  });
+
+  res.json(result);
+});
+
+// GET /api/kpi/by-offering
+app.get("/api/kpi/by-offering", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL", top = "10",
+          market = "ALL", channel = "ALL", country = "ALL", month = "ALL" } = req.query;
+  const recs = filter({ geo, quarter, year, market, channel, country, month });
+
+  const byOff = {};
+  for (const r of recs) {
+    const k = r.offering || "Unknown";
+    if (!byOff[k]) byOff[k] = { pipeline: 0, signings: 0, won: 0, lost: 0, count: 0 };
+    byOff[k].pipeline += r.oppVal;
+    byOff[k].signings += r.wonDollar;
+    if (r.stage === "Won") byOff[k].won++;
+    if (r.stage === "Lost") byOff[k].lost++;
+    byOff[k].count++;
+  }
+
+  const result = Object.entries(byOff)
+    .map(([offering, d]) => ({
+      offering,
+      pipeline: +d.pipeline.toFixed(2),
+      signings: +d.signings.toFixed(2),
+      winRate: d.won + d.lost > 0 ? +((d.won / (d.won + d.lost)) * 100).toFixed(1) : 0,
+      count: d.count
+    }))
+    .sort((a, b) => b.pipeline - a.pipeline)
+    .slice(0, parseInt(top));
+
+  res.json(result);
+});
+
+// GET /api/kpi/win-loss
+app.get("/api/kpi/win-loss", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", clientType = "ALL", month = "ALL" } = req.query;
+  const recs = filter({ geo, quarter, year, market, channel, country, offeringArea, clientType, month })
+               .filter(r => r.stage === "Won" || r.stage === "Lost");
+
+  const byReason = {};
+  for (const r of recs) {
+    const k = r.winLossReason || "Unknown";
+    if (!byReason[k]) byReason[k] = { won: 0, lost: 0 };
+    if (r.stage === "Won") byReason[k].won++;
+    else byReason[k].lost++;
+  }
+
+  const result = Object.entries(byReason)
+    .map(([reason, d]) => ({ reason, won: d.won, lost: d.lost, total: d.won + d.lost }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  res.json(result);
+});
+
+// GET /api/kpi/est-revenue — estimated revenue outlook
+app.get("/api/kpi/est-revenue", (req, res) => {
+  const { geo = "WW", market = "ALL", channel = "ALL", offeringArea = "ALL", clientType = "ALL" } = req.query;
+  const recs = filter({ geo, market, channel, offeringArea, clientType });
+
+  const cols = ["1Q26","2Q26","3Q26","4Q26","1Q27","2Q27","3Q27","4Q27"];
+  const result = cols.map(q => ({
+    quarter: q,
+    estRev: +recs.reduce((s, r) => s + (r.estRev[q] || 0), 0).toFixed(2)
+  }));
+
+  res.json(result);
+});
+
+// GET /api/kpi/forecast-coverage — call vs pipeline
+app.get("/api/kpi/forecast-coverage", (req, res) => {
+  const { geo = "WW", quarter = "ALL",
+          market = "ALL", channel = "ALL", offeringArea = "ALL", clientType = "ALL" } = req.query;
+  const recs = filter({ geo, quarter, market, channel, offeringArea, clientType });
+
+  const byGrp = {};
+  for (const r of recs) {
+    const k = r.forecastGrp || "Unknown";
+    if (!byGrp[k]) byGrp[k] = { value: 0, count: 0 };
+    byGrp[k].value += r.oppVal;
+    byGrp[k].count++;
+  }
+
+  res.json(Object.entries(byGrp).map(([grp, d]) => ({
+    group: grp,
+    value: +d.value.toFixed(2),
+    count: d.count
+  })).sort((a, b) => b.value - a.value));
+});
+
+// GET /api/kpi/tabular — breakdown by any dimension
+app.get("/api/kpi/tabular", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", month = "ALL",
+          groupBy = "geo" } = req.query;
+
+  const recs = filter({ geo, quarter, year, market, channel, country, offeringArea, consolidatedOffering, ut30, clientType, month });
+
+  // groupBy can be: geo, quarter, offeringArea, clientType, market, channel, country
+  const keyFn = {
+    geo:      r => r.geo,
+    quarter:  r => r.quarter,
+    offeringArea: r => r.offeringArea || "Unknown",
+    clientType:   r => r.clientType   || "Unknown",
+    market:   r => r.market   || "Unknown",
+    channel:  r => r.channel  || "Unknown",
+    country:  r => r.country  || "Unknown",
+  }[groupBy] || (r => r.geo);
+
+  const buckets = {};
+  for (const r of recs) {
+    const k = keyFn(r);
+    if (!buckets[k]) buckets[k] = { pipeline: 0, signings: 0, call: 0, upside: 0, won: 0, lost: 0, count: 0, lostDollar: 0 };
+    buckets[k].pipeline   += r.oppVal;
+    buckets[k].signings   += r.wonDollar;
+    buckets[k].call       += r.call;
+    buckets[k].upside     += r.upside;
+    buckets[k].lostDollar += r.lostDollar;
+    buckets[k].count++;
+    if (r.stage === "Won")  buckets[k].won++;
+    if (r.stage === "Lost") buckets[k].lost++;
+  }
+
+  const rows = Object.entries(buckets)
+    .map(([dim, d]) => {
+      const total = d.won + d.lost;
+      return {
+        dim,
+        pipeline:   +d.pipeline.toFixed(2),
+        signings:   +d.signings.toFixed(2),
+        call:       +d.call.toFixed(2),
+        upside:     +d.upside.toFixed(2),
+        lostDollar: +d.lostDollar.toFixed(2),
+        winRate:    total > 0 ? +((d.won / total) * 100).toFixed(1) : null,
+        wonCount:   d.won,
+        lostCount:  d.lost,
+        count:      d.count,
+        coverage:   d.pipeline > 0 ? +((d.call / d.pipeline) * 100).toFixed(1) : null,
+      };
+    })
+    .filter(r => r.dim && r.dim !== "Unassigned" && r.dim !== "")
+    .sort((a, b) => b.pipeline - a.pipeline);
+
+  res.json(rows);
+});
+
+// GET /api/kpi/top-accounts — top 10 customers by pipeline or signings for a given slice
+// Query params: same filter params as /api/kpi/tabular, plus sortBy=pipeline|signings (default: pipeline)
+app.get("/api/kpi/top-accounts", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", month = "ALL",
+          sortBy = "pipeline", limit = "10" } = req.query;
+
+  const recs = filter({ geo, quarter, year, market, channel, country, offeringArea, consolidatedOffering, ut30, clientType, month });
+
+  const buckets = {};
+  for (const r of recs) {
+    const k = r.customer || "Unknown";
+    if (!buckets[k]) buckets[k] = { customer: k, pipeline: 0, signings: 0, call: 0, won: 0, lost: 0 };
+    buckets[k].pipeline  += r.oppVal;
+    buckets[k].signings  += r.wonDollar;
+    buckets[k].call      += r.call;
+    if (r.stage === "Won")  buckets[k].won++;
+    if (r.stage === "Lost") buckets[k].lost++;
+  }
+
+  const rows = Object.values(buckets)
+    .map(d => ({
+      customer:  d.customer,
+      pipeline:  +d.pipeline.toFixed(2),
+      signings:  +d.signings.toFixed(2),
+      call:      +d.call.toFixed(2),
+      wonCount:  d.won,
+      lostCount: d.lost,
+      winRate:   (d.won + d.lost) > 0 ? +((d.won / (d.won + d.lost)) * 100).toFixed(1) : null,
+    }))
+    .filter(r => r.customer && r.customer !== "Unknown" && r.customer !== "")
+    .sort((a, b) => b[sortBy === "signings" ? "signings" : "pipeline"] - a[sortBy === "signings" ? "signings" : "pipeline"])
+    .slice(0, parseInt(limit, 10) || 10);
+
+  res.json(rows);
+});
+
+// GET /api/kpi/pipeline-by-oa — pipeline by offering area for a given quarter
+// GET /api/kpi/signings-by-geo — CQ signings by geo (horizontal bar)
+app.get("/api/kpi/signings-by-geo", (req, res) => {
+  const { quarter = "2Q26", geo = "WW", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ quarter, geo, offeringArea, consolidatedOffering, ut30, clientType, channel });
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  res.json(GEOS.map(g => ({
+    geo: g,
+    signings: +recs.filter(r => r.geo === g).reduce((s, r) => s + r.wonDollar, 0).toFixed(2)
+  })));
+});
+
+// GET /api/kpi/signings-by-oa — CQ signings by offering area (horizontal bar)
+app.get("/api/kpi/signings-by-oa", (req, res) => {
+  const { quarter = "2Q26", geo = "WW", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ quarter, geo, offeringArea, consolidatedOffering, ut30, clientType, channel });
+  const OA_ORDER = ["Project Services","Interoperability Services","Custom Services","Other Services"];
+  const oas = [...new Set(recs.map(r => r.offeringArea))].filter(Boolean);
+  const ordered = [...OA_ORDER.filter(o => oas.includes(o)), ...oas.filter(o => !OA_ORDER.includes(o)).sort()];
+  res.json(ordered.map(oa => ({
+    oa,
+    signings: +recs.filter(r => r.offeringArea === oa).reduce((s, r) => s + r.wonDollar, 0).toFixed(2)
+  })).filter(d => d.signings > 0));
+});
+
+// GET /api/revenue/by-geo — CQ revenue actuals by geo (horizontal bar)
+app.get("/api/revenue/by-geo", (req, res) => {
+  const { quarter = "2Q26", geo = "WW", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL" } = req.query;
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  res.json(GEOS.map(g => ({
+    geo: g,
+    revenue: +filterRev({ quarter, geo: g, offeringArea, consolidatedOffering, ut30, clientType })
+               .reduce((s, r) => s + r.revActM, 0).toFixed(2)
+  })));
+});
+
+// GET /api/revenue/by-oa — CQ revenue actuals by offering area (horizontal bar)
+app.get("/api/revenue/by-oa", (req, res) => {
+  const { quarter = "2Q26", geo = "WW", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL" } = req.query;
+  const recs = filterRev({ quarter, geo, offeringArea, consolidatedOffering, ut30, clientType });
+  const OA_ORDER = ["Project Services","Interoperability Services","Custom Services","Other Services"];
+  const oas = [...new Set(recs.map(r => r.offeringArea))].filter(Boolean);
+  const ordered = [...OA_ORDER.filter(o => oas.includes(o)), ...oas.filter(o => !OA_ORDER.includes(o)).sort()];
+  res.json(ordered.map(oa => ({
+    oa,
+    revenue: +recs.filter(r => r.offeringArea === oa).reduce((s, r) => s + r.revActM, 0).toFixed(2)
+  })).filter(d => d.revenue > 0));
+});
+
+app.get("/api/kpi/pipeline-by-oa", (req, res) => {
+  const { quarter = "2Q26", geo = "WW", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ quarter, geo, offeringArea, consolidatedOffering, ut30, clientType, channel })
+               .filter(r => !["Won","Lost"].includes(r.stage));
+  const OA_ORDER = ["Project Services","Interoperability Services","Custom Services","Other Services"];
+  const oas = [...new Set(recs.map(r => r.offeringArea))].filter(Boolean);
+  const ordered = [...OA_ORDER.filter(o => oas.includes(o)), ...oas.filter(o => !OA_ORDER.includes(o)).sort()];
+  res.json(ordered.map(oa => ({
+    oa,
+    pipeline: +recs.filter(r => r.offeringArea === oa).reduce((s, r) => s + r.oppVal, 0).toFixed(2)
+  })).filter(d => d.pipeline > 0));
+});
+
+// GET /api/kpi/three-quarters — PQ / CQ / NQ side-by-side for pipeline, signings, revenue
+// Returns pipeline (active opps), signings (wonDollar), and revenue actuals for three quarters
+app.get("/api/kpi/three-quarters", (req, res) => {
+  const { geo = "WW", offeringArea = "ALL", consolidatedOffering = "ALL",
+          ut30 = "ALL", clientType = "ALL", channel = "ALL",
+          cq = "2Q26" } = req.query;
+
+  // Derive PQ and NQ from cq string (e.g. "2Q26")
+  const qNum = parseInt(cq[0]);
+  const qYr  = parseInt(cq.slice(2));
+  const pqNum = qNum === 1 ? 4 : qNum - 1;
+  const pqYr  = qNum === 1 ? qYr - 1 : qYr;
+  const nqNum = qNum === 4 ? 1 : qNum + 1;
+  const nqYr  = qNum === 4 ? qYr + 1 : qYr;
+  const PQ = `${pqNum}Q${pqYr}`;
+  const NQ = `${nqNum}Q${nqYr}`;
+
+  const base = { geo, offeringArea, consolidatedOffering, ut30, clientType, channel };
+  const aggPipeSig = (q) => {
+    const r = filter({ ...base, quarter: q });
+    return {
+      pipeline: +r.filter(x => !["Won","Lost"].includes(x.stage)).reduce((s, x) => s + x.oppVal, 0).toFixed(2),
+      signings: +r.reduce((s, x) => s + x.wonDollar, 0).toFixed(2),
+      winRate:  (() => { const cl = r.filter(x => x.stage === "Won" || x.stage === "Lost"); const w = cl.filter(x => x.stage === "Won"); return cl.length > 0 ? +((w.length / cl.length) * 100).toFixed(1) : 0; })()
+    };
+  };
+  const aggRev = (q) => {
+    const r = filterRev({ geo, quarter: q, offeringArea, consolidatedOffering, ut30, clientType });
+    return { revenue: +r.reduce((s, x) => s + x.revActM, 0).toFixed(2) };
+  };
+
+  const quarters = [PQ, cq, NQ];
+  const labels   = ["PQ", "CQ", "NQ"];
+  const rows = quarters.map((q, i) => ({
+    quarter: q, label: labels[i],
+    ...aggPipeSig(q), ...aggRev(q)
+  }));
+
+  res.json({ quarters, labels, rows });
+});
+
+// GET /api/kpi/by-geo-quarter — stacked bar: signings per geo per quarter
+app.get("/api/kpi/by-geo-quarter", (req, res) => {
+  const { offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ offeringArea, consolidatedOffering, ut30, clientType, channel });
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const qtrs = [...new Set(recs.map(r => r.quarter))].filter(Boolean).sort();
+  const result = {};
+  for (const g of GEOS) {
+    result[g] = {};
+    for (const q of qtrs) {
+      result[g][q] = +recs.filter(r => r.geo === g && r.quarter === q)
+                         .reduce((s, r) => s + r.wonDollar, 0).toFixed(2);
+    }
+  }
+  res.json({ quarters: qtrs, geos: GEOS, data: result });
+});
+
+// GET /api/kpi/win-rate-by-geo-quarter — line chart: win rate % per geo per quarter
+app.get("/api/kpi/win-rate-by-geo-quarter", (req, res) => {
+  const { offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ offeringArea, consolidatedOffering, ut30, clientType, channel })
+               .filter(r => r.stage === "Won" || r.stage === "Lost");
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const qtrs = [...new Set(recs.map(r => r.quarter))].filter(Boolean).sort();
+  const data = {};
+  for (const g of GEOS) {
+    data[g] = {};
+    for (const q of qtrs) {
+      const gc = recs.filter(r => r.geo === g && r.quarter === q);
+      const gw = gc.filter(r => r.stage === "Won");
+      data[g][q] = gc.length > 0 ? +((gw.length / gc.length) * 100).toFixed(1) : null;
+    }
+  }
+  res.json({ quarters: qtrs, geos: GEOS, data });
+});
+
+// ─── Deep Analysis Endpoints ─────────────────────────────────────────────────
+
+// GET /api/kpi/stage-aging — pipeline stage breakdown with avg opp age
+// Returns active opportunities grouped by stage with count, $M, avg age, stale count (age > threshold)
+app.get("/api/kpi/stage-aging", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, consolidatedOffering, ut30, clientType, channel })
+               .filter(r => !["Won","Lost"].includes(r.stage));
+
+  // Stage order for display
+  const STAGE_ORDER = [
+    "Identify","Qualify","Validate","Propose","Negotiate","Close","Commit"
+  ];
+  const byStage = {};
+  for (const r of recs) {
+    const s = r.stage || "Unknown";
+    if (!byStage[s]) byStage[s] = { stage: s, count: 0, pipeline: 0, call: 0, ages: [] };
+    byStage[s].count++;
+    byStage[s].pipeline += r.oppVal;
+    byStage[s].call     += r.call;
+    byStage[s].ages.push(r.oppAge);
+  }
+
+  const STALE_THRESHOLD = { Identify:90, Qualify:60, Validate:45, Propose:30, Negotiate:21, Close:14, Commit:7 };
+  const DEFAULT_THRESHOLD = 60;
+
+  const result = Object.values(byStage).map(s => {
+    const ages = s.ages.filter(a => a > 0);
+    const avgAge = ages.length ? Math.round(ages.reduce((a,b)=>a+b,0)/ages.length) : 0;
+    const threshold = STALE_THRESHOLD[s.stage] || DEFAULT_THRESHOLD;
+    const staleCount = ages.filter(a => a > threshold).length;
+    const stalePct = ages.length > 0 ? +((staleCount/ages.length)*100).toFixed(1) : 0;
+    return {
+      stage: s.stage, count: s.count,
+      pipeline: +s.pipeline.toFixed(2), call: +s.call.toFixed(2),
+      avgAge, staleCount, stalePct, threshold,
+      maxAge: ages.length ? Math.max(...ages) : 0,
+      medianAge: ages.length ? ages.sort((a,b)=>a-b)[Math.floor(ages.length/2)] : 0
+    };
+  }).sort((a,b) => {
+    const ai = STAGE_ORDER.indexOf(a.stage), bi = STAGE_ORDER.indexOf(b.stage);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1; if (bi === -1) return -1;
+    return ai - bi;
+  });
+  res.json(result);
+});
+
+// GET /api/kpi/flm-analysis — FLM Judgment Y vs N/blank analysis
+// FLM Judgment = Y means the FLM has reviewed and endorsed this opportunity
+app.get("/api/kpi/flm-analysis", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", channel = "ALL" } = req.query;
+  const active = filter({ geo, quarter, offeringArea, consolidatedOffering, ut30, clientType, channel })
+                 .filter(r => !["Won","Lost"].includes(r.stage));
+
+  const flmY = active.filter(r => r.flmJudgment === "Y");
+  const flmN = active.filter(r => r.flmJudgment !== "Y");
+
+  const agg = (arr) => ({
+    count:    arr.length,
+    pipeline: +arr.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+    call:     +arr.reduce((s,r)=>s+r.call,0).toFixed(2),
+    upside:   +arr.reduce((s,r)=>s+r.upside,0).toFixed(2),
+    avgAge:   arr.length ? Math.round(arr.reduce((s,r)=>s+r.oppAge,0)/arr.length) : 0,
+    dnsoCount: arr.filter(r=>r.dnso==="Yes").length,
+    coverage: arr.reduce((s,r)=>s+r.oppVal,0) > 0
+      ? +((arr.reduce((s,r)=>s+r.call,0)/arr.reduce((s,r)=>s+r.oppVal,0))*100).toFixed(1) : 0,
+  });
+
+  // Geo breakdown of FLM=Y opps
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const byGeo = GEOS.map(g => {
+    const ga = active.filter(r=>r.geo===g);
+    const gy = ga.filter(r=>r.flmJudgment==="Y");
+    return {
+      geo: g,
+      total: ga.length,
+      flmY: gy.length,
+      flmYPct: ga.length > 0 ? +((gy.length/ga.length)*100).toFixed(1) : 0,
+      pipeline: +ga.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      flmYPipeline: +gy.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      flmYCoverage: gy.reduce((s,r)=>s+r.oppVal,0) > 0
+        ? +((gy.reduce((s,r)=>s+r.call,0)/gy.reduce((s,r)=>s+r.oppVal,0))*100).toFixed(1) : 0,
+      avgAgeFlmY: gy.length ? Math.round(gy.reduce((s,r)=>s+r.oppAge,0)/gy.length) : 0,
+    };
+  });
+
+  // Stage breakdown of FLM=Y vs total
+  const byStage = {};
+  for (const r of active) {
+    const s = r.stage || "Unknown";
+    if (!byStage[s]) byStage[s] = { stage:s, total:0, flmY:0, pipeTotal:0, pipeFlmY:0 };
+    byStage[s].total++;
+    byStage[s].pipeTotal += r.oppVal;
+    if (r.flmJudgment === "Y") { byStage[s].flmY++; byStage[s].pipeFlmY += r.oppVal; }
+  }
+  const stageBreakdown = Object.values(byStage)
+    .map(s => ({ ...s, pipeTotal: +s.pipeTotal.toFixed(2), pipeFlmY: +s.pipeFlmY.toFixed(2),
+      flmYPct: s.total > 0 ? +((s.flmY/s.total)*100).toFixed(1) : 0 }))
+    .sort((a,b) => b.pipeTotal - a.pipeTotal);
+
+  res.json({
+    summary: { flmY: agg(flmY), flmN: agg(flmN), total: agg(active) },
+    byGeo, stageBreakdown
+  });
+});
+
+// GET /api/kpi/industry-breakdown — pipeline/signings by industry and sector
+app.get("/api/kpi/industry-breakdown", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          clientType = "ALL", channel = "ALL", topN = "8" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, clientType, channel });
+
+  const byInd = {};
+  for (const r of recs) {
+    const k = r.industry || "Unassigned";
+    if (!byInd[k]) byInd[k] = { industry:k, pipeline:0, signings:0, won:0, closed:0, count:0, dnso:0 };
+    if (!["Won","Lost"].includes(r.stage)) byInd[k].pipeline += r.oppVal;
+    byInd[k].signings += r.wonDollar;
+    if (r.stage==="Won" || r.stage==="Lost") {
+      byInd[k].closed++;
+      if (r.stage==="Won") byInd[k].won++;
+    }
+    byInd[k].count++;
+    if (r.dnso==="Yes") byInd[k].dnso++;
+  }
+
+  res.json(
+    Object.values(byInd)
+      .map(d=>({ ...d, pipeline:+d.pipeline.toFixed(2), signings:+d.signings.toFixed(2),
+        winRate: d.closed>0 ? +((d.won/d.closed)*100).toFixed(1) : null }))
+      .sort((a,b)=>b.pipeline-a.pipeline)
+      .slice(0, parseInt(topN))
+  );
+});
+
+// GET /api/kpi/stalled-opps — individual stalled opportunities (age > threshold, not progressing)
+app.get("/api/kpi/stalled-opps", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          clientType = "ALL", channel = "ALL", minAge = "45", limit = "20" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, clientType, channel })
+               .filter(r => !["Won","Lost"].includes(r.stage) && r.oppAge >= parseInt(minAge))
+               .sort((a,b) => b.oppAge - a.oppAge)
+               .slice(0, parseInt(limit));
+
+  res.json(recs.map(r => ({
+    customer:     r.customer,
+    stage:        r.stage,
+    oppAge:       r.oppAge,
+    oppVal:       +r.oppVal.toFixed(2),
+    call:         +r.call.toFixed(2),
+    forecastCat:  r.forecastCat,
+    flmJudgment:  r.flmJudgment,
+    geo:          r.geo,
+    market:       r.market,
+    channel:      r.channel,
+    clientType:   r.clientType,
+    dnso:         r.dnso,
+    industry:     r.industry,
+    dealSize:     r.dealSize,
+    nextStep:     r.nextStep ? r.nextStep.slice(0,80) : "",
+    quarter:      r.quarter,
+  })));
+});
+
+// GET /api/kpi/flm-stalled — FLM=Y opps that are stalled (old age, no call commitment)
+app.get("/api/kpi/flm-stalled", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          channel = "ALL", minAge = "30", limit = "25" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, channel })
+               .filter(r => r.flmJudgment === "Y"
+                         && !["Won","Lost"].includes(r.stage)
+                         && r.oppAge >= parseInt(minAge))
+               .sort((a,b) => b.oppVal - a.oppVal)
+               .slice(0, parseInt(limit));
+
+  res.json(recs.map(r => ({
+    customer: r.customer, geo: r.geo, market: r.market,
+    stage: r.stage, oppAge: r.oppAge, oppVal: +r.oppVal.toFixed(2),
+    call: +r.call.toFixed(2), upside: +r.upside.toFixed(2),
+    forecastCat: r.forecastCat, forecastGrp: r.forecastGrp,
+    channel: r.channel, clientType: r.clientType,
+    dnso: r.dnso, industry: r.industry, dealSize: r.dealSize,
+    nextStep: r.nextStep ? r.nextStep.slice(0,100) : "",
+    quarter: r.quarter, offeringArea: r.offeringArea,
+  })));
+});
+
+// GET /api/kpi/pipeline-by-industry — CQ active pipeline by industry per geo
+app.get("/api/kpi/pipeline-by-industry", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          channel = "ALL", clientType = "ALL", topN = "8" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, channel, clientType })
+               .filter(r => !["Won","Lost"].includes(r.stage));
+  const byInd = {};
+  for (const r of recs) {
+    const k = r.industry || "Unassigned";
+    if (!byInd[k]) byInd[k] = { industry:k, pipeline:0, count:0, flmY:0 };
+    byInd[k].pipeline += r.oppVal;
+    byInd[k].count++;
+    if (r.flmJudgment==="Y") byInd[k].flmY++;
+  }
+  res.json(
+    Object.values(byInd)
+      .map(d=>({ ...d, pipeline:+d.pipeline.toFixed(2),
+        flmYPct: d.count>0 ? +((d.flmY/d.count)*100).toFixed(1):0 }))
+      .sort((a,b)=>b.pipeline-a.pipeline).slice(0,parseInt(topN))
+  );
+});
+
+// GET /api/kpi/pipeline-by-source — DNSO vs non-DNSO pipeline breakdown
+app.get("/api/kpi/pipeline-by-source", (req, res) => {
+  const { geo = "WW", quarter = "ALL", offeringArea = "ALL",
+          channel = "ALL", clientType = "ALL" } = req.query;
+  const recs = filter({ geo, quarter, offeringArea, channel, clientType });
+  const active = recs.filter(r => !["Won","Lost"].includes(r.stage));
+  const closed = recs.filter(r => r.stage==="Won" || r.stage==="Lost");
+
+  const GEOS = geo==="WW" ? ["Americas","EMEA","APAC","Japan"] : [geo];
+  const result = GEOS.map(g => {
+    const ga  = active.filter(r=>r.geo===g);
+    const gc  = closed.filter(r=>r.geo===g);
+    const dnsoA = ga.filter(r=>r.dnso==="Yes");
+    const dnsoC = gc.filter(r=>r.dnso==="Yes");
+    const nonDnsoC = gc.filter(r=>r.dnso!=="Yes");
+    return {
+      geo: g,
+      totalPipeline:   +ga.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      dnsoPipeline:    +dnsoA.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      dnsoCount:       dnsoA.length,
+      dnsoWR: (() => {
+        const dc = gc.filter(r=>r.dnso==="Yes");
+        const dw = dc.filter(r=>r.stage==="Won");
+        return dc.length>0 ? +((dw.length/dc.length)*100).toFixed(1) : null;
+      })(),
+      nonDnsoWR: (() => {
+        const nw = nonDnsoC.filter(r=>r.stage==="Won");
+        return nonDnsoC.length>0 ? +((nw.length/nonDnsoC.length)*100).toFixed(1) : null;
+      })(),
+      dnsoPct: ga.length>0 ? +((dnsoA.length/ga.length)*100).toFixed(1) : 0,
+    };
+  });
+  res.json(result);
+});
+
+// GET /api/kpi/pipeline-by-geo — CQ pipeline by geo (for trend chart card a)
+app.get("/api/kpi/pipeline-by-geo", (req, res) => {
+  const { quarter = "2Q26", offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL", clientType = "ALL", channel = "ALL" } = req.query;
+  const recs = filter({ quarter, offeringArea, consolidatedOffering, ut30, clientType, channel })
+               .filter(r => !["Won","Lost"].includes(r.stage));
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const result = GEOS.map(g => ({
+    geo: g,
+    pipeline: +recs.filter(r => r.geo === g).reduce((s, r) => s + r.oppVal, 0).toFixed(2)
+  }));
+  res.json(result);
+});
+
+// GET /api/exec-summary — MBR-style executive narrative for current filters
+app.get("/api/exec-summary", (req, res) => {
+  const { geo = "WW", quarter = "2Q26", year = "ALL",
+          market = "ALL", channel = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL" } = req.query;
+
+  const CQ  = quarter !== "ALL" ? quarter : "2Q26";
+  const qNum = parseInt(CQ[0]);
+  const qYr  = parseInt(CQ.slice(2));
+  const pqNum = qNum === 1 ? 4 : qNum - 1;
+  const pqYr  = qNum === 1 ? qYr - 1 : qYr;
+  const PQ  = `${pqNum}Q${pqYr}`;
+  const PYQ = `${qNum}Q${qYr - 1}`;
+
+  const base = { geo, year, market, channel, country, offeringArea, consolidatedOffering, ut30, clientType };
+
+  const agg = (q) => {
+    const r = filter({ ...base, quarter: q });
+    const closed = r.filter(x => x.stage === "Won" || x.stage === "Lost");
+    const won    = closed.filter(x => x.stage === "Won");
+    const active = r.filter(x => !["Won","Lost"].includes(x.stage));
+    return {
+      pipeline: +r.reduce((s,x) => s + x.oppVal, 0).toFixed(2),
+      signings: +r.reduce((s,x) => s + x.wonDollar, 0).toFixed(2),
+      call:     +r.reduce((s,x) => s + x.call, 0).toFixed(2),
+      won: won.length, closed: closed.length, active: active.length,
+      winRate: closed.length > 0 ? +((won.length / closed.length) * 100).toFixed(1) : 0,
+    };
+  };
+
+  const cq  = agg(CQ);
+  const pq  = agg(PQ);
+  const pyq = agg(PYQ);
+
+  const revRecs  = filterRev({ geo, quarter: CQ, market, country, offeringArea, consolidatedOffering, ut30, clientType });
+  const revTotal = +revRecs.reduce((s,r) => s + r.revActM, 0).toFixed(2);
+  const revPY    = +filterRev({ geo, quarter: PYQ, market, country, offeringArea, consolidatedOffering, ut30, clientType }).reduce((s,r) => s + r.revActM, 0).toFixed(2);
+
+  const fmt = v => `$${Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+"B" : Math.abs(v).toFixed(1)+"M"}`;
+  const pct = (a, b) => b > 0 ? ((a/b - 1)*100).toFixed(1) : null;
+
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const geoData = GEOS.map(g => {
+    const r = filter({ ...base, quarter: CQ, geo: g });
+    const active = r.filter(x => !["Won","Lost"].includes(x.stage));
+    const closed = r.filter(x => x.stage === "Won" || x.stage === "Lost");
+    const won    = closed.filter(x => x.stage === "Won");
+    return {
+      geo: g,
+      pipeline: r.reduce((s,x) => s + x.oppVal, 0),
+      signings: r.reduce((s,x) => s + x.wonDollar, 0),
+      winRate:  closed.length > 0 ? (won.length/closed.length)*100 : 0,
+    };
+  });
+
+  const topGeo  = [...geoData].sort((a,b) => b.signings - a.signings)[0];
+  const lowGeo  = [...geoData].sort((a,b) => a.winRate  - b.winRate)[0];
+  const bigPipe = [...geoData].sort((a,b) => b.pipeline - a.pipeline)[0];
+
+  const geoScope = geo !== "WW" ? geo : "WW";
+  const oaScope  = offeringArea !== "ALL" ? ` — ${offeringArea}` : "";
+  const coverage = cq.pipeline > 0 ? Math.round(cq.call / cq.pipeline * 100) : 0;
+
+  const sigYoY = pct(cq.signings, pyq.signings);
+  const sigQoQ = pct(cq.signings, pq.signings);
+  const revYoY = pct(revTotal, revPY);
+
+  const sgn = v => parseFloat(v) >= 0 ? "+" : "";
+
+  const paragraphs = [];
+
+  paragraphs.push(
+    `**${geoScope}${oaScope} | ${CQ} Executive Summary**\n\n` +
+    `TLS ${geoScope}${oaScope} delivered **${fmt(cq.signings)}** in signings for ${CQ}` +
+    (sigYoY !== null ? ` — **${sgn(sigYoY)}${sigYoY}% YoY** vs ${PYQ}` : "") +
+    (sigQoQ !== null ? ` and **${sgn(sigQoQ)}${sigQoQ}% QoQ** vs ${PQ}` : "") +
+    `. Revenue actuals stand at **${fmt(revTotal)}**` +
+    (revYoY !== null ? ` (${sgn(revYoY)}${revYoY}% YoY)` : "") +
+    `. Active pipeline is **${fmt(cq.pipeline)}** across ${cq.active} opportunities.`
+  );
+
+  paragraphs.push(
+    `**Win Rate & Coverage:** Win rate is **${cq.winRate}%** (${cq.won} won / ${cq.closed} closed). ` +
+    `Forecast commit (Call) is **${fmt(cq.call)}** — representing **${coverage}%** pipeline coverage. ` +
+    (coverage < 50
+      ? `⚠️ Coverage is below 50%, indicating risk to quarter close. Immediate action recommended to pull Best Case opportunities into commit.`
+      : `Coverage is healthy. Maintain momentum through quarter end.`)
+  );
+
+  if (geo === "WW" && geoData.some(g => g.signings > 0)) {
+    paragraphs.push(
+      `**Geo Highlights:** ${topGeo.geo} led signings at **${fmt(topGeo.signings)}** for ${CQ}. ` +
+      `${bigPipe.geo} holds the largest active pipeline at **${fmt(bigPipe.pipeline)}**. ` +
+      `${lowGeo.geo} has the lowest win rate at **${lowGeo.winRate.toFixed(1)}%** — a key area for enablement investment.`
+    );
+  }
+
+  const actionLines = [];
+  if (coverage < 50)        actionLines.push(`Pull Best Case and Upside opportunities into commit to close the coverage gap.`);
+  if (cq.winRate < 55)      actionLines.push(`Conduct win/loss analysis — ${cq.winRate}% win rate has room to improve through deal coaching and competitive playbooks.`);
+  if (geo === "WW" && lowGeo && topGeo && lowGeo.geo !== topGeo.geo) actionLines.push(`Replicate ${topGeo.geo}'s top-performing sales motion in ${lowGeo.geo} to lift win rate.`);
+  actionLines.push(`Maintain pipeline velocity — ${fmt(cq.pipeline)} pipeline must be actively managed to protect ${CQ} signings target.`);
+
+  paragraphs.push(
+    `**Recommended Actions:**\n${actionLines.map((a, i) => `${i+1}. ${a}`).join("\n")}`
+  );
+
+  res.json({
+    quarter: CQ, geo: geoScope, offeringArea,
+    narrative: paragraphs.join("\n\n"),
+    stats: { signings: cq.signings, pipeline: cq.pipeline, revenue: revTotal, winRate: cq.winRate, coverage, wonCount: cq.won, closedCount: cq.closed }
+  });
+});
+
+// GET /api/insights — computed Top Highlights, Focus Areas, Recommended Actions
+app.get("/api/insights", (req, res) => {
+  const { offeringArea = "ALL", consolidatedOffering = "ALL", ut30 = "ALL",
+          clientType = "ALL", channel = "ALL", geo = "WW",
+          quarter = "ALL" } = req.query;
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+
+  // Use the applied quarter filter (defaulting to current quarter if ALL)
+  const CQ  = quarter !== "ALL" ? quarter : currentQuarter();
+  const qNum = parseInt(CQ[0]);
+  const qYr  = parseInt(CQ.slice(2));
+  const pqNum = qNum === 1 ? 4 : qNum - 1;
+  const pqYr  = qNum === 1 ? qYr - 1 : qYr;
+  const PQ  = `${pqNum}Q${pqYr}`;
+  const PYQ = `${qNum}Q${qYr - 1}`;
+
+  const agg = (opts) => {
+    const r = filter(opts);
+    const closed = r.filter(x => x.stage === "Won" || x.stage === "Lost");
+    const won = closed.filter(x => x.stage === "Won");
+    return {
+      sig:  +r.reduce((s, x) => s + x.wonDollar, 0).toFixed(2),
+      pipe: +r.filter(x => !["Won","Lost"].includes(x.stage)).reduce((s, x) => s + x.oppVal, 0).toFixed(2),
+      call: +r.reduce((s, x) => s + x.call, 0).toFixed(2),
+      wr:   closed.length > 0 ? +((won.length / closed.length) * 100).toFixed(1) : 0,
+      won:  won.length, lost: closed.length - won.length, count: r.length
+    };
+  };
+
+  const base = { offeringArea, consolidatedOffering, ut30, clientType, channel };
+  const geoFilter = geo !== "WW" ? { geo } : {};
+  const ww   = agg({ ...base, ...geoFilter, quarter: CQ });
+  const wwPQ = agg({ ...base, ...geoFilter, quarter: PQ });
+  const wwPY = agg({ ...base, ...geoFilter, quarter: PYQ });
+
+  const geoList = geo !== "WW" ? [geo] : GEOS;
+  const geoStats = geoList.map(g => ({
+    geo: g,
+    cq:  agg({ ...base, geo: g, quarter: CQ }),
+    pq:  agg({ ...base, geo: g, quarter: PQ }),
+    pyq: agg({ ...base, geo: g, quarter: PYQ }),
+  }));
+
+  const fmt = v => `$${Math.abs(v).toFixed(1)}M`;
+  const pct = v => (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+  const pts = v => (v > 0 ? "+" : "") + v.toFixed(1) + "pts";
+
+  const highlights = [];
+  const focus = [];
+  const actions = [];
+
+  // Best signings geo by YoY growth
+  const bestYoY = geoStats
+    .filter(g => g.pyq.sig > 0)
+    .map(g => ({ geo: g.geo, yoy: +((g.cq.sig / g.pyq.sig - 1) * 100).toFixed(1) }))
+    .sort((a, b) => b.yoy - a.yoy);
+
+  if (bestYoY.length) {
+    const b = bestYoY[0];
+    highlights.push({ icon: "🏆", text: `${b.geo} signings grew ${pct(b.yoy)} YoY — strongest geo performer in ${CQ}.` });
+  }
+
+  // Best win rate geo
+  const bestWR = geoStats.sort((a,b) => b.cq.wr - a.cq.wr)[0];
+  highlights.push({ icon: "✅", text: `${bestWR.geo} win rate ${bestWR.cq.wr}% — ${pts(bestWR.cq.wr - ww.wr)} vs WW average (${ww.wr}%).` });
+
+  // WW signings vs prior year
+  if (wwPY.sig > 0) {
+    const yoy = +((ww.sig / wwPY.sig - 1) * 100).toFixed(1);
+    if (yoy > 0) highlights.push({ icon: "📈", text: `${geo !== "WW" ? geo : "WW"} signings ${fmt(ww.sig)} — ${pct(yoy)} YoY improvement in ${CQ}.` });
+  }
+  // Pipeline QoQ
+  if (wwPQ.pipe > 0) {
+    const qoq = +((ww.pipe / wwPQ.pipe - 1) * 100).toFixed(1);
+    if (qoq > 0) highlights.push({ icon: "📊", text: `WW pipeline grew ${pct(qoq)} QoQ to ${fmt(ww.pipe)}.` });
+  }
+
+  // Worst signings geo YoY
+  if (bestYoY.length > 1) {
+    const worst = bestYoY[bestYoY.length - 1];
+    focus.push({ icon: "⚠️", text: `${worst.geo} signings ${pct(worst.yoy)} YoY — needs urgent pipeline acceleration.` });
+  }
+
+  // Win rate below WW
+  geoStats.filter(g => g.cq.wr < ww.wr && g.cq.lost > 10).forEach(g => {
+    focus.push({ icon: "📉", text: `${g.geo} win rate ${g.cq.wr}% — ${pts(g.cq.wr - ww.wr)} below WW avg. ${g.cq.lost} deals lost in CQ.` });
+  });
+
+  // Low call coverage
+  geoStats.forEach(g => {
+    const cov = g.cq.pipe > 0 ? (g.cq.call / g.cq.pipe) * 100 : 0;
+    if (cov < 50 && g.cq.pipe > 5) focus.push({ icon: "🔴", text: `${g.geo} forecast coverage ${cov.toFixed(0)}% — at-risk for quarter close.` });
+  });
+
+  // Actions — replicate best geo, fix worst
+  if (bestYoY.length > 1) {
+    const best = bestYoY[0], worst = bestYoY[bestYoY.length - 1];
+    actions.push({ icon: "🎯", text: `Replicate ${best.geo} sales motion in ${worst.geo}. Share top deal patterns and SSR enablement plays.` });
+  }
+  actions.push({ icon: "🚀", text: `Expand DNSO pipeline in ${geoStats.sort((a,b)=>b.cq.pipe-a.cq.pipe)[0].geo}. Target top accounts with direct coverage motion.` });
+  actions.push({ icon: "📋", text: `Run win/loss review for ${geoStats.sort((a,b)=>a.cq.wr-b.cq.wr)[0].geo}. Identify top 3 loss reasons and address in Q3 playbook.` });
+
+  res.json({
+    highlights: highlights.slice(0, 3),
+    focus: focus.slice(0, 3),
+    actions: actions.slice(0, 3)
+  });
+});
+
+// ─── POST /api/chat — context-aware Q&A with session memory ─────────────────
+const chatSessions = {};
+
+// Derive the current IBM fiscal quarter from today's date (calendar quarters)
+function currentQuarter() {
+  const now = new Date();
+  const q = Math.ceil((now.getMonth() + 1) / 3);          // 1-4
+  const yr = String(now.getFullYear()).slice(-2);           // "26"
+  return `${q}Q${yr}`;                                     // e.g. "3Q26"
+}
+function prevQuarter() {
+  const now = new Date();
+  let q = Math.ceil((now.getMonth() + 1) / 3) - 1;
+  let yr = now.getFullYear();
+  if (q === 0) { q = 4; yr -= 1; }
+  return `${q}Q${String(yr).slice(-2)}`;
+}
+
+app.post("/api/chat", (req, res) => {
+  const { message, sessionId } = req.body;
+  if (!message) return res.status(400).json({ error: "message required" });
+
+  const msg = message.toLowerCase();
+
+  // ── Restore or init session context ────────────────────────────────────────
+  const sid = sessionId || "default";
+  if (!chatSessions[sid]) chatSessions[sid] = { geo: "WW", quarter: "ALL", offeringArea: "ALL", ut30: "ALL" };
+  const sess = chatSessions[sid];
+
+  // ── Intent parsing — geo ────────────────────────────────────────────────────
+  const geoMap = { americas: "Americas", emea: "EMEA", apac: "APAC", japan: "Japan", ww: "WW" };
+  // Natural language quarter aliases: "Q2 2026" / "q2 2026" / "2q26" etc.
+  const qtrNatural = [
+    { re: /\bq1\s*2025\b|\b1q25\b/, val: "1Q25" },
+    { re: /\bq2\s*2025\b|\b2q25\b/, val: "2Q25" },
+    { re: /\bq3\s*2025\b|\b3q25\b/, val: "3Q25" },
+    { re: /\bq4\s*2025\b|\b4q25\b/, val: "4Q25" },
+    { re: /\bq1\s*2026\b|\b1q26\b/, val: "1Q26" },
+    { re: /\bq2\s*2026\b|\b2q26\b/, val: "2Q26" },
+    { re: /\bq3\s*2026\b|\b3q26\b/, val: "3Q26" },
+    { re: /\bq4\s*2026\b|\b4q26\b/, val: "4Q26" },
+    { re: /\bq1\s*2027\b|\b1q27\b/, val: "1Q27" },
+  ];
+
+  // Update session context if the current message specifies a geo or quarter
+  // (carry forward previous context if not mentioned)
+  let geo = sess.geo;
+  let quarter = sess.quarter;
+  let offeringArea = sess.offeringArea;
+
+  for (const [k, v] of Object.entries(geoMap)) {
+    if (msg.includes(k)) { geo = v; break; }
+  }
+  for (const { re, val } of qtrNatural) {
+    if (re.test(msg)) { quarter = val; break; }
+  }
+  // "this quarter" / "current quarter" → derive from today's actual date
+  if (msg.includes("this quarter") || msg.includes("current quarter")) quarter = currentQuarter();
+  // "last quarter" / "prior quarter" → one quarter back from today
+  if (msg.includes("last quarter") || msg.includes("prior quarter"))   quarter = prevQuarter();
+
+  // Offering area / PSI detection
+  const OA_ALIASES = {
+    "psi":                    "Project Services",
+    "project services":       "Project Services",
+    "interoperability":       "Interoperability Services",
+    "interop":                "Interoperability Services",
+    "custom services":        "Custom Services",
+    "other services":         "Other Services",
+  };
+  for (const [k, v] of Object.entries(OA_ALIASES)) {
+    if (msg.includes(k)) { offeringArea = v; break; }
+  }
+
+  // Reset offering area if user explicitly asks about "all" or "overall"
+  if (/\ball (offering|area|kpi|geo|pipeline|signing|revenue)s?\b/.test(msg) ||
+      msg.includes("overall") || msg.includes("reset")) {
+    offeringArea = "ALL";
+  }
+
+  // UT30 detection — match common product names from the data
+  let ut30 = sess.ut30;
+  const UT30_ALIASES = {
+    "managed services": "Managed Services",
+    "cloud migration": "Cloud Migration",
+    "application modernization": "Application Modernization",
+    "app modernization": "Application Modernization",
+    "integration services": "Integration Services",
+    "data and ai": "Data & AI",
+    "data & ai": "Data & AI",
+    "security services": "Security Services",
+    "resiliency services": "Resiliency Services",
+    "sustainability": "Sustainability Services",
+  };
+  for (const [k, v] of Object.entries(UT30_ALIASES)) {
+    if (msg.includes(k)) { ut30 = v; break; }
+  }
+  // Reset UT30 if "all" mentioned
+  if (msg.includes("all offering") || msg.includes("overall") || msg.includes("reset")) ut30 = "ALL";
+
+  // Persist updated context for the session
+  sess.geo = geo;
+  sess.quarter = quarter;
+  sess.offeringArea = offeringArea;
+  sess.ut30 = ut30;
+
+  // ── Filter records with full context ──────────────────────────────────────
+  const filterOpts = { geo, quarter };
+  if (offeringArea !== "ALL") filterOpts.offeringArea = offeringArea;
+  if (ut30 !== "ALL") filterOpts.ut30 = ut30;
+  const recs = filter(filterOpts);
+
+  const closed = recs.filter(r => r.stage === "Won" || r.stage === "Lost");
+  const won = closed.filter(r => r.stage === "Won");
+  const active = recs.filter(r => !["Won","Lost"].includes(r.stage));
+
+  const pipeline = recs.reduce((s, r) => s + r.oppVal, 0);
+  const signings = recs.reduce((s, r) => s + r.wonDollar, 0);
+  const call = recs.reduce((s, r) => s + r.call, 0);
+  const winRate = closed.length > 0 ? (won.length / closed.length) * 100 : 0;
+  const dnso = recs.filter(r => r.dnso === "Yes").length;
+
+  // Smart formatter: uses 1 decimal by default, but if that rounds to $0.0M
+  // it tries higher precision until a non-zero representation is found (max 3dp)
+  const fmt = (v) => {
+    if (v === 0) return "$0.0M";
+    for (const dp of [1, 2, 3]) {
+      const s = v.toFixed(dp);
+      if (parseFloat(s) !== 0) return `$${s}M`;
+    }
+    return `$${v.toFixed(3)}M`;
+  };
+  const pct = (v) => `${v.toFixed(1)}%`;
+  const scope = quarter !== "ALL" ? quarter : "All Periods";
+  const geoLabel = geo === "WW" ? "WW" : geo;
+  const oaLabel = offeringArea !== "ALL" ? ` | ${offeringArea}` : "";
+  const scopeHeader = `${geoLabel}${oaLabel} | ${scope}`;
+
+  // ── Whether we should show a cross-geo breakdown ───────────────────────────
+  // Only break down by geo when the user is asking about WW (no specific geo)
+  const isGeoSpecific = geo !== "WW";
+
+  let response = "";
+  let intentMatched = true; // track whether we matched a real intent (for confidence)
+
+  // Top accounts check comes first — before pipeline/signing keyword matches
+  if (/\btop accounts?\b|\bbiggest accounts?\b|\blargest accounts?\b|\bkey accounts?\b/.test(msg)) {
+    // Top accounts intent — pull top 10 customers for current filter context
+    const acctBuckets = {};
+    for (const r of recs) {
+      const k = r.customer || "Unknown";
+      if (!k || k === "Unknown") continue;
+      if (!acctBuckets[k]) acctBuckets[k] = { pipeline: 0, signings: 0, won: 0, closed: 0 };
+      acctBuckets[k].pipeline += r.oppVal;
+      acctBuckets[k].signings += r.wonDollar;
+      if (r.stage === "Won" || r.stage === "Lost") {
+        acctBuckets[k].closed++;
+        if (r.stage === "Won") acctBuckets[k].won++;
+      }
+    }
+    const sortKey = msg.includes("signing") ? "signings" : "pipeline";
+    const topAccts = Object.entries(acctBuckets)
+      .map(([name, d]) => ({ name, pipeline: d.pipeline, signings: d.signings, wr: d.closed > 0 ? (d.won/d.closed)*100 : 0 }))
+      .sort((a, b) => b[sortKey] - a[sortKey]).slice(0, 10);
+
+    response = `**Top Accounts – ${scopeHeader}** (by ${sortKey}):\n\n` +
+      topAccts.map((a, i) => `${i+1}. **${a.name}** — ${fmt(a[sortKey])} ${sortKey} · ${pct(a.wr)} WR`).join("\n") +
+      `\n\nRecommended action: Prioritize top pipeline accounts for executive engagement and deal acceleration.`;
+
+  } else if (msg.includes("pipeline")) {
+    if (isGeoSpecific) {
+      // Focused answer: just this geo
+      const byMarket = {};
+      for (const r of active) {
+        if (!byMarket[r.market]) byMarket[r.market] = 0;
+        byMarket[r.market] += r.oppVal;
+      }
+      const topMkts = Object.entries(byMarket).sort((a,b)=>b[1]-a[1]).slice(0,4);
+      response = `**Pipeline – ${scopeHeader}:** ${fmt(pipeline)} across ${active.length} active opportunities.\n\n` +
+        (topMkts.length ? `📊 Top Markets:\n${topMkts.map(([m,v]) => `• ${m || "Unknown"}: ${fmt(v)}`).join("\n")}\n\n` : "") +
+        `Call coverage: ${fmt(call)} (${pipeline > 0 ? pct(call/pipeline*100) : "N/A"} of pipeline).\n` +
+        `Recommended action: Focus on converting Upside and Best Case opps to strengthen commit coverage.`;
+    } else {
+      const byGeo = {};
+      for (const g of ["Americas","EMEA","APAC","Japan"]) {
+        const gr = recs.filter(r => r.geo === g && !["Won","Lost"].includes(r.stage));
+        byGeo[g] = gr.reduce((s, r) => s + r.oppVal, 0);
+      }
+      const sorted = Object.entries(byGeo).sort((a,b)=>b[1]-a[1]);
+      response = `**Pipeline – ${scopeHeader}:** ${fmt(pipeline)} across ${active.length} opportunities.\n\n` +
+        `📊 By Geo:\n${sorted.map(([g,v]) => `• ${g}: ${fmt(v)}`).join("\n")}\n\n` +
+        `Call coverage: ${fmt(call)} (${pipeline > 0 ? pct(call/pipeline*100) : "N/A"} of pipeline). ` +
+        `Recommended action: Focus on converting Upside and Best Case opps in ${sorted[0][0]} to strengthen commit coverage.`;
+    }
+  } else if (msg.includes("win") || msg.includes("loss") || msg.includes("rate")) {
+    if (isGeoSpecific) {
+      const byMarket = ["Americas","EMEA","APAC","Japan"].includes(geo)
+        ? Object.entries(
+            recs.reduce((acc, r) => {
+              if (r.stage !== "Won" && r.stage !== "Lost") return acc;
+              if (!acc[r.market]) acc[r.market] = { won: 0, total: 0 };
+              if (r.stage === "Won") acc[r.market].won++;
+              acc[r.market].total++;
+              return acc;
+            }, {})
+          ).map(([m, v]) => ({ market: m || "Unknown", rate: v.total > 0 ? (v.won/v.total)*100 : 0, won: v.won, total: v.total }))
+            .sort((a,b) => b.rate - a.rate).slice(0,4)
+        : [];
+      response = `**Win Rate – ${scopeHeader}:** ${pct(winRate)} (${won.length} won / ${closed.length} closed)\n\n` +
+        (byMarket.length ? `📊 By Market:\n${byMarket.map(m=>`• ${m.market}: ${pct(m.rate)} (${m.won}/${m.total})`).join("\n")}\n\n` : "") +
+        `Recommended action: Review loss reasons and replicate best-performing market's sales motion.`;
+    } else {
+      const byGeo = ["Americas","EMEA","APAC","Japan"].map(g => {
+        const gc = recs.filter(r => r.geo === g && (r.stage === "Won" || r.stage === "Lost"));
+        const gw = gc.filter(r => r.stage === "Won");
+        return { geo: g, rate: gc.length > 0 ? (gw.length/gc.length)*100 : 0, won: gw.length, total: gc.length };
+      }).sort((a,b) => b.rate - a.rate);
+      response = `**Win Rate – ${scopeHeader}:** ${pct(winRate)} (${won.length} won / ${closed.length} closed)\n\n` +
+        `📊 By Geo:\n${byGeo.map(g => `• ${g.geo}: ${pct(g.rate)} (${g.won}/${g.total})`).join("\n")}\n\n` +
+        `Best: **${byGeo[0].geo}** at ${pct(byGeo[0].rate)}. Worst: **${byGeo[byGeo.length-1].geo}** at ${pct(byGeo[byGeo.length-1].rate)}. ` +
+        `Recommended action: Replicate ${byGeo[0].geo}'s sales motion and enablement in ${byGeo[byGeo.length-1].geo}.`;
+    }
+  } else if (msg.includes("signing")) {
+    if (isGeoSpecific) {
+      // Specific geo: show top offerings/markets instead of cross-geo breakdown
+      const byOA = {};
+      for (const r of recs) {
+        if (!byOA[r.offeringArea]) byOA[r.offeringArea] = 0;
+        byOA[r.offeringArea] += r.wonDollar;
+      }
+      const topOA = Object.entries(byOA).sort((a,b)=>b[1]-a[1]).slice(0,4);
+      const wonCount = won.length;
+      const avgDeal = wonCount > 0 ? signings / wonCount : 0;
+      response = `**Signings – ${scopeHeader}:** ${fmt(signings)} (${wonCount} deals won)\n` +
+        `Average deal size: ${fmt(avgDeal)}\n\n` +
+        (topOA.length ? `📊 By Offering Area:\n${topOA.map(([oa,v])=>`• ${oa||"Unknown"}: ${fmt(v)}`).join("\n")}\n\n` : "") +
+        `DNSO opportunities: ${dnso}.\n` +
+        `Recommended action: Accelerate DNSO pipeline conversion to increase signings velocity.`;
+    } else {
+      const byGeo = ["Americas","EMEA","APAC","Japan"].map(g => ({
+        geo: g, val: recs.filter(r=>r.geo===g).reduce((s,r)=>s+r.wonDollar,0)
+      })).sort((a,b)=>b.val-a.val);
+      response = `**Signings – ${scopeHeader}:** ${fmt(signings)}\n\n` +
+        `📊 By Geo:\n${byGeo.map(g=>`• ${g.geo}: ${fmt(g.val)}`).join("\n")}\n\n` +
+        `DNSO opportunities: ${dnso}. Recommended action: Accelerate DNSO pipeline to ${byGeo[byGeo.length-1].geo} to close the gap.`;
+    }
+  } else if (msg.includes("forecast") || msg.includes("coverage")) {
+    const total = recs.reduce((s,r)=>s+r.oppVal,0);
+    const coverage = total > 0 ? (call/total)*100 : 0;
+    response = `**Forecast Coverage – ${scopeHeader}:**\n\n` +
+      `• Total Pipeline: ${fmt(total)}\n• Call (Commit): ${fmt(call)} (${pct(coverage)} coverage)\n` +
+      `• Upside: ${fmt(recs.reduce((s,r)=>s+r.upside,0))}\n\n` +
+      `${coverage < 50 ? "⚠️ Coverage below 50% — recommend pulling in Best Case opps to call." : "✅ Coverage is healthy."}`;
+  } else if (msg.includes("focus") || msg.includes("priority") || msg.includes("action")) {
+    if (isGeoSpecific) {
+      const byOA = recs.reduce((acc, r) => {
+        if (!acc[r.offeringArea]) acc[r.offeringArea] = { pipe: 0, won: 0, total: 0 };
+        if (!["Won","Lost"].includes(r.stage)) acc[r.offeringArea].pipe += r.oppVal;
+        if (r.stage === "Won" || r.stage === "Lost") {
+          acc[r.offeringArea].total++;
+          if (r.stage === "Won") acc[r.offeringArea].won++;
+        }
+        return acc;
+      }, {});
+      const oaEntries = Object.entries(byOA).sort((a,b)=>b[1].pipe-a[1].pipe).slice(0,3);
+      response = `**Priority Recommendations – ${scopeHeader}:**\n\n` +
+        `1. **Signings velocity** — ${fmt(signings)} signed across ${won.length} deals. Average deal: ${won.length > 0 ? fmt(signings/won.length) : "N/A"}.\n` +
+        `2. **Win rate** — ${pct(winRate)} (${won.length}/${closed.length} closed). ${winRate < 50 ? "Below 50% — review top loss reasons." : "Healthy win rate."}\n` +
+        `3. **Pipeline focus areas**:\n${oaEntries.map(([oa,v])=>`   • ${oa||"Unknown"}: ${fmt(v.pipe)} pipeline, ${v.total > 0 ? pct((v.won/v.total)*100) : "N/A"} win rate`).join("\n")}\n\n` +
+        `Recommended: Weekly pipeline review cadence with FLM coaching on top-10 stalled opportunities.`;
+    } else {
+      const byGeoWR = ["Americas","EMEA","APAC","Japan"].map(g => {
+        const gc = recs.filter(r => r.geo === g && (r.stage === "Won" || r.stage === "Lost"));
+        const gw = gc.filter(r => r.stage === "Won");
+        const gp = recs.filter(r => r.geo === g && !["Won","Lost"].includes(r.stage)).reduce((s,r)=>s+r.oppVal,0);
+        return { geo: g, rate: gc.length > 0 ? (gw.length/gc.length)*100 : 0, pipeline: gp };
+      });
+      const lowestWR = byGeoWR.sort((a,b)=>a.rate-b.rate)[0];
+      const biggestPipeline = [...byGeoWR].sort((a,b)=>b.pipeline-a.pipeline)[0];
+      response = `**Priority Recommendations – ${scopeHeader}:**\n\n` +
+        `1. **Pipeline creation** — ${biggestPipeline.geo} has ${fmt(biggestPipeline.pipeline)} in active pipeline. Focus on velocity and stage progression.\n` +
+        `2. **Win rate improvement** — ${lowestWR.geo} win rate is ${pct(lowestWR.rate)}. Review loss reasons and replicate Japan/best-geo sales motion.\n` +
+        `3. **DNSO expansion** — ${dnso} DNSO opportunities detected. Expand DNSO leads referrals to strengthen pipeline coverage.\n\n` +
+        `Recommended: Weekly pipeline review cadence for ${lowestWR.geo} with FLM coaching on top-10 stalled opportunities.`;
+    }
+  } else if (msg.includes("offering") || msg.includes("breakdown") ||
+             (offeringArea !== "ALL" && !msg.includes("pipeline") && !msg.includes("signing") && !msg.includes("win") && !msg.includes("revenue") && !msg.includes("forecast"))) {
+    // Offering area / UT30 breakdown intent
+    const byOA = {};
+    for (const r of recs) {
+      const k = r.offeringArea || "Unknown";
+      if (!byOA[k]) byOA[k] = { pipe: 0, sig: 0, won: 0, closed: 0 };
+      if (!["Won","Lost"].includes(r.stage)) byOA[k].pipe += r.oppVal;
+      byOA[k].sig += r.wonDollar;
+      if (r.stage === "Won" || r.stage === "Lost") {
+        byOA[k].closed++;
+        if (r.stage === "Won") byOA[k].won++;
+      }
+    }
+    const oaRows = Object.entries(byOA)
+      .map(([oa, d]) => ({ oa, pipe: d.pipe, sig: d.sig, wr: d.closed > 0 ? (d.won/d.closed)*100 : 0 }))
+      .sort((a, b) => b.pipe - a.pipe).slice(0, 5);
+
+    const oaDisplay = offeringArea !== "ALL" ? offeringArea : "All Offering Areas";
+    response = `**Offering Breakdown – ${scopeHeader}:**\n\n` +
+      `📋 ${oaDisplay} — ${fmt(pipeline)} pipeline · ${fmt(signings)} signings · ${pct(winRate)} win rate\n\n` +
+      (oaRows.length > 1 ? `📊 By Offering Area:\n${oaRows.map(r => `• ${r.oa}: ${fmt(r.pipe)} pipe · ${fmt(r.sig)} signed · ${pct(r.wr)} WR`).join("\n")}\n\n` : "") +
+      (offeringArea !== "ALL"
+        ? `Showing filtered data for **${offeringArea}**. Ask about pipeline, signings, win rate, or top accounts within this offering.`
+        : `Top area by pipeline: **${oaRows[0]?.oa || "—"}** at ${fmt(oaRows[0]?.pipe || 0)}. Focus enablement on highest-pipeline areas with lowest win rates.`);
+
+  } else if (msg.includes("revenue")) {
+    // Use Revenue Actuals data (phase 2) — real numbers from the Revenue tab
+    const revRecs  = filterRev({ geo, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined });
+    const revTotal = revRecs.reduce((s, r) => s + r.revActM, 0);
+    const revDirect= revRecs.filter(r => r.ecoVsDirect === "Direct").reduce((s, r) => s + r.revActM, 0);
+    const revEco   = revRecs.filter(r => r.ecoVsDirect === "Ecosystem").reduce((s, r) => s + r.revActM, 0);
+
+    if (isGeoSpecific) {
+      const byOA = {};
+      for (const r of revRecs) {
+        if (!byOA[r.offeringArea]) byOA[r.offeringArea] = 0;
+        byOA[r.offeringArea] += r.revActM;
+      }
+      const topOA = Object.entries(byOA).sort((a,b)=>b[1]-a[1]).slice(0,4);
+      response = `**Revenue Actuals – ${scopeHeader}:** ${fmt(revTotal)}\n` +
+        `• Direct: ${fmt(revDirect)} · Ecosystem: ${fmt(revEco)}\n\n` +
+        (topOA.length ? `📊 By Offering Area:\n${topOA.map(([oa,v])=>`• ${oa||"Unknown"}: ${fmt(v)}`).join("\n")}\n\n` : "") +
+        `Recommended action: Focus on growing Direct revenue in highest-potential offering areas.`;
+    } else {
+      const byGeo = ["Americas","EMEA","APAC","Japan"].map(g => ({
+        geo: g, val: filterRev({ geo: g, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined }).reduce((s,r)=>s+r.revActM,0)
+      })).sort((a,b)=>b.val-a.val);
+      response = `**Revenue Actuals – ${scopeHeader}:** ${fmt(revTotal)}\n` +
+        `• Direct: ${fmt(revDirect)} · Ecosystem: ${fmt(revEco)}\n\n` +
+        `📊 By Geo:\n${byGeo.map(g=>`• ${g.geo}: ${fmt(g.val)}`).join("\n")}\n\n` +
+        `Recommended action: Review geo mix — Direct revenue drives higher margin than Ecosystem.`;
+    }
+  } else if (
+    /\bwhich\s+(geo|geography)\b/.test(msg) ||
+    /\bgeo(s|graphy)?\b.*(grow|grew|fast|best|perform|strong|weak|worst|rank|compar|doing|look)/.test(msg) ||
+    /\b(grow|grew|fast|perform|strong|weak|worst|rank)\b.*\bgeo(s|graphy)?\b/.test(msg) ||
+    /\bcompare\s+(geo|geos|geographies)\b/.test(msg) ||
+    /\bgeo\s+comparison\b/.test(msg)
+  ) {
+    // Geo growth comparison intent — "Which Geo grew fastest?", "How are geos performing?", etc.
+    const GEOS = ["Americas","EMEA","APAC","Japan"];
+    const CQ   = quarter !== "ALL" ? quarter : currentQuarter();
+
+    // Determine prior-year quarter for YoY growth
+    const qNum = parseInt(CQ[0]);
+    const qYr  = parseInt(CQ.slice(2));
+    const PYQ  = `${qNum}Q${qYr - 1}`;
+
+    // Also get prior quarter for QoQ
+    const allQtrs2 = [...new Set(records.map(r => r.quarter))].sort();
+    const qi2 = allQtrs2.indexOf(CQ);
+    const PQ2 = qi2 > 0 ? allQtrs2[qi2 - 1] : null;
+
+    const geoStats = GEOS.map(g => {
+      const cur  = filter({ ...filterOpts, geo: g, quarter: CQ });
+      const py   = filter({ ...filterOpts, geo: g, quarter: PYQ });
+      const pq   = PQ2 ? filter({ ...filterOpts, geo: g, quarter: PQ2 }) : [];
+      const curSig  = cur.reduce((s, r) => s + r.wonDollar, 0);
+      const pySig   = py.reduce((s, r) => s + r.wonDollar, 0);
+      const pqSig   = pq.reduce((s, r) => s + r.wonDollar, 0);
+      const curPipe = cur.filter(r => !["Won","Lost"].includes(r.stage)).reduce((s, r) => s + r.oppVal, 0);
+      const curClosed = cur.filter(r => r.stage === "Won" || r.stage === "Lost");
+      const curWon    = curClosed.filter(r => r.stage === "Won");
+      return {
+        geo: g,
+        signings: curSig,
+        pipeline: curPipe,
+        winRate:  curClosed.length > 0 ? (curWon.length / curClosed.length) * 100 : 0,
+        yoy: pySig  > 0 ? +((curSig / pySig  - 1) * 100).toFixed(1) : null,
+        qoq: pqSig  > 0 ? +((curSig / pqSig  - 1) * 100).toFixed(1) : null,
+      };
+    }).filter(g => g.signings > 0 || g.pipeline > 0);
+
+    const byYoY = [...geoStats].filter(g => g.yoy !== null).sort((a, b) => b.yoy - a.yoy);
+    const byPipe = [...geoStats].sort((a, b) => b.pipeline - a.pipeline);
+    const fastest = byYoY[0];
+    const slowest = byYoY[byYoY.length - 1];
+
+    const arrow = v => v == null ? "" : v > 0 ? "▲" : v < 0 ? "▼" : "●";
+    const signed = v => v == null ? "N/A" : `${v > 0 ? "+" : ""}${v}%`;
+
+    response = `**Geo Growth Comparison – ${CQ}** (YoY vs ${PYQ}):\n\n` +
+      `📊 Signings by Geo:\n` +
+      byYoY.map(g =>
+        `• **${g.geo}:** ${fmt(g.signings)} — ${arrow(g.yoy)} ${signed(g.yoy)} YoY` +
+        (g.qoq !== null ? ` | ${arrow(g.qoq)} ${signed(g.qoq)} QoQ` : "") +
+        ` | WR: ${g.winRate.toFixed(1)}%`
+      ).join("\n") +
+      (geoStats.filter(g => g.yoy === null).map(g => `\n• **${g.geo}:** ${fmt(g.signings)} — no prior-year data`).join("")) +
+      `\n\n` +
+      (fastest ? `🏆 **Fastest growing:** ${fastest.geo} at ${signed(fastest.yoy)} YoY signings.\n` : "") +
+      (slowest && slowest !== fastest ? `⚠️ **Needs focus:** ${slowest.geo} at ${signed(slowest.yoy)} YoY — review pipeline and sales motion.\n` : "") +
+      `\n💡 Largest active pipeline: **${byPipe[0]?.geo}** at ${fmt(byPipe[0]?.pipeline || 0)}.` +
+      `\nRecommended action: Replicate ${fastest?.geo || "top"} geo sales motion in ${slowest?.geo || "lagging"} geo to close the growth gap.`;
+
+  } else {
+    // Default fallback — mark as unmatched so confidence is reduced
+    intentMatched = false;
+    response = `**Compass Summary – ${scopeHeader}:**\n\n` +
+      `• Pipeline: ${fmt(pipeline)} (${active.length} active opps)\n` +
+      `• Signings: ${fmt(signings)} (${won.length} deals won)\n` +
+      `• Call coverage: ${fmt(call)}\n` +
+      `• Win rate: ${pct(winRate)} (${won.length} won / ${closed.length} closed)\n` +
+      `• DNSO opportunities: ${dnso}\n\n` +
+      `I can answer questions about **pipeline, signings, win/loss rate, forecast coverage, revenue, geo growth, offering breakdown, top accounts**, or **where to focus**. Try being more specific — e.g. "Which geo grew fastest in Q2 2026?" or "How is PSI Americas signings this quarter?"`;
+  }
+
+  // ── Enriched context: append QoQ / YoY / vs-WW / vs-target when the scope is specific ──
+  // Only append when a specific quarter is in scope (so comparisons are meaningful)
+  if (quarter !== "ALL" && !response.includes("QoQ") && !response.includes("YoY")) {
+    const allQtrs = [...new Set(records.map(r => r.quarter))].sort();
+    const qi = allQtrs.indexOf(quarter);
+    const qNum = parseInt(quarter[0]);
+    const qYr  = parseInt(quarter.slice(2));
+    const PQ   = qi > 0 ? allQtrs[qi - 1] : null;
+    const PYQ  = `${qNum}Q${qYr - 1}`;
+
+    const aggQ = (q) => {
+      if (!q || !allQtrs.includes(q)) return null;
+      const r = filter({ ...filterOpts, quarter: q });
+      return {
+        signings: r.reduce((s, x) => s + x.wonDollar, 0),
+        pipeline: r.filter(x => !["Won","Lost"].includes(x.stage)).reduce((s, x) => s + x.oppVal, 0),
+      };
+    };
+
+    const pq  = PQ  ? aggQ(PQ)  : null;
+    const pyq = aggQ(PYQ);
+
+    const enrichLines = [];
+    if (pq && pq.signings > 0) {
+      const qoq = +((signings / pq.signings - 1) * 100).toFixed(1);
+      enrichLines.push(`📈 **QoQ:** ${qoq >= 0 ? "+" : ""}${qoq}% vs ${PQ}`);
+    }
+    if (pyq && pyq.signings > 0) {
+      const yoy = +((signings / pyq.signings - 1) * 100).toFixed(1);
+      enrichLines.push(`📅 **YoY:** ${yoy >= 0 ? "+" : ""}${yoy}% vs ${PYQ}`);
+    }
+
+    // vs WW (only when geo-specific)
+    if (geo !== "WW") {
+      const wwRecs = filter({ quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined });
+      const wwSig  = wwRecs.reduce((s, r) => s + r.wonDollar, 0);
+      const wwPipe = wwRecs.filter(r => !["Won","Lost"].includes(r.stage)).reduce((s, r) => s + r.oppVal, 0);
+      if (wwSig > 0) {
+        const share = +((signings / wwSig) * 100).toFixed(1);
+        enrichLines.push(`🌐 **vs WW:** ${fmt(signings)} = **${share}%** of WW signings (${fmt(wwSig)})`);
+      }
+    }
+
+    // vs target (PS & Interop only)
+    const OA_TARGETS = { "Project Services": 16, "Interoperability Services": 20 };
+    const tgtPct = OA_TARGETS[offeringArea];
+    if (tgtPct != null && pyq && pyq.signings > 0) {
+      const yoy = +((signings / pyq.signings - 1) * 100).toFixed(1);
+      const diff = +(yoy - tgtPct).toFixed(1);
+      const status = diff >= 0 ? "✅ On track" : diff >= -5 ? "⚠️ At risk" : "🔴 Behind target";
+      enrichLines.push(`🎯 **Target:** ${status} — ${diff >= 0 ? "+" : ""}${diff}pts vs ${tgtPct}% YoY growth target`);
+    }
+
+    if (enrichLines.length) {
+      response += `\n\n${enrichLines.join(" · ")}`;
+    }
+  }
+
+  // ── Confidence ────────────────────────────────────────────────────────────
+  // Base: 88 if intent matched, 55 if fell through to generic fallback.
+  // Increases with specificity (quarter + geo + offering), capped at 97.
+  let confidence = intentMatched ? 88 : 55;
+  if (intentMatched) {
+    if (quarter !== "ALL")      confidence += 4; // specific quarter = higher precision
+    if (geo !== "WW")           confidence += 3; // specific geo
+    if (offeringArea !== "ALL") confidence += 2; // offering filter
+    if (ut30 !== "ALL")         confidence += 1;
+  }
+  confidence = Math.min(confidence, 97);
+
+  res.json({ response, context: { geo, quarter, offeringArea, ut30 }, confidence });
+});
+
+// ─── Revenue Actuals API ─────────────────────────────────────────────────────
+
+// GET /api/revenue/summary — headline KPI with QoQ & YoY deltas
+app.get("/api/revenue/summary", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL",
+          ut30 = "ALL", clientType = "ALL", ecoVsDirect = "ALL" } = req.query;
+
+  const recs   = filterRev({ geo, quarter, year, market, country, offeringArea, consolidatedOffering, ut30, clientType, ecoVsDirect });
+  const total  = recs.reduce((s, r) => s + r.revActM, 0);
+  const direct = recs.filter(r => r.ecoVsDirect === "Direct").reduce((s, r) => s + r.revActM, 0);
+  const eco    = recs.filter(r => r.ecoVsDirect === "Ecosystem").reduce((s, r) => s + r.revActM, 0);
+
+  let revenueQoQ = null, revenueYoY = null;
+  const allRevQtrs = [...new Set(revRecords.map(r => r.quarter))].filter(Boolean).sort();
+
+  if (quarter !== "ALL") {
+    const qi = allRevQtrs.indexOf(quarter);
+    if (qi > 0) {
+      const prev     = filterRev({ geo, quarter: allRevQtrs[qi - 1], year: "ALL", market, country, offeringArea, consolidatedOffering, ut30, clientType, ecoVsDirect });
+      const prevTotal= prev.reduce((s, r) => s + r.revActM, 0);
+      revenueQoQ = prevTotal > 0 ? +((total / prevTotal - 1) * 100).toFixed(1) : null;
+    }
+    const qLabel = quarter.slice(0, 2);
+    const qYr    = parseInt(quarter.slice(2));
+    const pyQtr  = `${qLabel}${qYr - 1}`;
+    if (allRevQtrs.includes(pyQtr)) {
+      const py      = filterRev({ geo, quarter: pyQtr, year: "ALL", market, country, offeringArea, consolidatedOffering, ut30, clientType, ecoVsDirect });
+      const pyTotal = py.reduce((s, r) => s + r.revActM, 0);
+      revenueYoY = pyTotal > 0 ? +((total / pyTotal - 1) * 100).toFixed(1) : null;
+    }
+  }
+
+  res.json({
+    total:      +total.toFixed(3),
+    direct:     +direct.toFixed(3),
+    eco:        +eco.toFixed(3),
+    rowCount:   recs.length,
+    revenueQoQ,
+    revenueYoY
+  });
+});
+
+// GET /api/revenue/by-geo-quarter — stacked bar trend (mirrors /api/kpi/by-geo-quarter)
+app.get("/api/revenue/by-geo-quarter", (req, res) => {
+  const { offeringArea = "ALL", consolidatedOffering = "ALL",
+          ut30 = "ALL", clientType = "ALL", ecoVsDirect = "ALL" } = req.query;
+
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const qtrs = [...new Set(revRecords.map(r => r.quarter))].filter(Boolean).sort();
+
+  const data = {};
+  for (const geo of GEOS) {
+    data[geo] = {};
+    for (const q of qtrs) {
+      const recs = filterRev({ geo, quarter: q, offeringArea, consolidatedOffering, ut30, clientType, ecoVsDirect });
+      data[geo][q] = +recs.reduce((s, r) => s + r.revActM, 0).toFixed(3);
+    }
+  }
+  res.json({ quarters: qtrs, geos: GEOS, data });
+});
+
+// GET /api/revenue/tabular — group-by breakdown (mirrors /api/kpi/tabular)
+// groupBy: geo | market | country | offeringArea | consolidatedOffering | ut30 | clientType | ecoVsDirect | quarter | year
+app.get("/api/revenue/tabular", (req, res) => {
+  const { geo = "WW", quarter = "ALL", year = "ALL",
+          market = "ALL", country = "ALL",
+          offeringArea = "ALL", consolidatedOffering = "ALL",
+          ut30 = "ALL", clientType = "ALL", ecoVsDirect = "ALL",
+          groupBy = "geo" } = req.query;
+
+  const recs = filterRev({ geo, quarter, year, market, country, offeringArea, consolidatedOffering, ut30, clientType, ecoVsDirect });
+
+  const keyFns = {
+    geo:                  r => r.geo,
+    market:               r => r.market  || "Unknown",
+    country:              r => r.country || "Unknown",
+    offeringArea:         r => r.offeringArea         || "Unknown",
+    consolidatedOffering: r => r.consolidatedOffering || "Unknown",
+    ut30:                 r => r.ut30        || "Unknown",
+    clientType:           r => r.clientType  || "Unknown",
+    ecoVsDirect:          r => r.ecoVsDirect,
+    quarter:              r => r.quarter,
+    year:                 r => r.year,
+  };
+  const keyFn = keyFns[groupBy] || (r => r.geo);
+
+  const agg = {};
+  for (const r of recs) {
+    const k = keyFn(r);
+    if (!agg[k]) agg[k] = { dim: k, total: 0, direct: 0, eco: 0, count: 0 };
+    agg[k].total += r.revActM;
+    agg[k].count += 1;
+    if (r.ecoVsDirect === "Direct")    agg[k].direct += r.revActM;
+    if (r.ecoVsDirect === "Ecosystem") agg[k].eco    += r.revActM;
+  }
+
+  res.json(
+    Object.values(agg)
+      .map(d => ({ dim: d.dim, total: +d.total.toFixed(3), direct: +d.direct.toFixed(3), eco: +d.eco.toFixed(3), count: d.count }))
+      .sort((a, b) => b.total - a.total)
+  );
+});
+
+// ─── PM Business Intelligence Report ────────────────────────────────────────
+// GET /api/pm-report — all data for the flipbook report in one call
+// params: geo, quarter, offeringArea, consolidatedOffering, offering, ut30
+app.get("/api/pm-report", (req, res) => {
+  const {
+    geo = "WW", quarter = "2Q26",
+    offeringArea = "ALL", consolidatedOffering = "ALL", offering = "ALL", ut30 = "ALL"
+  } = req.query;
+
+  // Derive comparison quarters
+  const CQ   = quarter;
+  const qNum = parseInt(CQ[0]);
+  const qYr  = parseInt(CQ.slice(2));
+  const pqNum = qNum === 1 ? 4 : qNum - 1;
+  const pqYr  = qNum === 1 ? qYr - 1 : qYr;
+  const PQ  = `${pqNum}Q${pqYr}`;
+  const PYQ = `${qNum}Q${qYr - 1}`;
+
+  const base = { geo, offeringArea, consolidatedOffering, offering, ut30 };
+
+  // ── Helper: aggregate a set of records ──
+  const aggRecs = (recs) => {
+    const closed  = recs.filter(r => r.stage === "Won" || r.stage === "Lost");
+    const won     = closed.filter(r => r.stage === "Won");
+    const active  = recs.filter(r => !["Won","Lost"].includes(r.stage));
+    const flmY    = recs.filter(r => r.flmJudgment === "Y");
+    return {
+      pipeline:  +recs.reduce((s,r)  => s + r.oppVal,    0).toFixed(2),
+      signings:  +recs.reduce((s,r)  => s + r.wonDollar, 0).toFixed(2),
+      call:      +recs.reduce((s,r)  => s + r.call,      0).toFixed(2),
+      upside:    +recs.reduce((s,r)  => s + r.upside,    0).toFixed(2),
+      oppCount:  recs.length,
+      activeCount: active.length,
+      wonCount:  won.length,
+      lostCount: closed.length - won.length,
+      closedCount: closed.length,
+      winRate:   closed.length > 0 ? +((won.length / closed.length) * 100).toFixed(1) : 0,
+      flmCount:  flmY.length,
+      flmPct:    recs.length > 0 ? +((flmY.length / recs.length) * 100).toFixed(1) : 0,
+    };
+  };
+
+  const aggQ = (q) => aggRecs(filter({ ...base, quarter: q }));
+
+  const cq  = aggQ(CQ);
+  const pq  = aggQ(PQ);
+  const pyq = aggQ(PYQ);
+
+  // ── Revenue actuals ──
+  const revCQ  = filterRev({ ...base, quarter: CQ  }).reduce((s,r) => s + r.revActM, 0);
+  const revPQ  = filterRev({ ...base, quarter: PQ  }).reduce((s,r) => s + r.revActM, 0);
+  const revPYQ = filterRev({ ...base, quarter: PYQ }).reduce((s,r) => s + r.revActM, 0);
+
+  // ── By Geo (CQ) ──
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+  const byGeo = GEOS.map(g => {
+    const recs  = filter({ ...base, quarter: CQ, geo: g });
+    const recsP = filter({ ...base, quarter: PQ,  geo: g });
+    const recsY = filter({ ...base, quarter: PYQ, geo: g });
+    const a = aggRecs(recs);
+    const ap = aggRecs(recsP);
+    const ay = aggRecs(recsY);
+    return {
+      geo: g, ...a,
+      sigQoQ: ap.signings > 0 ? +((a.signings / ap.signings - 1) * 100).toFixed(1) : null,
+      sigYoY: ay.signings > 0 ? +((a.signings / ay.signings - 1) * 100).toFixed(1) : null,
+      pipeQoQ: ap.pipeline > 0 ? +((a.pipeline / ap.pipeline - 1) * 100).toFixed(1) : null,
+      wrDeltaQoQ: +(a.winRate - ap.winRate).toFixed(1),
+    };
+  });
+
+  // ── By Offering Area (CQ) — for drill-down ──
+  const allOAs = [...new Set(filter({ ...base, quarter: CQ }).map(r => r.offeringArea))].filter(Boolean);
+  const byOA = allOAs.map(oa => {
+    const r  = filter({ ...base, quarter: CQ, offeringArea: oa });
+    const rp = filter({ ...base, quarter: PQ,  offeringArea: oa });
+    const ry = filter({ ...base, quarter: PYQ, offeringArea: oa });
+    const a  = aggRecs(r);
+    const ap = aggRecs(rp);
+    const ay = aggRecs(ry);
+    return {
+      oa, ...a,
+      sigQoQ: ap.signings > 0 ? +((a.signings/ap.signings-1)*100).toFixed(1) : null,
+      sigYoY: ay.signings > 0 ? +((a.signings/ay.signings-1)*100).toFixed(1) : null,
+    };
+  }).sort((a,b) => b.pipeline - a.pipeline);
+
+  // ── By Consolidated Offering (CQ) ──
+  const allCons = [...new Set(filter({ ...base, quarter: CQ }).map(r => r.consolidatedOffering))].filter(v => v && v !== "NotCross");
+  const byCon = allCons.map(con => {
+    const r  = filter({ ...base, quarter: CQ, consolidatedOffering: con });
+    const rp = filter({ ...base, quarter: PQ,  consolidatedOffering: con });
+    const ry = filter({ ...base, quarter: PYQ, consolidatedOffering: con });
+    const a  = aggRecs(r);
+    const ap = aggRecs(rp);
+    const ay = aggRecs(ry);
+    return {
+      con, ...a,
+      sigQoQ: ap.signings > 0 ? +((a.signings/ap.signings-1)*100).toFixed(1) : null,
+      sigYoY: ay.signings > 0 ? +((a.signings/ay.signings-1)*100).toFixed(1) : null,
+    };
+  }).sort((a,b) => b.pipeline - a.pipeline).slice(0,12);
+
+  // ── Win/Loss reasons (CQ) ──
+  const wlRecs = filter({ ...base, quarter: CQ }).filter(r => r.stage === "Won" || r.stage === "Lost");
+  const wlMap  = {};
+  for (const r of wlRecs) {
+    const k = r.winLossReason || "Unknown";
+    if (!wlMap[k]) wlMap[k] = { won: 0, lost: 0 };
+    if (r.stage === "Won") wlMap[k].won++; else wlMap[k].lost++;
+  }
+  const winLoss = Object.entries(wlMap)
+    .map(([reason,d]) => ({ reason, won: d.won, lost: d.lost, total: d.won+d.lost }))
+    .sort((a,b) => b.total - a.total).slice(0,8);
+
+  // ── Top 10 Accounts (CQ) ──
+  const acctMap = {};
+  for (const r of filter({ ...base, quarter: CQ })) {
+    const k = r.customer || "Unknown";
+    if (!k || k === "Unknown") continue;
+    if (!acctMap[k]) acctMap[k] = { pipeline:0, signings:0, won:0, closed:0, flm:0 };
+    acctMap[k].pipeline += r.oppVal;
+    acctMap[k].signings += r.wonDollar;
+    if (r.stage === "Won" || r.stage === "Lost") {
+      acctMap[k].closed++;
+      if (r.stage === "Won") acctMap[k].won++;
+    }
+    if (r.flmJudgment === "Y") acctMap[k].flm++;
+  }
+  const topAccounts = Object.entries(acctMap)
+    .map(([name,d]) => ({ name, pipeline: +d.pipeline.toFixed(2), signings: +d.signings.toFixed(2),
+      winRate: d.closed > 0 ? +((d.won/d.closed)*100).toFixed(1) : 0,
+      flmCount: d.flm }))
+    .sort((a,b) => b.pipeline - a.pipeline).slice(0,10);
+
+  // ── Stalled opps (FLM=Y, active, age > 90 days) ──
+  const stalled = filter({ ...base, quarter: CQ })
+    .filter(r => !["Won","Lost"].includes(r.stage) && r.flmJudgment === "Y" && r.oppAge > 90)
+    .sort((a,b) => b.oppVal - a.oppVal)
+    .slice(0, 8)
+    .map(r => ({ customer: r.customer, offering: r.offering || r.consolidatedOffering,
+      pipeline: +r.oppVal.toFixed(2), age: Math.round(r.oppAge), geo: r.geo, stage: r.stage }));
+
+  // ── 6-quarter trend (pipeline + signings) ──
+  const allQtrs = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort();
+  const trendQtrs = allQtrs.slice(-6);
+  const trend = trendQtrs.map(q => {
+    const r = filter({ ...base, quarter: q });
+    const a = aggRecs(r);
+    const rv = filterRev({ ...base, quarter: q }).reduce((s,x) => s + x.revActM, 0);
+    return { quarter: q, pipeline: a.pipeline, signings: a.signings, winRate: a.winRate, revenue: +rv.toFixed(2) };
+  });
+
+  // ── Geo × Offering matrix (CQ) ──
+  const geoOAMatrix = {};
+  for (const g of GEOS) {
+    geoOAMatrix[g] = {};
+    for (const oa of allOAs.slice(0,4)) {
+      const r = filter({ ...base, quarter: CQ, geo: g, offeringArea: oa });
+      geoOAMatrix[g][oa] = aggRecs(r);
+    }
+  }
+
+  // ── GTM recommended actions (rules-based) ──
+  const actions = [];
+  const sorted = [...byGeo].sort((a,b) => a.winRate - b.winRate);
+  const lowestWR = sorted[0];
+  const highestPipe = [...byGeo].sort((a,b) => b.pipeline - a.pipeline)[0];
+
+  if (lowestWR && lowestWR.winRate < 50)
+    actions.push({ priority:"HIGH", category:"Win Rate", geo: lowestWR.geo,
+      action: `${lowestWR.geo} win rate at ${lowestWR.winRate}% — run deal coaching workshop on top-10 stalled opps. Target: lift WR to 55%+ by end of ${CQ}.`,
+      deadline: `End of ${CQ}` });
+
+  if (highestPipe && highestPipe.pipeline > 0)
+    actions.push({ priority:"HIGH", category:"Pipeline Velocity", geo: highestPipe.geo,
+      action: `${highestPipe.geo} holds ${(highestPipe.pipeline/1).toFixed(0)}M in active pipeline. Weekly FLM review cadence to advance top-20 opportunities to close stage.`,
+      deadline: `Bi-weekly` });
+
+  const revDeltaQoQ = revPQ > 0 ? +((revCQ/revPQ - 1)*100).toFixed(1) : null;
+  if (revDeltaQoQ !== null && revDeltaQoQ < -10)
+    actions.push({ priority:"HIGH", category:"Revenue", geo: "WW",
+      action: `Revenue down ${Math.abs(revDeltaQoQ)}% QoQ ($${revCQ.toFixed(1)}M vs $${revPQ.toFixed(1)}M PQ). Identify revenue recognition delays and pull-in opportunities.`,
+      deadline: `${CQ} close` });
+
+  const coverage = cq.pipeline > 0 ? (cq.call / cq.pipeline * 100) : 0;
+  if (coverage < 50)
+    actions.push({ priority:"MED", category:"Forecast Coverage", geo: "WW",
+      action: `Forecast coverage at ${coverage.toFixed(0)}% — below 50% threshold. Pull Best Case opps into commit, target 70% by week 10 of ${CQ}.`,
+      deadline: `Week 10 of ${CQ}` });
+
+  const dnsoRecs = filter({ ...base, quarter: CQ }).filter(r => r.dnso === "Yes");
+  if (dnsoRecs.length > 0)
+    actions.push({ priority:"MED", category:"DNSO Expansion", geo: "WW",
+      action: `${dnsoRecs.length} DNSO opportunities totaling $${dnsoRecs.reduce((s,r)=>s+r.oppVal,0).toFixed(1)}M. Prioritize referral conversion to new pipeline.`,
+      deadline: `Next 30 days` });
+
+  byGeo.forEach(g => {
+    if (g.sigYoY !== null && g.sigYoY < -15)
+      actions.push({ priority:"MED", category:"Signings Recovery", geo: g.geo,
+        action: `${g.geo} signings down ${Math.abs(g.sigYoY)}% YoY. Engage SDE/Partner team to identify pull-in opportunities and close acceleration.`,
+        deadline: `End of ${CQ}` });
+  });
+
+  // ── Exec narrative ──
+  const fmt  = v => `$${Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+"B" : Math.abs(v).toFixed(1)+"M"}`;
+  const dPct = (a,b) => b > 0 ? ((a/b-1)*100).toFixed(1) : null;
+  const sgn  = v => v != null ? (parseFloat(v) >= 0 ? "+" : "") + v + "%" : "";
+  const oaLabel  = offeringArea !== "ALL" ? ` — ${offeringArea}` : "";
+  const conLabel = consolidatedOffering !== "ALL" ? ` · ${consolidatedOffering}` : "";
+  const geoLabel = geo !== "WW" ? geo : "WW";
+
+  const narrative = [
+    `**${geoLabel}${oaLabel}${conLabel} | ${CQ} Business Intelligence Report**\n\n` +
+    `TLS delivered **${fmt(cq.signings)}** in signings for ${CQ}` +
+    (dPct(cq.signings,pyq.signings) ? ` (${sgn(dPct(cq.signings,pyq.signings))} YoY vs ${PYQ})` : "") +
+    (dPct(cq.signings,pq.signings) ? ` and ${sgn(dPct(cq.signings,pq.signings))} QoQ vs ${PQ}` : "") +
+    `. Revenue actuals: **${fmt(revCQ)}**` +
+    (dPct(revCQ,revPYQ) ? ` (${sgn(dPct(revCQ,revPYQ))} YoY)` : "") +
+    `. Active pipeline: **${fmt(cq.pipeline)}** (${cq.activeCount} opps).`,
+
+    `**Win Rate & Coverage:** Win rate is **${cq.winRate}%** (${cq.wonCount} won / ${cq.closedCount} closed). ` +
+    `Call coverage: **${coverage.toFixed(0)}%** — ` +
+    (coverage < 50 ? `⚠️ below 50%, immediate pull-in action required.` : `✅ healthy.`),
+
+    byGeo.filter(g => g.signings > 0).length > 0
+      ? `**Geo Highlights:** ` + byGeo.sort((a,b)=>b.signings-a.signings).filter(g=>g.signings>0)
+          .map(g => `${g.geo}: ${fmt(g.signings)} signings · ${g.winRate}% WR`).join(" | ")
+      : null,
+
+    `**Key Risks:** ` + [
+      lowestWR && lowestWR.winRate < 50 ? `${lowestWR.geo} WR at ${lowestWR.winRate}%` : null,
+      revDeltaQoQ !== null && revDeltaQoQ < -5 ? `Revenue ${revDeltaQoQ}% QoQ` : null,
+      stalled.length > 5 ? `${stalled.length} stalled FLM=Y opps >90 days` : null,
+    ].filter(Boolean).join("; ") || "No critical risks identified.",
+  ].filter(Boolean).join("\n\n");
+
+  res.json({
+    scope: { geo: geoLabel, quarter: CQ, pq: PQ, pyq: PYQ, offeringArea, consolidatedOffering, ut30 },
+    cq, pq, pyq,
+    revenue: { cq: +revCQ.toFixed(2), pq: +revPQ.toFixed(2), pyq: +revPYQ.toFixed(2) },
+    revQoQ: revPQ  > 0 ? +((revCQ/revPQ  - 1)*100).toFixed(1) : null,
+    revYoY: revPYQ > 0 ? +((revCQ/revPYQ - 1)*100).toFixed(1) : null,
+    sigQoQ: pq.signings  > 0 ? +((cq.signings/pq.signings  - 1)*100).toFixed(1) : null,
+    sigYoY: pyq.signings > 0 ? +((cq.signings/pyq.signings - 1)*100).toFixed(1) : null,
+    pipeQoQ: pq.pipeline  > 0 ? +((cq.pipeline/pq.pipeline  - 1)*100).toFixed(1) : null,
+    pipeYoY: pyq.pipeline > 0 ? +((cq.pipeline/pyq.pipeline - 1)*100).toFixed(1) : null,
+    wrDeltaQoQ: +(cq.winRate - pq.winRate).toFixed(1),
+    wrDeltaYoY: +(cq.winRate - pyq.winRate).toFixed(1),
+    byGeo, byOA, byCon, winLoss, topAccounts, stalled, trend, geoOAMatrix,
+    actions: actions.slice(0,8),
+    narrative,
+  });
+});
+
+// ─── PM Report v2: Industry-level deep dive endpoint ────────────────────────
+// GET /api/pm-report/industry — industry × geo matrix + deep dives for PM view
+app.get("/api/pm-report/industry", (req, res) => {
+  const {
+    geo = "WW", quarter = "2Q26",
+    offeringArea = "ALL", consolidatedOffering = "ALL", offering = "ALL", ut30 = "ALL"
+  } = req.query;
+
+  const CQ   = quarter;
+  const qNum = parseInt(CQ[0]);
+  const qYr  = parseInt(CQ.slice(2));
+  const PQ   = `${qNum===1?4:qNum-1}Q${qNum===1?qYr-1:qYr}`;
+  const PYQ  = `${qNum}Q${qYr-1}`;
+
+  const base = { geo, offeringArea, consolidatedOffering, offering, ut30 };
+  const GEOS = ["Americas","EMEA","APAC","Japan"];
+
+  const aggI = (recs) => {
+    const active  = recs.filter(r => !["Won","Lost"].includes(r.stage));
+    const closed  = recs.filter(r => r.stage==="Won" || r.stage==="Lost");
+    const won     = closed.filter(r => r.stage==="Won");
+    const flmY    = active.filter(r => r.flmJudgment==="Y");
+    return {
+      pipeline:  +active.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      signings:  +recs.reduce((s,r)=>s+r.wonDollar,0).toFixed(2),
+      call:      +recs.reduce((s,r)=>s+r.call,0).toFixed(2),
+      oppCount:  recs.length,
+      activeCount: active.length,
+      wonCount:  won.length,
+      lostCount: closed.length-won.length,
+      closedCount: closed.length,
+      winRate:   closed.length>0 ? +((won.length/closed.length)*100).toFixed(1) : 0,
+      flmCount:  flmY.length,
+      flmPct:    active.length>0 ? +((flmY.length/active.length)*100).toFixed(1) : 0,
+    };
+  };
+
+  // All industries in scope
+  const recsAll = filter({ ...base, quarter: CQ });
+  const industries = [...new Set(recsAll.map(r=>r.industry||"Unassigned"))].filter(v=>v&&v!=="Unassigned").sort();
+
+  // WW summary by industry CQ vs PQ vs PYQ
+  const byIndustry = industries.map(ind => {
+    const cqR  = filter({ ...base, quarter: CQ  }).filter(r => (r.industry||"Unassigned")===ind);
+    const pqR  = filter({ ...base, quarter: PQ  }).filter(r => (r.industry||"Unassigned")===ind);
+    const pyqR = filter({ ...base, quarter: PYQ }).filter(r => (r.industry||"Unassigned")===ind);
+    const cqA  = aggI(cqR);
+    const pqA  = aggI(pqR);
+    const pyqA = aggI(pyqR);
+    return {
+      industry: ind, cq: cqA, pq: pqA, pyq: pyqA,
+      pipeQoQ:  pqA.pipeline  >0 ? +((cqA.pipeline /pqA.pipeline -1)*100).toFixed(1) : null,
+      pipeYoY:  pyqA.pipeline >0 ? +((cqA.pipeline /pyqA.pipeline-1)*100).toFixed(1) : null,
+      sigQoQ:   pqA.signings  >0 ? +((cqA.signings /pqA.signings -1)*100).toFixed(1) : null,
+      sigYoY:   pyqA.signings >0 ? +((cqA.signings /pyqA.signings-1)*100).toFixed(1) : null,
+      wrDeltaQoQ: +(cqA.winRate - pqA.winRate).toFixed(1),
+      wrDeltaYoY: +(cqA.winRate - pyqA.winRate).toFixed(1),
+    };
+  }).sort((a,b)=>b.cq.pipeline-a.cq.pipeline).slice(0,10);
+
+  // Geo × Industry matrix
+  const geoIndMatrix = {};
+  for (const g of GEOS) {
+    geoIndMatrix[g] = {};
+    for (const ind of industries.slice(0,8)) {
+      const r = filter({ ...base, quarter: CQ, geo: g }).filter(x => (x.industry||"Unassigned")===ind);
+      geoIndMatrix[g][ind] = aggI(r);
+    }
+  }
+
+  // Stalled FLM=Y by industry
+  const stalledByInd = {};
+  const stalledAll = filter({ ...base, quarter: CQ })
+    .filter(r => !["Won","Lost"].includes(r.stage) && r.flmJudgment==="Y" && r.oppAge>=30)
+    .sort((a,b)=>b.oppVal-a.oppVal);
+  for (const r of stalledAll) {
+    const ind = r.industry||"Unassigned";
+    if (!stalledByInd[ind]) stalledByInd[ind] = [];
+    stalledByInd[ind].push({ customer:r.customer, geo:r.geo, stage:r.stage, oppVal:+r.oppVal.toFixed(2),
+      call:+r.call.toFixed(2), age:Math.round(r.oppAge), forecastCat:r.forecastCat, flmPct:r.flmJudgment });
+  }
+  // Top stalled opps overall (cap 12)
+  const topStalled = stalledAll.slice(0,12).map(r=>({
+    customer:r.customer, industry:r.industry||"Unassigned", geo:r.geo, stage:r.stage,
+    oppVal:+r.oppVal.toFixed(2), call:+r.call.toFixed(2), age:Math.round(r.oppAge),
+    forecastCat:r.forecastCat, offering:r.consolidatedOffering||r.offering||""
+  }));
+
+  // FLM conviction by industry (active only)
+  const flmByInd = industries.slice(0,10).map(ind => {
+    const active = filter({ ...base, quarter: CQ }).filter(r => !["Won","Lost"].includes(r.stage) && (r.industry||"Unassigned")===ind);
+    const flmY   = active.filter(r=>r.flmJudgment==="Y");
+    const geoBrk = GEOS.map(g=>({
+      geo: g,
+      total: active.filter(r=>r.geo===g).length,
+      flmY:  active.filter(r=>r.geo===g && r.flmJudgment==="Y").length,
+    }));
+    return {
+      industry: ind,
+      total: active.length,
+      flmY:  flmY.length,
+      flmPct: active.length>0 ? +((flmY.length/active.length)*100).toFixed(1) : 0,
+      pipeline: +active.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      flmPipeline: +flmY.reduce((s,r)=>s+r.oppVal,0).toFixed(2),
+      byGeo: geoBrk,
+    };
+  }).sort((a,b)=>b.flmPct-a.flmPct);
+
+  // 6-quarter signings trend by industry (top 5 industries)
+  const topInds5 = byIndustry.slice(0,5).map(d=>d.industry);
+  const allQtrs  = [...new Set(records.map(r=>r.quarter))].filter(Boolean).sort().slice(-6);
+  const sigTrend = allQtrs.map(q => {
+    const entry = { quarter: q };
+    for (const ind of topInds5) {
+      const r = filter({ ...base, quarter: q }).filter(x=>(x.industry||"Unassigned")===ind);
+      entry[ind] = +r.reduce((s,x)=>s+x.wonDollar,0).toFixed(2);
+    }
+    return entry;
+  });
+
+  // GTM actions by industry
+  const gtmActions = [];
+  for (const id of byIndustry.slice(0,6)) {
+    const { industry: ind, cq: cqA, pyq: pyqA, sigYoY, wrDeltaYoY } = id;
+    if (sigYoY !== null && sigYoY < -15) {
+      gtmActions.push({ industry: ind, priority:"HIGH", type:"Recovery",
+        action:`${ind} signings down ${Math.abs(sigYoY).toFixed(0)}% YoY. Engage top-3 accounts in each geo with executive-level outreach. Target: recover ${(cqA.signings*0.2).toFixed(1)}M within ${CQ}.`,
+        deadline:`End ${CQ}`, geo: geo });
+    }
+    if (cqA.winRate > 0 && cqA.winRate < 50) {
+      gtmActions.push({ industry: ind, priority:"HIGH", type:"Win Rate",
+        action:`${ind} win rate at ${cqA.winRate}% — below 50% threshold. Launch competitive playbook refresh and deal coaching for stalled opps in Propose/Negotiate stages.`,
+        deadline:`Within 30 days`, geo: geo });
+    }
+    if (cqA.flmPct < 20 && cqA.pipeline > 1) {
+      gtmActions.push({ industry: ind, priority:"MED", type:"FLM Coverage",
+        action:`${ind} FLM conviction only ${cqA.flmPct}%. Manager pipeline review session required — identify top-5 opps needing FLM endorsement to improve forecast confidence.`,
+        deadline:`Next pipeline review`, geo: geo });
+    }
+    if (sigYoY !== null && sigYoY > 30) {
+      gtmActions.push({ industry: ind, priority:"MED", type:"Scale",
+        action:`${ind} momentum is strong at +${sigYoY.toFixed(0)}% YoY. Replicate winning motion to adjacent geos. Document playbook and share with SDE team within 2 weeks.`,
+        deadline:`2 weeks`, geo: geo });
+    }
+  }
+
+  // Priority watchlist — top at-risk items
+  const watchlist = [];
+  byIndustry.forEach(id => {
+    if (id.cq.pipeline > 0 && id.cq.winRate < 40 && id.cq.pipeline > 2) {
+      watchlist.push({
+        industry: id.industry, metric:"Win Rate", value:`${id.cq.winRate}%`,
+        risk:`${id.cq.lostCount} deals lost in ${CQ}. Low win rate risks $${id.cq.pipeline.toFixed(1)}M pipeline.`,
+        action:"Deploy competitive deal coaching + exec sponsor outreach", deadline:`End of ${CQ}`,
+        dollars: id.cq.pipeline
+      });
+    }
+    if (id.sigYoY !== null && id.sigYoY < -25) {
+      watchlist.push({
+        industry: id.industry, metric:"Signings YoY", value:`${id.sigYoY}%`,
+        risk:`Signings down ${Math.abs(id.sigYoY).toFixed(0)}% YoY. $${id.pq.signings.toFixed(1)}M base at risk.`,
+        action:"Executive-level account reviews + SDE engagement", deadline:`This week`,
+        dollars: id.pq.signings
+      });
+    }
+  });
+  stalledAll.slice(0,3).forEach(r=>{
+    watchlist.push({
+      industry: r.industry||"Unassigned", metric:"Stalled FLM=Y", value:`${r.oppAge}d old`,
+      risk:`$${r.oppVal.toFixed(1)}M stalled at ${r.stage} for ${r.oppAge} days — ${r.customer}.`,
+      action:`FLM to force next step or re-forecast out of quarter`, deadline:`This week`,
+      dollars: r.oppVal
+    });
+  });
+
+  res.json({
+    scope: { geo, quarter: CQ, pq: PQ, pyq: PYQ, offeringArea, consolidatedOffering },
+    byIndustry, geoIndMatrix, topStalled, flmByInd, sigTrend,
+    gtmActions: gtmActions.slice(0,14),
+    watchlist: watchlist.sort((a,b)=>b.dollars-a.dollars).slice(0,9),
+    industries: industries.slice(0,10),
+  });
+});
+
+// ─── PM meta: Product hierarchy for the PM selection screen ─────────────────
+// GET /api/pm-meta — returns TLS product hierarchy for the PM selection wizard
+app.get("/api/pm-meta", (req, res) => {
+  // ── Raw dimension values from data ──────────────────────────────────────────
+  const OA_ORDER = ["Project Services","Interoperability Services","Custom Services","Other Services"];
+  const allOAs   = [...new Set(records.map(r => r.offeringArea))].filter(v => v && v !== "NotCross" && v !== "Unassigned");
+  const orderedOAs = [...OA_ORDER.filter(o => allOAs.includes(o)), ...allOAs.filter(o => !OA_ORDER.includes(o)).sort()];
+
+  // Consolidated offerings per OA (from Consolidated Offering Name column)
+  const conByOA = {};
+  for (const oa of orderedOAs) {
+    const cons = [...new Set(records.filter(r => r.offeringArea === oa).map(r => r.consolidatedOffering))]
+      .filter(v => v && v !== "NotCross" && v !== "Unassigned").sort();
+    conByOA[oa] = cons;
+  }
+
+  // Offering Names per Consolidated Offering (from Offering Name column)
+  const allCons = [...new Set(records.map(r => r.consolidatedOffering))].filter(v => v && v !== "NotCross" && v !== "Unassigned");
+  const offeringsByCon = {};
+  for (const con of allCons) {
+    const names = [...new Set(records.filter(r => r.consolidatedOffering === con).map(r => r.offering))]
+      .filter(v => v && v !== "NotCross" && v !== "Unassigned").sort();
+    offeringsByCon[con] = names;
+  }
+
+  // Available quarters & years
+  const qtrs  = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort();
+  const years = [...new Set(records.map(r => r.year))].filter(Boolean).sort();
+
+  // ── TLS Product Portfolio definition ────────────────────────────────────────
+  // Cross-Portfolio Infrastructure Services (live in Phase 1)
+  // Other portfolios are "Phase 2" placeholders visible but not clickable
+  const portfolio = [
+    {
+      id: "CPIS",
+      name: "Cross-Portfolio Infrastructure Services",
+      phase: "live",
+      desc: "Project Services · Interoperability · Custom · Other",
+      offeringAreas: orderedOAs,         // all real OAs from data
+    },
+    { id: "IBMZ",    name: "IBM Z",                     phase: "phase2", desc: "Mainframe lifecycle services" },
+    { id: "IBMP",    name: "IBM Power",                  phase: "phase2", desc: "Power Systems technical services" },
+    { id: "IBMS",    name: "IBM Storage",                phase: "phase2", desc: "Storage infrastructure support" },
+    { id: "MVSNWS",  name: "MVS — Networking & Security", phase: "phase2", desc: "Multivendor network & security services" },
+    { id: "MVSSAS",  name: "MVS — Server & Storage",      phase: "phase2", desc: "Multivendor server & storage services" },
+  ];
+
+  // legacy shape kept for backward compat
+  const productLines = { "Cross-Portfolio Infrastructure Services": orderedOAs };
+
+  res.json({ portfolio, productLines, conByOA, offeringsByCon, orderedOAs, qtrs, years });
+});
+
+// ─── Feedback log (in-memory) ────────────────────────────────────────────────
+const feedbackLog = [];
+
+app.post("/api/feedback", (req, res) => {
+  const { email, message, chatMessage, chatResponse } = req.body;
+  if (!email || !message) return res.status(400).json({ error: "email and message required" });
+  feedbackLog.push({
+    id: feedbackLog.length + 1,
+    email,
+    message,
+    chatMessage: chatMessage || "",
+    chatResponse: chatResponse || "",
+    timestamp: new Date().toISOString()
+  });
+  res.json({ ok: true });
+});
+
+app.get("/api/feedback", (req, res) => {
+  res.json(feedbackLog);
+});
+
+// ─── Start server ────────────────────────────────────────────────────────────
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`\n✅ IBM Compass running at http://localhost:${PORT}\n`);
+});

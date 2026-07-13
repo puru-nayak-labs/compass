@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>IBM Compass &ndash; TLS Performance Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--sur:#f4f4f4;--card:#ffffff;--bdr:#e0e0e0;--bdr2:#c6c6c6;
+  --blue:#0f62fe;--green:#198038;--red:#da1e28;--yellow:#b28600;--purple:#6929c4;
+  --text:#161616;--muted:#525252;--ibm:#0f62fe;--ibmh:#0353e9;--dim:#8d8d8d;
+  --c-americas:#0f62fe;--c-emea:#198038;--c-apac:#b28600;--c-japan:#6929c4;
+}
+body{font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13px;line-height:1.5}
+
+/* -- HEADER -- */
+header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
+       display:flex;align-items:center;padding:0 16px;gap:0;
+       position:fixed;top:0;left:0;right:0;z-index:300;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ibm-badge{background:var(--ibm);color:#fff;font-size:10px;font-weight:700;
+           letter-spacing:2.5px;padding:3px 7px;border-radius:2px;margin-right:10px;flex-shrink:0}
+.h-title{font-size:13px;font-weight:700;color:var(--text);margin-right:8px;white-space:nowrap}
+.h-sub{font-size:11px;color:var(--muted);border-left:1px solid var(--bdr);padding-left:10px;white-space:nowrap}
+
+.h-right{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);margin-left:auto;flex-shrink:0}
+.ldot{width:6px;height:6px;background:var(--green);border-radius:50%;
+      display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.h-action-btn{padding:4px 11px;font-size:10px;font-weight:600;cursor:pointer;
+              border:1px solid var(--bdr2);background:transparent;color:var(--muted);
+              border-radius:4px;transition:all .15s;margin-left:5px;white-space:nowrap;flex-shrink:0}
+.h-action-btn:hover{background:var(--sur);color:var(--text);border-color:var(--blue)}
+
+/* -- PERSONA SHELLS -- */
+.persona-shell{display:none;height:calc(100vh - 48px);margin-top:48px;overflow:hidden}
+.persona-shell.active{display:flex;flex-direction:column}
+
+/* -- OVERLAYS -- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);
+         z-index:500;display:none;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+
+/* Phase 2 overlay */
+.p2-box{background:#fff;border:1px solid var(--bdr2);border-radius:8px;
+        padding:40px 48px;text-align:center;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.p2-badge{display:inline-block;background:rgba(105,41,196,.1);color:var(--purple);
+          font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 10px;
+          border-radius:10px;text-transform:uppercase;margin-bottom:14px}
+.p2-box h2{font-size:20px;font-weight:700;margin-bottom:10px}
+.p2-box p{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:20px}
+.p2-close{background:var(--ibm);border:none;color:#fff;padding:8px 24px;
+          border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}
+
+/* Executive Summary overlay */
+.es-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        padding:28px 32px;max-width:700px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.es-box h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.es-sub{font-size:10px;color:var(--muted);margin-bottom:18px}
+.es-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.es-stat{background:var(--sur);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;text-align:center}
+.es-stat-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.es-stat-val{font-size:16px;font-weight:700}
+.es-narrative{font-size:12px;line-height:1.75}
+.es-narrative p{margin-bottom:14px}
+.es-narrative p:last-child{margin-bottom:0}
+.es-narrative strong{color:var(--ibm)}
+.es-spin{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;padding:16px 0}
+.es-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--bdr);padding-top:14px}
+.es-copy,.es-close{background:transparent;border:1px solid var(--bdr2);color:var(--muted);
+                   padding:7px 16px;border-radius:4px;font-size:11px;cursor:pointer}
+
+/* Roadmap overlay */
+.rm-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        padding:28px 32px;max-width:760px;width:90%;max-height:86vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.rm-box h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.rm-box .rm-sub{font-size:11px;color:var(--muted);margin-bottom:20px}
+.rm-phases{display:flex;gap:0;position:relative}
+.rm-phases::before{content:"";position:absolute;top:28px;left:28px;right:28px;height:2px;
+                   background:linear-gradient(90deg,var(--green),var(--blue),var(--yellow),var(--purple));z-index:0}
+.rm-phase{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1}
+.rm-dot{width:16px;height:16px;border-radius:50%;border:3px solid #fff;margin-bottom:10px;flex-shrink:0}
+.rm-ph-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;text-align:center}
+.rm-ph-name{font-size:11px;font-weight:700;text-align:center;margin-bottom:2px}
+.rm-ph-time{font-size:9px;color:var(--muted);text-align:center;margin-bottom:8px}
+.rm-ph-items{background:var(--sur);border:1px solid var(--bdr);border-radius:6px;
+             padding:8px 10px;width:calc(100% - 12px);font-size:10px;line-height:1.7;color:var(--muted)}
+.rm-ph-items li{list-style:none;padding:1px 0}
+.rm-ph-items li::before{content:"&#9658; ";color:inherit}
+.rm-phase.done .rm-dot{background:var(--green)}.rm-phase.done .rm-ph-label{color:var(--green)}
+.rm-phase.active .rm-dot{background:var(--blue)}.rm-phase.active .rm-ph-label{color:var(--blue)}
+.rm-phase.next .rm-dot{background:var(--yellow)}.rm-phase.next .rm-ph-label{color:var(--yellow)}
+.rm-phase.future .rm-dot{background:var(--purple)}.rm-phase.future .rm-ph-label{color:var(--purple)}
+.rm-close{background:var(--ibm);border:none;color:#fff;padding:8px 24px;
+          border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;margin-top:20px;display:block;margin-left:auto}
+
+/* Feedback overlay */
+.fb-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        padding:24px 28px;max-width:700px;width:90%;max-height:86vh;overflow-y:auto;
+        display:flex;flex-direction:column;gap:0;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.fb-box h2{font-size:15px;font-weight:700;margin-bottom:6px}
+.fb-box .fb-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
+.fb-table{width:100%;border-collapse:collapse;font-size:11px}
+.fb-table th{text-align:left;padding:6px 10px;font-size:9px;color:var(--muted);font-weight:700;
+             text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr)}
+.fb-table td{padding:7px 10px;border-bottom:1px solid var(--bdr);vertical-align:top}
+.fb-table tr:last-child td{border-bottom:none}
+.fb-empty{color:var(--muted);font-size:11px;padding:16px 0}
+.fb-divider{border:none;border-top:1px solid var(--bdr);margin:18px 0}
+.fb-add-hd{font-size:11px;font-weight:700;margin-bottom:10px}
+.fb-form-row{display:flex;gap:8px;margin-bottom:8px}
+.fb-finput{flex:1;background:#fff;border:1px solid var(--bdr2);color:var(--text);
+           border-radius:4px;padding:7px 10px;font-size:11px;outline:none;font-family:inherit}
+.fb-finput:focus{border-color:var(--blue)}
+.fb-ftarea{width:100%;background:#fff;border:1px solid var(--bdr2);color:var(--text);
+           border-radius:4px;padding:7px 10px;font-size:11px;outline:none;resize:vertical;
+           min-height:60px;font-family:inherit;margin-bottom:8px}
+.fb-ftarea:focus{border-color:var(--blue)}
+.fb-frow{display:flex;gap:8px;justify-content:flex-end}
+.fb-cancel{background:transparent;border:1px solid var(--bdr2);color:var(--muted);
+           padding:6px 14px;border-radius:4px;font-size:11px;cursor:pointer}
+.fb-submit{background:var(--ibm);border:none;color:#fff;padding:6px 14px;
+           border-radius:4px;font-size:11px;font-weight:600;cursor:pointer}
+.fb-close{background:transparent;border:1px solid var(--bdr2);color:var(--muted);padding:7px 20px;
+          border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;margin-top:16px;align-self:flex-end}
+
+/* Thumbs-down modal */
+.td-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        padding:24px 28px;max-width:420px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.td-box h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.td-box p{font-size:11px;color:var(--muted);margin-bottom:14px}
+.td-input{width:100%;background:#fff;border:1px solid var(--bdr2);color:var(--text);
+          border-radius:4px;padding:8px 10px;font-size:12px;outline:none;margin-bottom:10px;font-family:inherit}
+.td-input:focus{border-color:var(--blue)}
+.td-textarea{width:100%;background:#fff;border:1px solid var(--bdr2);color:var(--text);
+             border-radius:4px;padding:8px 10px;font-size:12px;outline:none;resize:vertical;
+             min-height:72px;font-family:inherit;margin-bottom:12px}
+.td-textarea:focus{border-color:var(--blue)}
+.td-row{display:flex;gap:8px;justify-content:flex-end}
+.td-cancel{background:transparent;border:1px solid var(--bdr2);color:var(--muted);
+           padding:7px 16px;border-radius:4px;font-size:11px;cursor:pointer}
+.td-submit{background:var(--ibm);border:none;color:#fff;padding:7px 16px;
+           border-radius:4px;font-size:11px;font-weight:600;cursor:pointer}
+
+/* -- SHARED UTILITIES -- */
+.spin{width:24px;height:24px;border:3px solid var(--bdr2);border-top-color:var(--ibm);
+      border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bdg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;white-space:nowrap}
+.bg{background:rgba(25,128,56,.12);color:var(--green)}
+.br{background:rgba(218,30,40,.12);color:var(--red)}
+.bb{background:rgba(15,98,254,.12);color:var(--ibm)}
+.bm{background:rgba(105,41,196,.12);color:var(--purple)}
+.bn{background:rgba(141,145,153,.1);color:var(--muted)}
+.by{background:rgba(178,134,0,.12);color:var(--yellow)}
+
+/* delta badges */
+.kd{font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;
+    display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.kd.pos{background:rgba(25,128,56,.12);color:var(--green)}
+.kd.neg{background:rgba(218,30,40,.12);color:var(--red)}
+.kd.neu{color:var(--muted);background:transparent}
+.kd-arrow{font-size:8px;line-height:1}
+
+/* -- LOADING -- */
+#lov{position:fixed;inset:0;background:rgba(255,255,255,.92);
+     display:flex;align-items:center;justify-content:center;z-index:999}
+.lbox{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+      padding:24px 36px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.lbox .spin{width:28px;height:28px;margin:0 auto 10px;display:block}
+.lbox p{color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+
+<div id="lov"><div class="lbox"><div class="spin"></div><p>Loading IBM Compass&hellip;</p></div></div>
+
+<!-- SHARED OVERLAYS -->
+<div id="p2-overlay" class="overlay">
+  <div class="p2-box">
+    <div class="p2-badge">Planned for Phase 2</div>
+    <h2>Portfolio Leaders &amp; Execs</h2>
+    <p>Full executive KPI intelligence with multi-portfolio view, revenue actuals, win/loss analysis, and AI-generated QBR narratives &mdash; launching Phase 2 (Mid-Aug &rarr; Sept 2026).</p>
+    <button class="p2-close" onclick="closeOverlay('p2-overlay')">Got it</button>
+  </div>
+</div>
+
+<div id="es-overlay" class="overlay">
+  <div class="es-box">
+    <h2>Executive Summary</h2>
+    <p class="es-sub">MBR-style narrative generated from current filter context</p>
+    <div id="es-stats" class="es-stats"></div>
+    <div id="es-narrative" class="es-narrative"></div>
+    <div class="es-actions">
+      <button class="es-copy" onclick="copyExecSummary()">&#128203; Copy</button>
+      <button class="es-close" onclick="closeOverlay('es-overlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="rm-overlay" class="overlay">
+  <div class="rm-box">
+    <h2>IBM Compass &mdash; Product Roadmap</h2>
+    <p class="rm-sub">TLS Performance Intelligence &nbsp;&middot;&nbsp; Internship Build &nbsp;&middot;&nbsp; watsonx Challenge deadline <strong style="color:var(--red)">Jul 21 2026</strong></p>
+
+    <div class="rm-phases">
+      <!-- Phase 0 -->
+      <div class="rm-phase done">
+        <div class="rm-dot"></div>
+        <div class="rm-ph-label">Phase 0 &#10003;</div>
+        <div class="rm-ph-name">Product Definition</div>
+        <div class="rm-ph-time">Jun 2026</div>
+        <ul class="rm-ph-items">
+          <li>&#10003; Locked KPI priority order</li>
+          <li>&#10003; Defined PM personas &amp; questions</li>
+          <li>&#10003; Set success criteria &lt;5 min</li>
+          <li>&#10003; Product vision &amp; OBR drafted</li>
+        </ul>
+      </div>
+
+      <!-- Phase 1 — done by Jul 21 -->
+      <div class="rm-phase active">
+        <div class="rm-dot"></div>
+        <div class="rm-ph-label" style="color:var(--red)">&#9888; Jul 21 Deadline</div>
+        <div class="rm-ph-name">Full KPI Intelligence MVP</div>
+        <div class="rm-ph-time">Jul 2026</div>
+        <ul class="rm-ph-items">
+          <li>&#10003; Pipeline + Revenue data ingestion</li>
+          <li>&#10003; 4 KPI tiles (Pipeline · Signings · Revenue · Win Rate)</li>
+          <li>&#10003; Trend charts · Tabular breakdown</li>
+          <li>&#10003; Ask Compass chat interface</li>
+          <li>&#10003; AI Exec Summary + Insights panel</li>
+          <li>&#10003; Analyst persona (filters, geo, OA)</li>
+          <li>&#10003; PM persona · BI report flipbook</li>
+          <li>&#10003; Portfolio Leader persona view</li>
+          <li>&#10003; Industry breakdown tab</li>
+          <li>&#10003; Product Roadmap &amp; Feedback log</li>
+        </ul>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="rm-phase next">
+        <div class="rm-dot"></div>
+        <div class="rm-ph-label">Phase 2 &mdash; Next</div>
+        <div class="rm-ph-name">Hosted &amp; Automated</div>
+        <div class="rm-ph-time">Aug &rarr; Sep 2026</div>
+        <ul class="rm-ph-items">
+          <li>IBM Intranet hosting (w3 / internal URL)</li>
+          <li>Automated weekly email digest</li>
+          <li>IBM Z · IBM Power · IBM Storage personas</li>
+          <li>MVS Networking &amp; Security persona</li>
+          <li>Auto-ingest new data files on upload</li>
+          <li>KPI Correlation Engine (Rev&uarr; + Sig&darr; = risk)</li>
+          <li>Win/Loss root cause narrative</li>
+        </ul>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="rm-phase future">
+        <div class="rm-dot"></div>
+        <div class="rm-ph-label">Phase 3 &mdash; Future</div>
+        <div class="rm-ph-name">Decision Intelligence</div>
+        <div class="rm-ph-time">Q4 2026</div>
+        <ul class="rm-ph-items">
+          <li>Full Orchestrate multi-agent stack</li>
+          <li>PPT / MBR / QBR auto-generation</li>
+          <li>Feedback loop &amp; outcome memory</li>
+          <li>GTM Agent (impact &amp; confidence)</li>
+          <li>EPM / watsonx.data integration</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div style="margin-top:18px;margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:5px">
+        <span>Phase 1 completion</span>
+        <span style="font-weight:700;color:var(--green)">~85% &nbsp;&middot;&nbsp; On track for Jul 21</span>
+      </div>
+      <div style="height:5px;background:var(--bdr);border-radius:3px;overflow:hidden">
+        <div style="width:85%;height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:3px"></div>
+      </div>
+    </div>
+
+    <button class="rm-close" onclick="closeOverlay('rm-overlay')">Close</button>
+  </div>
+</div>
+
+<div id="fbc-overlay" class="overlay">
+  <div class="fb-box">
+    <h2>Feedback</h2>
+    <p class="fb-sub">All submitted feedback. Add yours below.</p>
+    <div id="fb-table-wrap"></div>
+    <hr class="fb-divider"/>
+    <div class="fb-add-hd">Add Feedback</div>
+    <div class="fb-form-row">
+      <input class="fb-finput" id="fb-user" type="text" placeholder="Your name or IBM email"/>
+    </div>
+    <textarea class="fb-ftarea" id="fb-text" placeholder="Share your feedback, suggestions, or issues&hellip;"></textarea>
+    <div class="fb-frow">
+      <button class="fb-cancel" onclick="closeOverlay('fbc-overlay')">Cancel</button>
+      <button class="fb-submit" onclick="submitDirectFeedback()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<div id="td-overlay" class="overlay">
+  <div class="td-box">
+    <h3>Help us improve Compass</h3>
+    <p>Tell us what was wrong or missing in this response.</p>
+    <input class="td-input" id="td-email" type="email" placeholder="Your IBM email address"/>
+    <textarea class="td-textarea" id="td-feedback" placeholder="What was incorrect or unhelpful?"></textarea>
+    <div class="td-row">
+      <button class="td-cancel" onclick="closeOverlay('td-overlay')">Cancel</button>
+      <button class="td-submit" onclick="submitFeedback()">Submit Feedback</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <span class="ibm-badge">IBM</span>
+  <span class="h-title">Compass</span>
+  <span class="h-sub">TLS Performance Intelligence</span>
+  <div class="h-right">
+    <span class="ldot"></span>
+    <span id="h-data-dates">Pipeline Data &middot; &hellip; &nbsp;|&nbsp; Revenue Data &middot; &hellip;</span>
+  </div>
+  <button class="h-action-btn" onclick="openRoadmap()">&#128204; Roadmap</button>
+  <button class="h-action-btn" onclick="openFeedbackLog()">&#128172; Feedback</button>
+</header>
+
+<!-- UNIFIED 3-PANEL APP SHELL -->
+<div id="shell-analyst" class="persona-shell active">
+<style>
+/* 3-panel layout */
+.a-app{display:grid;grid-template-columns:280px 1fr 220px;height:100%;overflow:hidden}
+.a-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bdr)}
+.a-panel:last-child{border-right:none}
+.chat-hd{background:var(--ibm)}
+.chat-hd-row{display:flex;align-items:center;gap:7px;padding:8px 14px 9px}
+/* Persona toggle — top of center panel */
+.center-persona-bar{display:flex;align-items:center;border-bottom:2px solid var(--ibm);background:#fff;flex-shrink:0}
+.cpt-btn{padding:10px 20px;font-size:11px;font-weight:600;cursor:pointer;border:none;
+         background:transparent;color:var(--muted);border-bottom:3px solid transparent;
+         margin-bottom:-2px;white-space:nowrap;transition:all .15s;letter-spacing:.2px}
+.cpt-btn.on{color:var(--ibm);border-bottom-color:var(--ibm)}
+.cpt-btn:hover:not(.on){color:var(--text);background:var(--sur)}
+.c-dot{width:7px;height:7px;background:#fff;border-radius:50%}
+.chat-hd h3{font-size:12px;font-weight:600;color:#fff}
+.msgs{flex:1;overflow-y:auto;padding:10px;background:#f9fafb;display:flex;flex-direction:column;gap:9px}
+.msgs::-webkit-scrollbar{width:3px}
+.msgs::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.msg{display:flex;flex-direction:column;gap:3px}
+.msg.user{align-items:flex-end}.msg.bot{align-items:flex-start}
+.mrole{font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.mbbl{max-width:95%;padding:9px 12px;border-radius:8px;font-size:11.5px;line-height:1.65;white-space:pre-wrap}
+.msg.user .mbbl{background:var(--ibm);color:#fff;border-bottom-right-radius:2px}
+.msg.bot .mbbl{background:#fff;border:1px solid var(--bdr);border-bottom-left-radius:2px}
+.mbbl strong{color:var(--ibm)}
+.mbbl .q-chip{display:inline-block;background:rgba(15,98,254,.08);border:1px solid rgba(15,98,254,.2);
+              color:var(--ibm);border-radius:10px;padding:2px 8px;font-size:10px;
+              margin:3px 3px 0 0;cursor:pointer;transition:background .15s}
+.mbbl .q-chip:hover{background:rgba(15,98,254,.15)}
+.nba-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)}
+.nba-chip{display:inline-block;background:#fff0f0;border:1px solid rgba(218,30,40,.2);
+          color:#a2191f;border-radius:10px;padding:2px 8px;font-size:10px;cursor:pointer;white-space:nowrap}
+.clarify-row{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.clarify-lbl{font-size:10px;color:var(--muted);font-style:italic}
+.tdots{display:flex;gap:3px;padding:3px 0}
+.tdots span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite}
+.tdots span:nth-child(2){animation-delay:.2s}.tdots span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+.cmeta{display:flex;align-items:center;gap:8px;margin-top:4px;padding:0 2px}
+.conf-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;
+            background:rgba(15,98,254,.08);color:var(--ibm);border:1px solid rgba(15,98,254,.2)}
+.conf-badge.high{background:rgba(25,128,56,.1);color:var(--green);border-color:rgba(25,128,56,.2)}
+.conf-badge.mid{background:rgba(178,134,0,.1);color:var(--yellow);border-color:rgba(178,134,0,.2)}
+.thumb-btn{background:none;border:none;font-size:13px;cursor:pointer;padding:1px 3px;
+           line-height:1;border-radius:3px;transition:background .15s;color:var(--dim)}
+.thumb-btn.active-up{color:var(--green)}.thumb-btn.active-dn{color:var(--red)}
+.cin-row{padding:9px 12px;border-top:1px solid var(--bdr);display:flex;gap:7px;align-items:flex-end;background:#fff}
+.ci{flex:1;background:#fff;border:1px solid var(--bdr2);color:var(--text);
+    border-radius:5px;padding:9px 11px;font-size:12px;outline:none;resize:none;
+    transition:border-color .15s;min-height:60px;max-height:100px;line-height:1.5}
+.ci:focus{border-color:var(--blue)}.ci::placeholder{color:var(--dim)}
+.sbtn{background:var(--ibm);border:none;color:#fff;border-radius:5px;
+      padding:9px 13px;cursor:pointer;font-size:13px;flex-shrink:0}
+.a-mid{flex:1;overflow-y:hidden;display:flex;flex-direction:column}
+.fbar{background:#f4f4f4;border-bottom:1px solid var(--bdr);
+      padding:6px 12px 7px;display:flex;flex-direction:column;gap:5px;
+      position:sticky;top:0;z-index:100}
+.frow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.fs{background:#fff;border:1px solid var(--bdr2);color:var(--text);
+    padding:3px 7px;border-radius:3px;font-size:10px;outline:none;cursor:pointer;min-width:68px}
+.fs:focus{border-color:var(--blue)}
+.abtn{background:var(--ibm);border:none;color:#fff;padding:4px 12px;
+      border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;margin-left:auto}
+.kstrip{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.ktile{padding:11px 14px;border-right:1px solid var(--bdr);position:relative;overflow:hidden}
+.ktile:last-child{border-right:none}
+.ktile::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px}
+.kt-pipe::after{background:var(--yellow)}.kt-sig::after{background:var(--green)}
+.kt-rev::after{background:var(--blue)}.kt-wr::after{background:var(--purple)}
+.klbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.kval{font-size:20px;font-weight:700;line-height:1.1}
+.kcount{font-size:9px;color:var(--dim);margin-top:2px;margin-bottom:2px}
+.kdelta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+.ktgt{font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;
+      display:inline-flex;align-items:center;gap:3px;white-space:nowrap;margin-top:2px}
+.ktgt.on-track{background:rgba(25,128,56,.12);color:var(--green)}
+.ktgt.at-risk{background:rgba(178,134,0,.12);color:var(--yellow)}
+.ktgt.behind{background:rgba(218,30,40,.12);color:var(--red)}
+.vbar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bdr);background:#fff;flex-shrink:0}
+.vtog{display:flex;border:1px solid var(--bdr2);border-radius:3px;overflow:hidden}
+.vbtn{padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted)}
+.vbtn.on{background:var(--ibm);color:#fff}
+.gbwrap{display:flex;align-items:center;gap:5px;margin-left:auto}
+.gbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.gbs{background:#fff;border:1px solid var(--bdr2);color:var(--text);padding:3px 7px;border-radius:3px;font-size:10px;outline:none}
+.a-content{padding:8px;flex:1;background:var(--sur);min-width:0;overflow-y:auto}
+.a-content::-webkit-scrollbar{width:4px}
+.a-content::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px}
+.cc{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px}
+.cc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cct{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.cct-qbadge{font-size:8px;font-weight:700;background:var(--ibm);color:#fff;padding:1px 5px;border-radius:3px;margin-left:4px}
+.cw{position:relative;height:130px}
+.twrap{background:#fff;border:1px solid var(--bdr);border-radius:6px;overflow:hidden}
+.tw-head{padding:8px 12px;border-bottom:1px solid var(--bdr);font-size:10px;font-weight:700;
+         text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between}
+.tw-cnt{font-size:9px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+.a-tbl{width:100%;border-collapse:collapse}
+.a-tbl thead th{text-align:left;padding:6px 10px;font-size:9px;color:var(--muted);font-weight:700;
+               text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);
+               white-space:nowrap;cursor:pointer;user-select:none;background:#f4f4f4}
+.a-tbl thead th:hover{color:var(--blue)}
+.a-tbl tbody td{padding:7px 10px;font-size:11px;border-bottom:1px solid var(--bdr)}
+.a-tbl tbody tr:last-child td{border-bottom:none}
+.a-tbl tbody tr:hover td{background:#f4f4f4}
+.barcell{display:flex;align-items:center;gap:5px}
+.mbar{height:3px;border-radius:2px;flex-shrink:0}
+.a-rp{background:#fff;overflow-y:auto;display:flex;flex-direction:column}
+.a-rp::-webkit-scrollbar{width:3px}
+.a-rp::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.rp-sec{padding:10px 12px;border-bottom:1px solid var(--bdr)}
+.rp-hd{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+       color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rp-hd-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.ins-item{padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.55}
+.ins-item:last-child{border-bottom:none}
+/* Top Accounts overlay */
+.ta-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        padding:24px 28px;max-width:680px;width:90%;max-height:86vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.ta-box h2{font-size:15px;font-weight:700;margin-bottom:3px}
+.ta-box .ta-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
+.ta-sort{display:flex;gap:6px;margin-bottom:12px;align-items:center}
+.ta-sort-lbl{font-size:10px;color:var(--dim)}
+.ta-sort-btn{padding:3px 10px;font-size:10px;font-weight:600;border:1px solid var(--bdr2);
+             border-radius:3px;cursor:pointer;background:transparent;color:var(--muted)}
+.ta-sort-btn.on{background:var(--ibm);color:#fff;border-color:var(--ibm)}
+.ta-table{width:100%;border-collapse:collapse;font-size:11px}
+.ta-table th{text-align:left;padding:5px 8px;font-size:9px;color:var(--muted);font-weight:700;
+             text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);cursor:pointer}
+.ta-table th:hover{color:var(--blue)}
+.ta-table td{padding:6px 8px;border-bottom:1px solid var(--bdr)}
+.ta-table tr:last-child td{border-bottom:none}
+.ta-table tr:hover td{background:var(--sur)}
+.ta-close{background:transparent;border:1px solid var(--bdr2);color:var(--muted);padding:7px 20px;
+          border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;margin-top:16px;display:block;margin-left:auto}
+</style>
+
+<!-- Top Accounts overlay -->
+<div id="ta-overlay" class="overlay">
+  <div class="ta-box">
+    <h2 id="ta-title">Top Accounts</h2>
+    <p class="ta-sub" id="ta-sub"></p>
+    <div class="ta-sort">
+      <span class="ta-sort-lbl">Sort by:</span>
+      <button class="ta-sort-btn on" id="ta-sb-pipe" onclick="taSortBy('pipeline')">Pipeline</button>
+      <button class="ta-sort-btn" id="ta-sb-sig" onclick="taSortBy('signings')">Signings</button>
+    </div>
+    <div id="ta-body"></div>
+    <button class="ta-close" onclick="closeOverlay('ta-overlay')">Close</button>
+  </div>
+</div>
+
+<div class="a-app">
+  <!-- PANEL 1: CHAT (shared across all personas) -->
+  <div class="a-panel">
+    <div class="chat-hd">
+      <div class="chat-hd-row"><span class="c-dot"></span><h3>Ask Compass</h3></div>
+    </div>
+    <div class="msgs" id="msgs">
+      <div class="msg bot">
+        <span class="mrole">Compass</span>
+        <div class="mbbl"><strong>Welcome to IBM Compass.</strong>
+
+I'm your TLS PM intelligence assistant. Ask me anything:
+
+<span class="q-chip" onclick="sq(this.textContent)">How is PSI Americas signings this quarter?</span><span class="q-chip" onclick="sq(this.textContent)">Which Geo grew fastest?</span><span class="q-chip" onclick="sq(this.textContent)">Where should I focus next quarter?</span><span class="q-chip" onclick="sq(this.textContent)">What is the win rate by geo?</span><span class="q-chip" onclick="sq(this.textContent)">What is the revenue outlook?</span>
+        </div>
+      </div>
+    </div>
+    <div class="cin-row">
+      <textarea class="ci" id="ci" rows="3" placeholder="Ask Compass anything about TLS performance&hellip;"></textarea>
+      <button class="sbtn" onclick="sm()">&#10148;</button>
+    </div>
+  </div>
+
+  <!-- PANEL 2: CENTER swaps between personas -->
+  <div class="a-panel a-mid" id="center-panel">
+    <!-- Persona toggle bar at top of center panel -->
+    <div class="center-persona-bar">
+      <button class="cpt-btn" id="pt-exec" onclick="setPersona('exec')">Portfolio Leader</button>
+      <button class="cpt-btn on" id="pt-pm" onclick="setPersona('pm')">Product Manager</button>
+      <button class="cpt-btn" id="pt-analyst" onclick="setPersona('analyst')">Analyst</button>
+    </div>
+    <!-- PM center (default active) -->
+    <div id="center-pm" style="display:flex;flex-direction:column;height:100%;overflow:hidden"></div>
+    <!-- Exec center -->
+    <div id="center-exec" style="display:none;overflow-y:auto;background:var(--sur);flex:1"></div>
+    <!-- Analyst center -->
+    <div id="center-analyst" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+      <div class="fbar">
+        <div class="frow" style="flex-wrap:nowrap;min-width:0">
+          <span class="fl">Offering Area</span>
+          <select class="fs" id="fOA" onchange="onOAChange()" style="min-width:90px;max-width:130px"><option value="ALL">All</option></select>
+          <span class="fl">Offering Name</span>
+          <select class="fs" id="fCon" style="min-width:0;flex:1;max-width:200px"><option value="ALL">All</option></select>
+          <span class="fl">Lvl 30</span>
+          <select class="fs" id="fUT30" style="min-width:0;flex:1;max-width:200px"><option value="ALL">All</option></select>
+        </div>
+        <div class="frow">
+          <span class="fl">Year</span>
+          <select class="fs" id="fYear"><option value="ALL">All</option><option value="2026">2026</option><option value="2025">2025</option></select>
+          <span class="fl">Quarter</span>
+          <select class="fs" id="fQtr">
+            <option value="ALL">All</option><option value="2Q26">2Q26</option>
+            <option value="3Q26">3Q26</option><option value="4Q26">4Q26</option>
+            <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
+            <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
+          </select>
+          <span class="fl">Month</span>
+          <select class="fs" id="fMonth"><option value="ALL">All</option></select>
+        </div>
+        <div class="frow">
+          <span class="fl">Geo</span>
+          <select class="fs" id="fGeo" onchange="onGeoChange()">
+            <option value="WW">WW</option><option value="Americas">Americas</option>
+            <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
+          </select>
+          <span class="fl">Market</span>
+          <select class="fs" id="fMarket" onchange="onMarketChange()"><option value="ALL">All</option></select>
+          <span class="fl">Country</span>
+          <select class="fs" id="fCountry"><option value="ALL">All</option></select>
+        </div>
+        <div class="frow">
+          <span class="fl">Client Type</span>
+          <select class="fs" id="fCT"><option value="ALL">All</option></select>
+          <span class="fl">Channel</span>
+          <select class="fs" id="fCh">
+            <option value="ALL">All</option>
+            <option value="Field Rep - Direct">Direct</option>
+            <option value="Distributor">Distributor</option>
+            <option value="Inside Sales Fulfilled-Digital">Digital</option>
+          </select>
+          <button class="abtn" onclick="applyAll()">Apply</button>
+        </div>
+      </div>
+      <div class="kstrip">
+        <div class="ktile kt-pipe">
+          <div class="klbl">Pipeline</div><div class="kval" id="kv-pip">&mdash;</div>
+          <div class="kcount" id="kc-pip"></div><div class="kdelta" id="kd-pip"></div>
+        </div>
+        <div class="ktile kt-sig">
+          <div class="klbl">Signings</div><div class="kval" id="kv-sig">&mdash;</div>
+          <div class="kcount" id="kc-sig"></div><div class="kdelta" id="kd-sig"></div>
+          <div id="kt-sig-tgt"></div>
+        </div>
+        <div class="ktile kt-rev">
+          <div class="klbl">Revenue Actuals</div><div class="kval" id="kv-rev">&mdash;</div>
+          <div class="kcount" id="kc-rev"></div><div class="kdelta" id="kd-rev"></div>
+        </div>
+        <div class="ktile kt-wr">
+          <div class="klbl">Win Rate</div><div class="kval" id="kv-wr">&mdash;</div>
+          <div class="kcount" id="kc-wr"></div><div class="kdelta" id="kd-wr"></div>
+        </div>
+      </div>
+      <div class="vbar">
+        <div class="vtog">
+          <button class="vbtn on" id="vt-trn" onclick="sv('trn')">Trend View</button>
+          <button class="vbtn" id="vt-tab" onclick="sv('tab')">Pipeline</button>
+          <button class="vbtn" id="vt-rev" onclick="sv('rev')">Revenue</button>
+        </div>
+        <div class="gbwrap" id="gbwrap" style="display:none">
+          <span class="gbl">Group by</span>
+          <select class="gbs" id="gbSel" onchange="loadTab()">
+            <option value="geo">Geo</option><option value="market">Market</option>
+            <option value="country">Country</option><option value="offeringArea">Offering Area</option>
+            <option value="clientType">Client Type</option><option value="channel">Channel</option>
+            <option value="quarter">Quarter</option>
+          </select>
+        </div>
+        <div class="gbwrap" id="gbwrap-rev" style="display:none">
+          <span class="gbl">Group by</span>
+          <select class="gbs" id="gbRevSel" onchange="loadRevTab()">
+            <option value="geo">Geo</option><option value="offeringArea">Offering Area</option>
+            <option value="market">Market</option><option value="quarter">Quarter</option>
+            <option value="ecoVsDirect">Direct / Eco</option>
+          </select>
+        </div>
+      </div>
+      <div class="a-content">
+        <div id="vTrend">
+          <div class="cgrid">
+            <div class="cc"><div class="cc-top"><span class="cct">Pipeline &middot; Signings &middot; Revenue by Geo</span><span class="cct-qbadge" id="cPipeGeoBadge">2Q26 &middot; CQ</span></div><div class="cw"><canvas id="cPipeGeo"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Pipeline by Offering Area</span><span class="cct-qbadge" id="cPipeOABadge">2Q26 &middot; CQ</span></div><div class="cw"><canvas id="cPipeOA"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Estimated Revenue Outlook</span></div><div class="cw"><canvas id="cEstRev"></canvas></div></div>
+          </div>
+          <div class="cgrid">
+            <div class="cc"><div class="cc-top"><span class="cct">Signings by Offering Area</span><span class="cct-qbadge" id="cSigOABadge">2Q26 &middot; CQ</span></div><div class="cw"><canvas id="cSigOA"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Signings by Geo &mdash; 6 Quarters</span></div><div class="cw"><canvas id="cSigQtr"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Win / Loss Reasons</span><span class="cct-qbadge" id="cWLBadge">2Q26 &middot; CQ</span></div><div class="cw"><canvas id="cWinLoss"></canvas></div></div>
+          </div>
+          <div class="cgrid">
+            <div class="cc"><div class="cc-top"><span class="cct">Revenue by Offering Area</span><span class="cct-qbadge" id="cRevOABadge">2Q26 &middot; CQ</span></div><div class="cw"><canvas id="cRevOA"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Revenue by Geo &mdash; 6 Quarters</span></div><div class="cw"><canvas id="cRevQtr"></canvas></div></div>
+            <div class="cc"><div class="cc-top"><span class="cct">Win Rate by Geo &mdash; Trend</span></div><div class="cw"><canvas id="cWinRateTrend"></canvas></div></div>
+          </div>
+        </div>
+        <div id="vTab" style="display:none">
+          <div class="twrap">
+            <div class="tw-head"><span id="tTitle">Performance Breakdown</span><span class="tw-cnt" id="tCnt"></span></div>
+            <div style="overflow-x:auto"><table class="a-tbl"><thead id="th"></thead><tbody id="tb"></tbody></table></div>
+          </div>
+        </div>
+        <div id="vRev" style="display:none">
+          <div class="twrap">
+            <div class="tw-head"><span id="rTitle">Revenue Actuals Breakdown</span><span class="tw-cnt" id="rCnt"></span></div>
+            <div style="overflow-x:auto"><table class="a-tbl"><thead id="rth"></thead><tbody id="rtb"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /center-analyst -->
+  </div><!-- /center-panel -->
+
+  <!-- PANEL 3: INSIGHTS (shared) -->
+  <div class="a-panel a-rp">
+    <div class="rp-sec"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--green)"></span>&#11088; Top Highlights</div><div id="rpHigh"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
+    <div class="rp-sec"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--red)"></span>&#128308; Need to Focus</div><div id="rpFocus"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
+    <div class="rp-sec" style="border-bottom:none"><div class="rp-hd"><span class="rp-hd-dot" style="background:var(--purple)"></span>&#127919; Recommended Actions</div><div id="rpAct"><div style="color:var(--muted);font-size:10px">Loading&hellip;</div></div></div>
+  </div>
+</div><!-- /a-app -->
+</div><!-- /shell-analyst -->
+
+<script>
+/* ═══════════════════════════════════════════
+   SCRIPT 1 — buildExec(): inject Exec center HTML
+═══════════════════════════════════════════ */
+Chart.register(ChartDataLabels);
+
+(function buildExec() {
+  document.getElementById("center-exec").innerHTML = `
+<style>
+.exec-wrap{max-width:1100px;margin:0 auto;padding:28px 24px;width:100%}
+.exec-scope-bar{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.exec-scope-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.exec-scope-sel{background:#fff;border:1px solid var(--bdr2);color:var(--text);
+                padding:4px 9px;border-radius:3px;font-size:11px;outline:none;cursor:pointer}
+.exec-scope-sel:focus{border-color:var(--blue)}
+.exec-gen-btn{background:var(--ibm);border:none;color:#fff;padding:5px 16px;
+              border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto}
+.exec-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.exec-kpi-tile{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+               padding:18px 20px;position:relative;overflow:hidden}
+.exec-kpi-tile::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px}
+.exec-kt-sig::after{background:var(--green)}.exec-kt-rev::after{background:var(--blue)}
+.exec-kt-pipe::after{background:var(--yellow)}.exec-kt-wr::after{background:var(--purple)}
+.exec-kpi-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.exec-kpi-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:6px}
+.exec-kpi-sub{font-size:10px;color:var(--muted);margin-bottom:6px}
+.exec-kpi-deltas{display:flex;gap:5px;flex-wrap:wrap}
+.exec-geo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.exec-geo-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;border-top:3px solid}
+.exec-geo-card.americas{border-top-color:var(--c-americas)}
+.exec-geo-card.emea{border-top-color:var(--c-emea)}
+.exec-geo-card.apac{border-top-color:var(--c-apac)}
+.exec-geo-card.japan{border-top-color:var(--c-japan)}
+.exec-geo-name{font-size:11px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.exec-geo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px}
+.exec-geo-lbl{color:var(--muted)}.exec-geo-val{font-weight:700}
+.exec-narrative-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;margin-bottom:18px}
+.exec-narrative-hd{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+                   color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.exec-narrative-body{font-size:13px;line-height:1.75;color:var(--text)}
+.exec-narrative-body p{margin-bottom:12px}.exec-narrative-body p:last-child{margin-bottom:0}
+.exec-narrative-body strong{color:var(--ibm)}
+.exec-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:20px 0}
+</style>
+<div class="exec-wrap">
+  <div class="exec-scope-bar">
+    <span class="exec-scope-lbl">Geo</span>
+    <select class="exec-scope-sel" id="ex-geo">
+      <option value="WW">Worldwide</option><option value="Americas">Americas</option>
+      <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
+    </select>
+    <span class="exec-scope-lbl">Quarter</span>
+    <select class="exec-scope-sel" id="ex-qtr">
+      <option value="2Q26" selected>2Q26</option><option value="3Q26">3Q26</option>
+      <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option><option value="3Q25">3Q25</option>
+    </select>
+    <span class="exec-scope-lbl">Offering</span>
+    <select class="exec-scope-sel" id="ex-oa"><option value="ALL">All Offerings</option></select>
+    <button class="exec-gen-btn" onclick="loadExec()">Refresh &#8635;</button>
+  </div>
+  <div class="exec-kpi-grid" id="ex-kpi-grid">
+    <div class="exec-kpi-tile exec-kt-sig">
+      <div class="exec-kpi-lbl">Signings</div>
+      <div class="exec-kpi-val" id="ex-sig">&mdash;</div>
+      <div class="exec-kpi-sub" id="ex-sig-sub"></div>
+      <div class="exec-kpi-deltas" id="ex-sig-d"></div>
+    </div>
+    <div class="exec-kpi-tile exec-kt-rev">
+      <div class="exec-kpi-lbl">Revenue Actuals</div>
+      <div class="exec-kpi-val" id="ex-rev">&mdash;</div>
+      <div class="exec-kpi-sub" id="ex-rev-sub"></div>
+      <div class="exec-kpi-deltas" id="ex-rev-d"></div>
+    </div>
+    <div class="exec-kpi-tile exec-kt-pipe">
+      <div class="exec-kpi-lbl">Pipeline</div>
+      <div class="exec-kpi-val" id="ex-pipe">&mdash;</div>
+      <div class="exec-kpi-sub" id="ex-pipe-sub"></div>
+      <div class="exec-kpi-deltas" id="ex-pipe-d"></div>
+    </div>
+    <div class="exec-kpi-tile exec-kt-wr">
+      <div class="exec-kpi-lbl">Win Rate</div>
+      <div class="exec-kpi-val" id="ex-wr">&mdash;</div>
+      <div class="exec-kpi-sub" id="ex-wr-sub"></div>
+      <div class="exec-kpi-deltas" id="ex-wr-d"></div>
+    </div>
+  </div>
+  <div class="exec-geo-grid" id="ex-geo-grid">
+    <div class="exec-geo-card americas"><div class="exec-geo-name" style="color:var(--c-americas)">Americas</div><div id="ex-g-americas"></div></div>
+    <div class="exec-geo-card emea"><div class="exec-geo-name" style="color:var(--c-emea)">EMEA</div><div id="ex-g-emea"></div></div>
+    <div class="exec-geo-card apac"><div class="exec-geo-name" style="color:var(--c-apac)">APAC</div><div id="ex-g-apac"></div></div>
+    <div class="exec-geo-card japan"><div class="exec-geo-name" style="color:var(--c-japan)">Japan</div><div id="ex-g-japan"></div></div>
+  </div>
+  <div class="exec-narrative-card">
+    <div class="exec-narrative-hd">&#128203; Executive Narrative</div>
+    <div id="ex-narrative" class="exec-narrative-body">
+      <div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating executive narrative&hellip;</div>
+    </div>
+  </div>
+</div>`;
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════
+   SCRIPT 2 — buildPM()
+   Filter bar (like Analyst) + single scrollable
+   report page with sticky anchor-nav tabs
+═══════════════════════════════════════════ */
+(function buildPM() {
+  document.getElementById("center-pm").innerHTML = `
+<style>
+/* ── PM shell: column layout ── */
+.pm-shell{display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--sur)}
+
+/* ── FILTER BAR (top, like Analyst fbar) ── */
+.pm-fbar{background:#f4f4f4;border-bottom:1px solid var(--bdr);
+         padding:6px 12px 7px;display:flex;flex-direction:column;gap:5px;
+         position:sticky;top:0;z-index:100;flex-shrink:0}
+.pm-frow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.pm-fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.pm-fs{background:#fff;border:1px solid var(--bdr2);color:var(--text);
+       padding:3px 7px;border-radius:3px;font-size:10px;outline:none;cursor:pointer;min-width:68px}
+.pm-fs:focus{border-color:var(--blue)}
+.pm-abtn{background:var(--ibm);border:none;color:#fff;padding:4px 12px;
+         border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pm-abtn:disabled{background:var(--bdr2);cursor:not-allowed}
+
+/* ── ANCHOR NAV (sticky below filter bar when report shown) ── */
+.pm-anav{display:none;background:#fff;border-bottom:2px solid var(--ibm);
+         padding:0 12px;flex-shrink:0;overflow-x:auto;flex-wrap:nowrap}
+.pm-anav::-webkit-scrollbar{height:0}
+.pm-anav.show{display:flex}
+.pm-anav-scope{font-size:10px;color:var(--muted);padding:9px 10px 9px 0;
+               border-right:1px solid var(--bdr);margin-right:4px;white-space:nowrap;flex-shrink:0}
+.pm-anav-scope strong{color:var(--text)}
+.pm-alink{padding:9px 11px;font-size:10px;font-weight:600;color:var(--muted);
+          text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent;
+          flex-shrink:0;transition:color .13s,border-color .13s;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none}
+.pm-alink:hover{color:var(--ibm)}
+.pm-alink.active{color:var(--ibm);border-bottom-color:var(--ibm)}
+
+/* ── REPORT SCROLL AREA ── */
+.pm-body{flex:1;overflow-y:auto;background:var(--sur)}
+.pm-body::-webkit-scrollbar{width:4px}
+.pm-body::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+
+/* Empty / loading states */
+.pm-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+          height:100%;padding:40px 24px;text-align:center;color:var(--muted)}
+.pm-empty-icon{font-size:34px;margin-bottom:12px;opacity:.3}
+.pm-empty-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
+.pm-empty-sub{font-size:11px;line-height:1.65;max-width:320px}
+
+.pm-rpt-wrap{padding:10px 12px}
+
+/* Section anchors inside the report */
+.pm-sec-anchor{display:block;padding-top:10px;margin-top:0}
+.pm-sec-block{margin-bottom:18px}
+.pm-sec-hd{display:flex;align-items:flex-start;justify-content:space-between;
+           margin-bottom:10px;gap:10px;flex-wrap:wrap;padding-bottom:7px;
+           border-bottom:1px solid var(--bdr)}
+.pm-sec-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+.pm-sec-num{font-size:9px;font-weight:700;background:var(--ibm);color:#fff;
+            padding:1px 6px;border-radius:3px;letter-spacing:.3px}
+.pm-sec-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* KPI tiles */
+.pm-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.pm-kpi-card{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:11px 12px;position:relative;overflow:hidden}
+.pm-kpi-card::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px}
+.pm-kc-sig::after{background:var(--green)}.pm-kc-rev::after{background:var(--blue)}
+.pm-kc-pipe::after{background:var(--yellow)}.pm-kc-wr::after{background:var(--purple)}
+.pm-kc-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.pm-kc-val{font-size:20px;font-weight:700;line-height:1;margin-bottom:3px}
+.pm-kc-sub{font-size:9px;color:var(--muted);margin-bottom:4px}
+.pm-kc-deltas{display:flex;gap:4px;flex-wrap:wrap}
+
+/* Geo cards */
+.pm-geo-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.pm-geo-c{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;border-left:3px solid}
+.pm-geo-c.am{border-left-color:var(--c-americas)}.pm-geo-c.em{border-left-color:var(--c-emea)}
+.pm-geo-c.ap{border-left-color:var(--c-apac)}.pm-geo-c.jp{border-left-color:var(--c-japan)}
+.pm-geo-c-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.pm-geo-c-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}
+.pm-geo-c-lbl{color:var(--muted)}.pm-geo-c-val{font-weight:700;font-size:11px}
+
+/* Tables */
+.pm-table-wrap{background:#fff;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;margin-bottom:10px}
+.pm-table-hd{padding:7px 10px;border-bottom:1px solid var(--bdr);font-size:9px;font-weight:700;
+             text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;background:#fff}
+.pm-table-cnt{font-size:9px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+.pm-tbl{width:100%;border-collapse:collapse}
+.pm-tbl thead th{text-align:left;padding:5px 9px;font-size:9px;color:var(--muted);font-weight:700;
+                 text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);
+                 background:#f4f4f4;white-space:nowrap}
+.pm-tbl tbody td{padding:6px 9px;font-size:11px;border-bottom:1px solid var(--bdr)}
+.pm-tbl tbody tr:last-child td{border-bottom:none}
+.pm-tbl tbody tr:hover td{background:#f9f9f9}
+
+/* Actions */
+.pm-action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.pm-action-card{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;border-left:4px solid}
+.pm-action-card.high{border-left-color:var(--red)}.pm-action-card.med{border-left-color:var(--yellow)}
+.pm-act-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.pm-act-pri{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;text-transform:uppercase}
+.pm-act-pri.high{background:rgba(218,30,40,.1);color:var(--red)}
+.pm-act-pri.med{background:rgba(178,134,0,.1);color:var(--yellow)}
+.pm-act-cat{font-size:10px;font-weight:700;color:var(--text)}
+.pm-act-geo-badge{font-size:9px;background:var(--sur);border:1px solid var(--bdr);
+                  color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:auto}
+.pm-act-body{font-size:11px;color:var(--text);line-height:1.55;margin-bottom:5px}
+.pm-act-deadline{font-size:10px;color:var(--muted)}
+
+/* Narrative */
+.pm-narrative{background:#fff;border:1px solid var(--bdr);border-radius:6px;
+              padding:14px 16px;margin-bottom:10px;font-size:12px;line-height:1.75}
+.pm-narrative p{margin-bottom:10px}.pm-narrative p:last-child{margin-bottom:0}
+.pm-narrative strong{color:var(--ibm)}
+.pm-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:24px 16px}
+
+/* IDs used by old renderPMReport — keep as pm-section aliases */
+.pm-section{display:block}
+</style>
+
+<div class="pm-shell">
+
+  <!-- ── FILTER BAR ── -->
+  <div class="pm-fbar">
+    <div class="pm-frow">
+      <span class="pm-fl">Portfolio</span>
+      <select class="pm-fs" id="pm-port-sel" onchange="pmOnPortChange()"><option value="">All</option></select>
+      <span class="pm-fl">Offering Area</span>
+      <select class="pm-fs" id="pm-oa-sel" onchange="pmOnOAChange()"><option value="ALL">All</option></select>
+      <span class="pm-fl">Offering Name</span>
+      <select class="pm-fs" id="pm-con-sel"><option value="ALL">All</option></select>
+    </div>
+    <div class="pm-frow">
+      <span class="pm-fl">Geography</span>
+      <select class="pm-fs" id="pm-geo" onchange="pmUpdateCrumb()">
+        <option value="WW">WW</option><option value="Americas">Americas</option>
+        <option value="EMEA">EMEA</option><option value="APAC">APAC</option><option value="Japan">Japan</option>
+      </select>
+      <span class="pm-fl">Quarter</span>
+      <select class="pm-fs" id="pm-qtr" onchange="pmUpdateCrumb()">
+        <option value="2Q26">2Q26</option><option value="3Q26">3Q26</option>
+        <option value="1Q26">1Q26</option><option value="4Q25">4Q25</option>
+        <option value="3Q25">3Q25</option><option value="2Q25">2Q25</option><option value="1Q25">1Q25</option>
+      </select>
+      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()">&#9889; Generate Product Intelligence</button>
+    </div>
+  </div>
+
+  <!-- ── ANCHOR NAV (appears after first generate) ── -->
+  <div class="pm-anav" id="pm-anav">
+    <span class="pm-anav-scope" id="pm-fb-scope"></span>
+    <button class="pm-alink active" onclick="pmScrollTo('pm-s-bh')">01 &middot; Business Health</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-es')">02 &middot; Exec Summary</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-pipe')">03 &middot; Pipeline</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-sig')">04 &middot; Signings</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-rev')">05 &middot; Revenue</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-wr')">06 &middot; Win Rate</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-act')">07 &middot; Actions</button>
+    <button class="pm-alink" onclick="pmScrollTo('pm-s-ind')">08 &middot; Industry</button>
+  </div>
+
+  <!-- ── REPORT BODY ── -->
+  <div class="pm-body" id="pm-body">
+    <!-- Empty state -->
+    <div id="pm-empty-state" class="pm-empty">
+      <div class="pm-empty-icon">&#128202;</div>
+      <div class="pm-empty-title">No report generated yet</div>
+      <div class="pm-empty-sub">Choose a Portfolio, Offering Area, Geography and Quarter above, then click <strong>Generate Product Intelligence</strong>.</div>
+    </div>
+
+    <!-- All sections live in one continuous scroll -->
+    <div id="pm-rpt-content" style="display:none">
+      <div class="pm-rpt-wrap">
+        <div id="pm-s-bh"   class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-es"   class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-pipe" class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-sig"  class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-rev"  class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-wr"   class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-act"  class="pm-sec-anchor pm-section"></div>
+        <div id="pm-s-ind"  class="pm-sec-anchor pm-section"></div>
+      </div>
+    </div>
+  </div>
+
+</div>`;
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SCRIPT 3 — Shared utilities: fm, fp, qs, kdEl, setPersona, overlays
+═══════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const GEO_COLORS = { Americas:"rgba(15,98,254,0.75)", EMEA:"rgba(25,128,56,0.75)", APAC:"rgba(178,134,0,0.75)", Japan:"rgba(105,41,196,0.75)" };
+const GEO_SOLID  = { Americas:"#0f62fe", EMEA:"#198038", APAC:"#b28600", Japan:"#6929c4" };
+const GEO_CLS    = { Americas:"am", EMEA:"em", APAC:"ap", Japan:"jp" };
+const GEOS       = ["Americas","EMEA","APAC","Japan"];
+
+function fm(v) {
+  if (v == null) return "\u2014";
+  if (Math.abs(v) >= 1000) return `$${(v/1000).toFixed(1)}B`;
+  if (v === 0) return "$0.0M";
+  for (const dp of [1,2,3]) { const s = Math.abs(v).toFixed(dp); if (parseFloat(s) !== 0) return `$${s}M`; }
+  return `$${Math.abs(v).toFixed(3)}M`;
+}
+const fp  = v => v == null ? "\u2014" : `${v.toFixed(1)}%`;
+const qs  = o => new URLSearchParams(Object.fromEntries(Object.entries(o).filter(([,v])=>v&&v!=="ALL"))).toString();
+function dC(v) { return v==null?"neu":v>0?"pos":v<0?"neg":"neu"; }
+function dS(v, pts=false) { if(v==null) return ""; return (v>0?"+":"")+v.toFixed(1)+(pts?"pts":"%"); }
+const arrow = v => v==null?"":v>0?"\u25b2":v<0?"\u25bc":"\u25cf";
+let   pmCharts = {};
+function dChart(id) { if(pmCharts[id]){ pmCharts[id].destroy(); delete pmCharts[id]; } }
+
+const CD = {
+  plugins:{ legend:{ labels:{ color:"#525252", font:{ size:9 } } },
+            tooltip:{ backgroundColor:"#fff", titleColor:"#161616", bodyColor:"#525252", borderColor:"#e0e0e0", borderWidth:1 } },
+  scales:{ x:{ ticks:{ color:"#525252", font:{ size:9 } }, grid:{ color:"rgba(0,0,0,.05)" } },
+           y:{ ticks:{ color:"#525252", font:{ size:9 } }, grid:{ color:"rgba(0,0,0,.07)" } } }
+};
+
+function kdEl(v, pts=false) {
+  if (v==null) return "";
+  return `<span class="kd ${dC(v)}"><span class="kd-arrow">${arrow(v)}</span>${dS(v,pts)}</span>`;
+}
+
+// Overlay helpers
+function closeOverlay(id) { $(id).classList.remove("show"); }
+function openRoadmap()    { $("rm-overlay").classList.add("show"); }
+function openFeedbackLog() {
+  fetch("/api/feedback").then(r=>r.json()).then(rows => {
+    const wrap = $("fb-table-wrap");
+    wrap.innerHTML = !rows.length
+      ? `<p class="fb-empty">No feedback yet. Be the first!</p>`
+      : `<table class="fb-table"><thead><tr><th>Date</th><th>User</th><th>Feedback</th></tr></thead><tbody>
+         ${rows.map(r=>`<tr>
+           <td style="color:var(--dim);white-space:nowrap">${new Date(r.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+           <td style="white-space:nowrap">${r.email||'\u2014'}</td><td>${r.message}</td>
+         </tr>`).join("")}</tbody></table>`;
+    $("fbc-overlay").classList.add("show");
+  });
+}
+async function submitDirectFeedback() {
+  const user = $("fb-user").value.trim(), msg = $("fb-text").value.trim();
+  if (!user||!msg) { alert("Please enter your name/email and feedback."); return; }
+  await fetch("/api/feedback",{ method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ email:user, message:msg, chatMessage:"", chatResponse:"" }) });
+  $("fb-user").value=""; $("fb-text").value="";
+  openFeedbackLog();
+}
+
+let _esNarrativeText = "";
+async function openExecSummary() {
+  $("es-stats").innerHTML = `<div style="grid-column:1/-1;color:var(--muted);font-size:10px">Generating\u2026</div>`;
+  $("es-narrative").innerHTML = `<div class="es-spin"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Building narrative\u2026</div>`;
+  $("es-overlay").classList.add("show");
+  const geo = ($("fGeo")||{}).value||"WW", qtr = ($("fQtr")||{}).value||"2Q26";
+  const d = await fetch(`/api/exec-summary?geo=${geo}&quarter=${qtr}`).then(r=>r.json());
+  const s = d.stats;
+  $("es-stats").innerHTML = [
+    {lbl:"Signings", val:fm(s.signings), color:"var(--green)"},
+    {lbl:"Revenue",  val:fm(s.revenue),  color:"var(--blue)"},
+    {lbl:"Pipeline", val:fm(s.pipeline), color:"var(--yellow)"},
+    {lbl:"Win Rate", val:`${s.winRate}%`, color:s.winRate>=60?"var(--green)":s.winRate>=45?"var(--yellow)":"var(--red)"},
+  ].map(x=>`<div class="es-stat"><div class="es-stat-lbl">${x.lbl}</div><div class="es-stat-val" style="color:${x.color}">${x.val}</div></div>`).join("");
+  _esNarrativeText = d.narrative;
+  $("es-narrative").innerHTML = d.narrative.split("\n\n")
+    .map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("");
+}
+function copyExecSummary() {
+  navigator.clipboard?.writeText(_esNarrativeText.replace(/\*\*/g,"")).then(()=>{
+    const b=document.querySelector(".es-copy"), o=b.textContent;
+    b.textContent="\u2713 Copied"; setTimeout(()=>b.textContent=o,1500);
+  });
+}
+
+// Persona switch
+let HIER = {};
+function setPersona(p) {
+  ["exec","pm","analyst"].forEach(id => {
+    const btn = $(`pt-${id}`); if(btn) btn.classList.toggle("on", id===p);
+  });
+  const centers = { pm:"center-pm", exec:"center-exec", analyst:"center-analyst" };
+  Object.entries(centers).forEach(([id, cid]) => {
+    const el = $(cid); if(!el) return;
+    el.style.display = id===p ? (id==="exec" ? "block" : "flex") : "none";
+    if(id===p && id!=="exec") el.style.flexDirection = "column";
+  });
+  if (p==="analyst") { loadKPIs(); loadTrend(); loadInsights(); }
+  if (p==="exec")    { loadExec(); }
+}
+
+// Feedback (thumbs-down)
+let pendingThumbMsg="", pendingThumbResp="";
+async function submitFeedback() {
+  const email=$("td-email").value.trim(), message=$("td-feedback").value.trim();
+  if(!email||!message){ alert("Please enter your email and feedback."); return; }
+  await fetch("/api/feedback",{ method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ email, message, chatMessage:pendingThumbMsg, chatResponse:pendingThumbResp }) });
+  closeOverlay("td-overlay");
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SCRIPT 4 — Analyst JS: loadMeta, loadKPIs, loadTrend, chat, top accounts
+═══════════════════════════════════════════════════════ */
+let aCharts = {}, aView = "trn";
+const SESSION_ID = Math.random().toString(36).slice(2);
+
+function fq() {
+  return {
+    geo:($("fGeo")||{}).value||"WW", quarter:($("fQtr")||{}).value||"ALL",
+    year:($("fYear")||{}).value||"ALL", market:($("fMarket")||{}).value||"ALL",
+    country:($("fCountry")||{}).value||"ALL", month:($("fMonth")||{}).value||"ALL",
+    offeringArea:($("fOA")||{}).value||"ALL", consolidatedOffering:($("fCon")||{}).value||"ALL",
+    ut30:($("fUT30")||{}).value||"ALL", clientType:($("fCT")||{}).value||"ALL",
+    channel:($("fCh")||{}).value||"ALL",
+  };
+}
+function dAChart(id) { if(aCharts[id]){ aCharts[id].destroy(); delete aCharts[id]; } }
+
+async function loadMeta() {
+  const [meta, hier] = await Promise.all([
+    fetch("/api/meta").then(r=>r.json()),
+    fetch("/hierarchy.json").then(r=>r.json()),
+  ]);
+  HIER = hier;
+  const ao = (sel, arr) => {
+    const el = $(sel); if(!el) return;
+    el.innerHTML = '<option value="ALL">All</option>';
+    arr.forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v; el.appendChild(o); });
+  };
+  ao("fOA",  meta.offeringAreas);
+  ao("fCon", meta.consolidatedOfferings);
+  ao("fUT30",meta.ut30s);
+  ao("fCT",  meta.clientTypes);
+  ao("fMonth",meta.months);
+  populateMarkets("WW");
+  const exOA = $("ex-oa");
+  if (exOA) meta.offeringAreas.forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v; exOA.appendChild(o); });
+}
+
+function populateMarkets(geo) {
+  const mSel=$("fMarket"), cSel=$("fCountry");
+  if(!mSel||!cSel) return;
+  mSel.innerHTML='<option value="ALL">All</option>';
+  cSel.innerHTML='<option value="ALL">All</option>';
+  if(geo==="WW"||!HIER[geo]) return;
+  Object.keys(HIER[geo]).sort().forEach(m=>{
+    const o=document.createElement("option"); o.value=m; o.textContent=m.replace(/ Market$/,""); mSel.appendChild(o);
+  });
+}
+function onGeoChange()   { populateMarkets(($("fGeo")||{}).value||"WW"); }
+function onOAChange()    { /* future: narrow consolidated offering */ }
+function populateCountries(geo,mkt) {
+  const cSel=$("fCountry"); if(!cSel) return;
+  cSel.innerHTML='<option value="ALL">All</option>';
+  if(!HIER[geo]||!HIER[geo][mkt]) return;
+  HIER[geo][mkt].forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; cSel.appendChild(o); });
+}
+function onMarketChange() { populateCountries(($("fGeo")||{}).value||"WW", ($("fMarket")||{}).value||"ALL"); }
+
+async function loadKPIs() {
+  const f=fq();
+  const [d, rev] = await Promise.all([
+    fetch(`/api/kpi/summary?${qs(f)}`).then(r=>r.json()),
+    fetch(`/api/revenue/summary?${qs(f)}`).then(r=>r.json()),
+  ]);
+  const setTile=(vid,cid,did,val,cnt,qoq,yoy,pts=false)=>{
+    const ve=$(vid),ce=$(cid),de=$(did);
+    if(ve) ve.textContent=val;
+    if(ce) ce.textContent=cnt||"";
+    if(de){ de.innerHTML="";
+      [[qoq,"QoQ"],[yoy,"YoY"]].forEach(([v,lbl])=>{
+        if(v==null) return;
+        const el=document.createElement("span"); el.className=`kd ${dC(v)}`;
+        el.title=`${lbl}: ${dS(v,pts)}`;
+        el.innerHTML=`<span class="kd-arrow">${arrow(v)}</span>${dS(v,pts)} ${lbl}`;
+        de.appendChild(el);
+      });
+    }
+  };
+  setTile("kv-pip","kc-pip","kd-pip",fm(d.pipeline),`${d.oppCount} opps`,d.pipelineQoQ,d.pipelineYoY);
+  setTile("kv-sig","kc-sig","kd-sig",fm(d.signings), `${d.wonCount} won`,d.signingsQoQ,d.signingsYoY);
+  setTile("kv-rev","kc-rev","kd-rev",fm(rev.total),  `Direct: ${fm(rev.direct)} \u00b7 Eco: ${fm(rev.eco)}`,rev.revenueQoQ,rev.revenueYoY);
+  setTile("kv-wr","kc-wr","kd-wr",  d.winRate!=null?fp(d.winRate):"\u2014",
+    d.wonCount!=null?`${d.wonCount} won / ${d.wonCount+d.lostCount} closed`:"",d.winRateQoQ,d.winRateYoY,true);
+  const f2=fq(), tgtEl=$("kt-sig-tgt");
+  if(tgtEl&&f2.quarter&&f2.quarter!=="ALL"&&d.signingsYoY!=null){
+    const OA_T={"Project Services":16,"Interoperability Services":20};
+    const tp=OA_T[f2.offeringArea];
+    if(tp!=null){
+      const diff=+(d.signingsYoY-tp).toFixed(1);
+      const cls=diff>=0?"on-track":diff>=-5?"at-risk":"behind";
+      const ic=diff>=0?"\u2713":diff>=-5?"~":"\u2717";
+      tgtEl.innerHTML=`<span class="ktgt ${cls}" title="Target: +${tp}% YoY">${ic} ${diff>=0?"+":""}${diff}pts vs ${tp}% YoY target</span>`;
+    } else { tgtEl.innerHTML=""; }
+  } else if(tgtEl) { tgtEl.innerHTML=""; }
+}
+
+function currentQ() {
+  const n=new Date(); return `${Math.ceil((n.getMonth()+1)/3)}Q${String(n.getFullYear()).slice(-2)}`;
+}
+function sortQtrs(arr) {
+  return [...arr].sort((a,b)=>{
+    const [aq,ay]=[parseInt(a[0]),parseInt(a.slice(2))];
+    const [bq,by]=[parseInt(b[0]),parseInt(b.slice(2))];
+    return ay!==by?ay-by:aq-bq;
+  });
+}
+
+async function loadTrend() {
+  const f=fq();
+  const p={offeringArea:f.offeringArea,consolidatedOffering:f.consolidatedOffering,ut30:f.ut30,clientType:f.clientType,channel:f.channel};
+  const pStr=qs(p);
+  const geoParam=f.geo&&f.geo!=="WW"?`&geo=${encodeURIComponent(f.geo)}`:"";
+  const CQ=f.quarter&&f.quarter!=="ALL"?f.quarter:currentQ();
+  const qBadge=(CQ===currentQ()?CQ+" \u00b7 CQ":CQ);
+  ["cPipeGeoBadge","cPipeOABadge","cSigOABadge","cRevOABadge","cWLBadge"].forEach(id=>{ const e=$(id); if(e) e.textContent=qBadge; });
+  let pipGeo,pipOA,sigOA,sigQtrD,winLoss,estRev,revOA,revQtrD,wrTrend;
+  try {
+    [pipGeo,pipOA,sigOA,sigQtrD,winLoss,estRev,revOA,revQtrD,wrTrend]=await Promise.all([
+      fetch(`/api/kpi/pipeline-by-geo?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/kpi/pipeline-by-oa?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/kpi/signings-by-oa?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/kpi/by-geo-quarter?${pStr}`).then(r=>r.json()),
+      fetch(`/api/kpi/win-loss?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/kpi/est-revenue?${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/revenue/by-oa?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+      fetch(`/api/revenue/by-geo-quarter?${pStr}`).then(r=>r.json()),
+      fetch(`/api/kpi/win-rate-by-geo-quarter?${pStr}`).then(r=>r.json()),
+    ]);
+  } catch(err) {
+    const vt=$("vTrend"); if(vt) vt.innerHTML=`<div style="padding:24px;color:var(--red);font-size:12px">\u26a0\ufe0f ${err.message}</div>`; return;
+  }
+  function geoOverview(id,pipeD,sigD,revD){
+    const getPipe=g=>(pipeD.find(d=>d.geo===g)||{}).pipeline||0;
+    const getSig =g=>(sigD.find(d=>d.geo===g) ||{}).signings||0;
+    const getRev =g=>(revD.find(d=>d.geo===g) ||{}).revenue ||0;
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"bar",data:{labels:GEOS,datasets:[
+      {label:"Pipeline",data:GEOS.map(getPipe),backgroundColor:"rgba(15,98,254,0.7)",borderRadius:2,datalabels:{display:false}},
+      {label:"Signings",data:GEOS.map(getSig), backgroundColor:"rgba(25,128,56,0.75)", borderRadius:2,datalabels:{display:false}},
+      {label:"Revenue", data:GEOS.map(getRev), backgroundColor:"rgba(178,134,0,0.7)",  borderRadius:2,datalabels:{display:false}},
+    ]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{...CD.plugins,legend:{position:"bottom",labels:{color:"#525252",font:{size:9},padding:6,boxWidth:8}},datalabels:{}},
+      scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,callback:v=>`$${v}M`}},y:{ticks:{color:"#525252",font:{size:10}},grid:{color:"rgba(0,0,0,.05)"}}}}});
+  }
+  function hBarOA(id,data,valKey,color){
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"bar",data:{labels:data.map(d=>d.oa),datasets:[{data:data.map(d=>d[valKey]),backgroundColor:color,borderRadius:3,
+      datalabels:{anchor:"end",align:"end",color:"#525252",font:{size:9,weight:"600"},formatter:v=>`$${v.toFixed(1)}M`}}]},
+      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:60}},
+        plugins:{...CD.plugins,legend:{display:false},datalabels:{}},scales:{x:CD.scales.x,y:{ticks:{color:"#525252",font:{size:10}},grid:{color:"rgba(0,0,0,.05)"}}}}});
+  }
+  function stackedGeoQtr(id,qtrData,n){
+    const allQs=sortQtrs(qtrData.quarters).slice(-n), gs=qtrData.geos;
+    const tots=allQs.map(q=>gs.reduce((s,g)=>s+(qtrData.data[g][q]||0),0));
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"bar",data:{labels:allQs,datasets:gs.map((geo,gi)=>({
+      label:geo,data:allQs.map(q=>qtrData.data[geo][q]||0),backgroundColor:GEO_COLORS[geo]||"rgba(100,100,100,.7)",borderRadius:0,
+      datalabels:{display:gi===gs.length-1,anchor:"end",align:"end",color:"#525252",font:{size:8,weight:"600"},
+        formatter:(v,ctx)=>{ const t=tots[ctx.dataIndex]; return t>0?`$${t.toFixed(0)}M`:""; }}}))},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:16}},
+        plugins:{...CD.plugins,legend:{position:"bottom",labels:{color:"#525252",font:{size:9},padding:6,boxWidth:8}},datalabels:{}},
+        scales:{x:{...CD.scales.x,stacked:true},y:{...CD.scales.y,stacked:true}}}});
+  }
+  function winLossBar(id,data){
+    const top=[...data].sort((a,b)=>b.total-a.total).slice(0,6);
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"bar",data:{labels:top.map(d=>d.reason.length>22?d.reason.slice(0,21)+"\u2026":d.reason),datasets:[
+      {label:"Won", data:top.map(d=>d.won), backgroundColor:"rgba(25,128,56,0.75)",borderRadius:2,datalabels:{display:false}},
+      {label:"Lost",data:top.map(d=>d.lost),backgroundColor:"rgba(218,30,40,0.7)", borderRadius:2,datalabels:{display:false}},
+    ]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{...CD.plugins,legend:{position:"bottom",labels:{color:"#525252",font:{size:9},padding:6,boxWidth:8}},datalabels:{}},
+      scales:{x:CD.scales.x,y:{ticks:{color:"#525252",font:{size:9}},grid:{color:"rgba(0,0,0,.05)"}}}}});
+  }
+  function estRevLine(id,data){
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"line",data:{labels:data.map(d=>d.quarter),datasets:[{label:"Est. Revenue ($M)",
+      data:data.map(d=>d.estRev),borderColor:"rgba(178,134,0,0.9)",backgroundColor:"rgba(178,134,0,0.08)",
+      pointRadius:3,pointHoverRadius:5,tension:0.3,fill:true,
+      datalabels:{anchor:"top",align:"top",color:"#b28600",font:{size:8,weight:"600"},formatter:v=>v>0?`$${v.toFixed(0)}M`:""}}]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:16}},
+        plugins:{...CD.plugins,legend:{display:false},datalabels:{}},
+        scales:{x:CD.scales.x,y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>`$${v}M`}}}}});
+  }
+  function winRateLine(id,wrData){
+    const qtrs=sortQtrs(wrData.quarters).slice(-6);
+    dAChart(id);
+    aCharts[id]=new Chart($(id),{type:"line",data:{labels:qtrs,datasets:wrData.geos.map(geo=>({
+      label:geo,data:qtrs.map(q=>wrData.data[geo][q]??null),borderColor:GEO_SOLID[geo]||"#525252",
+      backgroundColor:"transparent",pointRadius:3,pointHoverRadius:5,tension:0.3,spanGaps:true,datalabels:{display:false}}))},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},
+        plugins:{...CD.plugins,legend:{position:"bottom",labels:{color:"#525252",font:{size:9},padding:6,boxWidth:8}},datalabels:{}},
+        scales:{x:CD.scales.x,y:{...CD.scales.y,min:0,max:100,ticks:{...CD.scales.y.ticks,callback:v=>`${v}%`}}}}});
+  }
+  geoOverview("cPipeGeo",pipGeo,[],[]);
+  hBarOA("cPipeOA",pipOA,"pipeline","rgba(15,98,254,0.7)");
+  estRevLine("cEstRev",estRev);
+  hBarOA("cSigOA",sigOA,"signings","rgba(25,128,56,0.7)");
+  stackedGeoQtr("cSigQtr",sigQtrD,6);
+  winLossBar("cWinLoss",winLoss);
+  hBarOA("cRevOA",revOA,"revenue","rgba(178,134,0,0.7)");
+  stackedGeoQtr("cRevQtr",revQtrD,6);
+  winRateLine("cWinRateTrend",wrTrend);
+  const [sigGeoD,revGeoD]=await Promise.all([
+    fetch(`/api/kpi/signings-by-geo?quarter=${CQ}&${pStr}`).then(r=>r.json()),
+    fetch(`/api/revenue/by-geo?quarter=${CQ}&${pStr}${geoParam}`).then(r=>r.json()),
+  ]);
+  geoOverview("cPipeGeo",pipGeo,sigGeoD,revGeoD);
+}
+
+async function loadTab() {
+  const f=fq(), grp=($("gbSel")||{}).value||"geo";
+  const rows=await fetch(`/api/kpi/tabular?${qs(f)}&groupBy=${grp}`).then(r=>r.json());
+  const labels={geo:"Geography",market:"Market",country:"Country",offeringArea:"Offering Area",clientType:"Client Type",channel:"Channel",quarter:"Quarter"};
+  const dl=labels[grp]||"Dimension";
+  const tTitle=$("tTitle"),tCnt=$("tCnt"),th=$("th"),tb=$("tb");
+  if(tTitle) tTitle.textContent=`By ${dl}`;
+  if(tCnt)   tCnt.textContent=`${rows.length} rows`;
+  const mp=Math.max(...rows.map(r=>r.pipeline),1);
+  if(th) th.innerHTML=`<tr><th onclick="aSt(0)">${dl} \u21d5</th><th onclick="aSt(1)" style="text-align:right">Pipeline \u21d5</th><th onclick="aSt(2)" style="text-align:right">Signings \u21d5</th><th onclick="aSt(3)" style="text-align:right">Call \u21d5</th><th onclick="aSt(4)" style="text-align:right">Win Rate \u21d5</th><th onclick="aSt(5)" style="text-align:right">Won \u21d5</th><th onclick="aSt(6)" style="text-align:right">Lost \u21d5</th><th onclick="aSt(7)" style="text-align:right">Coverage \u21d5</th><th style="text-align:right;color:var(--dim);font-size:8px">ACCOUNTS</th></tr>`;
+  if(tb) tb.innerHTML=rows.map(r=>{
+    const bw=Math.max(2,(r.pipeline/mp*50)),bc=GEO_SOLID[r.dim]||"#4589ff";
+    const wc=r.winRate==null?"bn":r.winRate>=65?"bg":r.winRate>=50?"bb":"br";
+    const cc=r.coverage==null?"bn":r.coverage>=80?"bg":r.coverage>=50?"bb":"br";
+    return `<tr style="cursor:pointer" onclick="openTopAccounts('${r.dim.replace(/'/g,"\\'")}','${grp}')">
+      <td><strong>${r.dim}</strong></td>
+      <td><div class="barcell" style="justify-content:flex-end"><div class="mbar" style="width:${bw}px;background:${bc}"></div>${fm(r.pipeline)}</div></td>
+      <td style="text-align:right">${fm(r.signings)}</td><td style="text-align:right">${fm(r.call)}</td>
+      <td style="text-align:right"><span class="bdg ${wc}">${r.winRate!=null?fp(r.winRate):"\u2014"}</span></td>
+      <td style="text-align:right">${r.wonCount.toLocaleString()}</td><td style="text-align:right">${r.lostCount.toLocaleString()}</td>
+      <td style="text-align:right"><span class="bdg ${cc}">${r.coverage!=null?fp(r.coverage):"\u2014"}</span></td>
+      <td style="text-align:right;color:var(--dim);font-size:10px">\ud83d\udc65 \u2192</td>
+    </tr>`;
+  }).join("");
+}
+
+async function loadRevTab() {
+  const f=fq(), grp=($("gbRevSel")||{}).value||"geo";
+  const rows=await fetch(`/api/revenue/tabular?${qs(f)}&groupBy=${grp}`).then(r=>r.json());
+  const labels={geo:"Geography",offeringArea:"Offering Area",market:"Market",quarter:"Quarter",ecoVsDirect:"Direct / Eco"};
+  const dl=labels[grp]||"Dimension";
+  const rTitle=$("rTitle"),rCnt=$("rCnt"),rth=$("rth"),rtb=$("rtb");
+  if(rTitle) rTitle.textContent=`Revenue by ${dl}`;
+  if(rCnt)   rCnt.textContent=`${rows.length} rows`;
+  const mp=Math.max(...rows.map(r=>r.total),1);
+  if(rth) rth.innerHTML=`<tr><th onclick="aSr(0)">${dl} \u21d5</th><th onclick="aSr(1)" style="text-align:right">Total Rev \u21d5</th><th onclick="aSr(2)" style="text-align:right">Direct \u21d5</th><th onclick="aSr(3)" style="text-align:right">Ecosystem \u21d5</th><th onclick="aSr(4)" style="text-align:right">Direct % \u21d5</th></tr>`;
+  if(rtb) rtb.innerHTML=rows.map(r=>{
+    const bw=Math.max(2,(r.total/mp*50)),bc=GEO_SOLID[r.dim]||"#4589ff";
+    const dp=r.total>0?(r.direct/r.total*100):0, dc=dp>=80?"bg":dp>=50?"bb":"br";
+    return `<tr><td><strong>${r.dim}</strong></td>
+      <td><div class="barcell" style="justify-content:flex-end"><div class="mbar" style="width:${bw}px;background:${bc}"></div>${fm(r.total)}</div></td>
+      <td style="text-align:right">${fm(r.direct)}</td><td style="text-align:right">${fm(r.eco)}</td>
+      <td style="text-align:right"><span class="bdg ${dc}">${fp(dp)}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+let aSrDir=1,aSrCol=1;
+function aSr(col){ if(aSrCol===col) aSrDir*=-1; else{aSrCol=col;aSrDir=-1;}
+  const rows=[...($("rtb")||{querySelectorAll:()=>[]}).querySelectorAll("tr")];
+  rows.sort((a,b)=>{const av=a.cells[col].textContent.replace(/[^0-9.\-]/g,""),bv=b.cells[col].textContent.replace(/[^0-9.\-]/g,"");const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*aSrDir;return av.localeCompare(bv)*aSrDir;});
+  rows.forEach(r=>$("rtb").appendChild(r));
+}
+let aStDir=1,aStCol=1;
+function aSt(col){ if(aStCol===col) aStDir*=-1; else{aStCol=col;aStDir=-1;}
+  const rows=[...($("tb")||{querySelectorAll:()=>[]}).querySelectorAll("tr")];
+  rows.sort((a,b)=>{const av=a.cells[col].textContent.replace(/[^0-9.\-]/g,""),bv=b.cells[col].textContent.replace(/[^0-9.\-]/g,"");const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*aStDir;return av.localeCompare(bv)*aStDir;});
+  rows.forEach(r=>$("tb").appendChild(r));
+}
+
+function sv(v) {
+  aView=v;
+  ["trn","tab","rev"].forEach(x=>{ const b=$(x==="trn"?"vt-trn":x==="tab"?"vt-tab":"vt-rev"); if(b) b.classList.toggle("on",v===x); });
+  const vT=$("vTrend"),vTb=$("vTab"),vR=$("vRev"),gbW=$("gbwrap"),gbR=$("gbwrap-rev");
+  if(vT)  vT.style.display  =v==="trn"?"":"none";
+  if(vTb) vTb.style.display =v==="tab"?"":"none";
+  if(vR)  vR.style.display  =v==="rev"?"":"none";
+  if(gbW) gbW.style.display =v==="tab"?"":"none";
+  if(gbR) gbR.style.display =v==="rev"?"":"none";
+  if(v==="trn") loadTrend(); else if(v==="tab") loadTab(); else loadRevTab();
+}
+
+async function loadInsights() {
+  const f=fq();
+  const d=await fetch(`/api/insights?${qs(f)}`).then(r=>r.json());
+  const render=(el,items)=>{
+    const e=$(el); if(!e) return;
+    e.innerHTML=items.length?items.map(i=>`<div class="ins-item"><span style="margin-right:5px">${i.icon}</span>${i.text}</div>`).join("")
+      :`<div style="color:var(--muted);font-size:10px">No data available</div>`;
+  };
+  render("rpHigh",d.highlights); render("rpFocus",d.focus); render("rpAct",d.actions);
+}
+
+async function applyAll() {
+  await Promise.all([loadKPIs(), aView==="trn"?loadTrend():aView==="tab"?loadTab():loadRevTab(), loadInsights()]);
+}
+
+// Chat
+function am(role,html) {
+  const d=document.createElement("div"); d.className=`msg ${role}`;
+  d.innerHTML=`<span class="mrole">${role==="user"?"You":"Compass"}</span><div class="mbbl">${html}</div>`;
+  const msgs=$("msgs"); if(msgs){ msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+  return d;
+}
+function md(t){ return t.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>"); }
+function showTyping(){
+  const d=document.createElement("div"); d.className="msg bot"; d.id="typing";
+  d.innerHTML=`<span class="mrole">Compass</span><div class="mbbl"><div class="tdots"><span></span><span></span><span></span></div></div>`;
+  const msgs=$("msgs"); if(msgs){ msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+}
+let midCtr=0;
+function addChatMeta(msgEl,confidence,userMsg,botResp){
+  const confClass=confidence>=88?"high":confidence>=78?"mid":"";
+  const meta=document.createElement("div"); meta.className="cmeta";
+  const mid=msgEl.dataset.mid;
+  meta.innerHTML=`<span class="conf-badge ${confClass}">Confidence: ${confidence}%</span>
+    <button class="thumb-btn" id="tup-${mid}" title="Helpful" onclick="thumbUp(this)">\ud83d\udc4d</button>
+    <button class="thumb-btn" id="tdn-${mid}" title="Not helpful" onclick="thumbDown(this,'${escHtml(userMsg)}','${escHtml(botResp)}')">\ud83d\udc4e</button>`;
+  msgEl.appendChild(meta);
+}
+function escHtml(s){ return (s||"").replace(/'/g,"\\'").replace(/\n/g," ").replace(/"/g,"&quot;"); }
+function thumbUp(btn){ btn.classList.toggle("active-up"); const dn=btn.parentElement.querySelector(".thumb-btn:last-child"); if(dn) dn.classList.remove("active-dn"); }
+function thumbDown(btn,userMsg,botResp){
+  btn.classList.add("active-dn"); const up=btn.parentElement.querySelector(".thumb-btn:first-child"); if(up) up.classList.remove("active-up");
+  pendingThumbMsg=userMsg; pendingThumbResp=botResp;
+  $("td-email").value=""; $("td-feedback").value=""; $("td-overlay").classList.add("show");
+}
+function detectVague(msg){
+  const lc=msg.toLowerCase();
+  const hasMet=/\b(signing|pipeline|revenue|win rate|forecast|coverage)\b/.test(lc);
+  const hasGeo=/\b(americas|emea|apac|japan|ww|global)\b/.test(lc);
+  const hasQ=/\bq[1-4]\b|\b[1-4]q\d{2}\b|\bthis quarter\b|\blast quarter\b/.test(lc);
+  const hasOA=/\bpsi\b|project services|interoperability|interop|custom services/.test(lc);
+  if(lc.split(/\s+/).length<=3&&hasMet) return true;
+  if(hasMet&&!hasGeo&&!hasQ&&!hasOA) return true;
+  if(/^\s*q[1-4]\s*$/.test(lc)) return true;
+  return false;
+}
+function buildClarifyBubble(msg){
+  const lc=msg.toLowerCase(), s=[];
+  if(/signing/.test(lc)) s.push("Signings for Project Services in Americas Q2 2026","WW Signings for Q2 2026 vs Q2 2025");
+  if(/pipeline/.test(lc)) s.push("Pipeline for EMEA in 2Q26","WW Pipeline by Geo this quarter");
+  if(/revenue/.test(lc)) s.push("Revenue for Interoperability Services in APAC Q2 2026");
+  if(/win/.test(lc))     s.push("Win rate for Americas in 2Q26","WW win rate by geo");
+  if(!s.length) s.push("PSI Americas signings in Q2 2026","WW pipeline by geo this quarter");
+  return `<div class="clarify-lbl">Could you clarify the scope? Did you mean:</div><div>${s.slice(0,3).map(x=>`<span class="q-chip" onclick="sq(this.textContent)">${x}</span>`).join("")}</div>`;
+}
+function buildNBA(msg,ctx){
+  const lc=msg.toLowerCase(), g=(ctx&&ctx.geo)||"WW", q=(ctx&&ctx.quarter)||"2Q26", oa=(ctx&&ctx.offeringArea)||"PSI";
+  const s=[];
+  if(/pipeline/.test(lc))      s.push(`What is the win rate for ${g} in ${q}?`,`Show top accounts by pipeline for ${g}`,`What is forecast coverage for ${g}?`);
+  else if(/signing/.test(lc))  s.push(`How did ${g} signings compare vs other geos?`,`Show offering breakdown for ${oa} in ${g}`,`What is the win rate for ${g} in ${q}?`);
+  else if(/win|loss/.test(lc)) s.push(`Where should I focus to improve win rate in ${g}?`,`What are the top accounts by signings for ${g}?`);
+  else if(/revenue/.test(lc))  s.push(`How did ${g} revenue compare vs signings?`,`Show offering breakdown for revenue in ${g}`);
+  else s.push(`How is ${g} signings this quarter?`,`What should ${oa} PM focus on this month?`,`Show top accounts by pipeline for ${g}`);
+  return s.slice(0,3);
+}
+async function sm(){
+  const inp=$("ci"); if(!inp) return;
+  const msg=inp.value.trim(); if(!msg) return;
+  inp.value=""; am("user",msg);
+  if(detectVague(msg)){
+    const cl=document.createElement("div"); cl.className="msg bot";
+    cl.innerHTML=`<span class="mrole">Compass</span><div class="mbbl">Let me make sure I give you the right data.\n<div class="clarify-row">${buildClarifyBubble(msg)}</div></div>`;
+    const msgs=$("msgs"); if(msgs){msgs.appendChild(cl);msgs.scrollTop=msgs.scrollHeight;} return;
+  }
+  showTyping();
+  try {
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:msg,sessionId:SESSION_ID,geo:($("fGeo")||{}).value||"WW",channel:($("fCh")||{}).value||"ALL"})});
+    const d=await r.json();
+    $("typing")&&$("typing").remove();
+    const botEl=am("bot",md(d.response));
+    botEl.dataset.mid=++midCtr;
+    addChatMeta(botEl,d.confidence||80,msg,d.response);
+    if(d.context&&d.context.geo&&d.context.geo!=="WW"){ const fg=$("fGeo"); if(fg){fg.value=d.context.geo;onGeoChange();} }
+    const nba=buildNBA(msg,d.context);
+    if(nba.length){
+      const nd=document.createElement("div"); nd.className="nba-row";
+      nd.innerHTML=nba.map(s=>`<span class="nba-chip" onclick="sq(this.textContent)">${s}</span>`).join("");
+      botEl.appendChild(nd);
+    }
+  } catch(e){ $("typing")&&$("typing").remove(); am("bot","\u26a0\ufe0f Cannot reach server."); }
+}
+function sq(t){ const ci=$("ci"); if(ci){ci.value=t;sm();} }
+document.addEventListener("keydown",e=>{
+  if(e.target&&e.target.id==="ci"&&e.key==="Enter"&&!e.shiftKey){e.preventDefault();sm();}
+});
+
+// Top accounts
+let _taParams={}, _taSortBy="pipeline";
+async function openTopAccounts(dim,dimType){
+  const f=fq(), ov={};
+  if(dimType==="geo") ov.geo=dim; else if(dimType==="market") ov.market=dim;
+  else if(dimType==="country") ov.country=dim; else if(dimType==="offeringArea") ov.offeringArea=dim;
+  else if(dimType==="clientType") ov.clientType=dim; else if(dimType==="channel") ov.channel=dim;
+  else if(dimType==="quarter") ov.quarter=dim;
+  _taParams={...f,...ov}; _taSortBy="pipeline";
+  const taT=$("ta-title"),taS=$("ta-sub"),taP=$("ta-sb-pipe"),taSg=$("ta-sb-sig");
+  if(taT) taT.textContent=`Top Accounts \u2014 ${dim}`;
+  if(taS) taS.textContent=`Top 10 customer accounts by pipeline value.`;
+  if(taP) taP.classList.add("on"); if(taSg) taSg.classList.remove("on");
+  $("ta-overlay").classList.add("show");
+  await renderTopAccounts();
+}
+async function renderTopAccounts(){
+  const taB=$("ta-body"); if(!taB) return;
+  taB.innerHTML=`<div style="color:var(--muted);font-size:11px;padding:12px 0">Loading\u2026</div>`;
+  const rows=await fetch(`/api/kpi/top-accounts?${qs({..._taParams,sortBy:_taSortBy,limit:10})}`).then(r=>r.json());
+  if(!rows.length){taB.innerHTML=`<div style="color:var(--muted);font-size:11px;padding:12px 0">No accounts found.</div>`;return;}
+  const mp=Math.max(...rows.map(r=>r[_taSortBy]),1);
+  taB.innerHTML=`<table class="ta-table"><thead><tr><th>#</th><th>Account</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th><th style="text-align:right">Won</th><th style="text-align:right">Lost</th><th style="text-align:right">Win Rate</th></tr></thead><tbody>
+  ${rows.map((r,i)=>{const bw=Math.max(3,(r[_taSortBy]/mp*40)),wc=r.winRate==null?"bn":r.winRate>=65?"bg":r.winRate>=45?"bb":"br";
+    return `<tr><td style="color:var(--dim)">${i+1}</td>
+      <td><strong>${r.customer}</strong><div style="height:2px;background:var(--blue);width:${bw}px;margin-top:3px;border-radius:1px;opacity:.5"></div></td>
+      <td style="text-align:right">${fm(r.pipeline)}</td><td style="text-align:right">${fm(r.signings)}</td>
+      <td style="text-align:right">${r.wonCount}</td><td style="text-align:right">${r.lostCount}</td>
+      <td style="text-align:right"><span class="bdg ${wc}">${r.winRate!=null?fp(r.winRate):"\u2014"}</span></td></tr>`;
+  }).join("")}</tbody></table>`;
+}
+async function taSortBy(s){
+  _taSortBy=s;
+  const p=$("ta-sb-pipe"),sg=$("ta-sb-sig");
+  if(p) p.classList.toggle("on",s==="pipeline"); if(sg) sg.classList.toggle("on",s==="signings");
+  await renderTopAccounts();
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SCRIPT 5 — Exec JS: loadExec
+═══════════════════════════════════════════════════════ */
+async function loadExec() {
+  const geo = ($("ex-geo")||{}).value||"WW";
+  const qtr = ($("ex-qtr")||{}).value||"2Q26";
+  const oa  = ($("ex-oa") ||{}).value||"ALL";
+  const narEl = $("ex-narrative");
+  if (narEl) narEl.innerHTML = `<div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating\u2026</div>`;
+
+  const params = qs({ geo, quarter: qtr, offeringArea: oa });
+  const [kpi, rev, summ] = await Promise.all([
+    fetch(`/api/kpi/summary?${params}`).then(r=>r.json()),
+    fetch(`/api/revenue/summary?${params}`).then(r=>r.json()),
+    fetch(`/api/exec-summary?${params}`).then(r=>r.json()),
+  ]);
+
+  const setExTile = (vid, val, sub, qoq, yoy, pts=false) => {
+    const ve=$(vid), vs=$(`${vid}-sub`), vd=$(`${vid}-d`);
+    if(ve) ve.textContent = val;
+    if(vs) vs.textContent = sub || "";
+    if(vd) vd.innerHTML = [
+      qoq!=null?kdEl(qoq,pts)+"<span style='font-size:9px;color:var(--muted)'> QoQ</span>":"",
+      yoy!=null?kdEl(yoy,pts)+"<span style='font-size:9px;color:var(--muted)'> YoY</span>":""
+    ].filter(Boolean).join(" ");
+  };
+  setExTile("ex-sig",  fm(kpi.signings), `${kpi.wonCount} won`, kpi.signingsQoQ, kpi.signingsYoY);
+  setExTile("ex-rev",  fm(rev.total),    `Direct: ${fm(rev.direct)} \u00b7 Eco: ${fm(rev.eco)}`, rev.revenueQoQ, rev.revenueYoY);
+  setExTile("ex-pipe", fm(kpi.pipeline), `${kpi.oppCount} opps`, kpi.pipelineQoQ, kpi.pipelineYoY);
+  setExTile("ex-wr",   kpi.winRate!=null?fp(kpi.winRate):"\u2014",
+    kpi.wonCount!=null?`${kpi.wonCount} won / ${kpi.wonCount+kpi.lostCount} closed`:"",
+    kpi.winRateQoQ, kpi.winRateYoY, true);
+
+  const geoSlots = { Americas:"ex-g-americas", EMEA:"ex-g-emea", APAC:"ex-g-apac", Japan:"ex-g-japan" };
+  const [sigGeo, revGeo, pipeGeo] = await Promise.all([
+    fetch(`/api/kpi/signings-by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
+    fetch(`/api/revenue/by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
+    fetch(`/api/kpi/pipeline-by-geo?quarter=${qtr}&${qs({offeringArea:oa})}`).then(r=>r.json()),
+  ]);
+  GEOS.forEach(g => {
+    const el = $(geoSlots[g]); if(!el) return;
+    const sig  = (sigGeo.find(d=>d.geo===g)||{}).signings||0;
+    const rev2 = (revGeo.find(d=>d.geo===g)||{}).revenue||0;
+    const pip  = (pipeGeo.find(d=>d.geo===g)||{}).pipeline||0;
+    el.innerHTML = `
+      <div class="exec-geo-row"><span class="exec-geo-lbl">Signings</span><span class="exec-geo-val">${fm(sig)}</span></div>
+      <div class="exec-geo-row"><span class="exec-geo-lbl">Revenue</span><span class="exec-geo-val">${fm(rev2)}</span></div>
+      <div class="exec-geo-row"><span class="exec-geo-lbl">Pipeline</span><span class="exec-geo-val">${fm(pip)}</span></div>`;
+  });
+
+  if (narEl) {
+    narEl.innerHTML = summ.narrative.split("\n\n")
+      .map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("");
+  }
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SCRIPT 6 — PM flat-filter + anchor-scroll JS
+═══════════════════════════════════════════════════════ */
+let pmMeta = {};
+
+/* ── noop stubs kept for backward compat ── */
+function pmUpdateCrumb() {}
+function pmBackToWizard() {}
+
+/* ── helper: offsetTop relative to a given ancestor ── */
+function pmOffsetTop(el, container) {
+  let top = 0;
+  while (el && el !== container) { top += el.offsetTop; el = el.offsetParent; }
+  return top;
+}
+
+/* ── scroll to anchor section ── */
+function pmScrollTo(id) {
+  const el = $(id); if (!el) return;
+  const body = $("pm-body"); if (!body) return;
+  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-act","pm-s-ind"];
+  const idx = SEC_IDS.indexOf(id);
+  document.querySelectorAll(".pm-alink").forEach((l, i) => l.classList.toggle("active", i === idx));
+  body.scrollTo({ top: pmOffsetTop(el, body) - 8, behavior: "smooth" });
+}
+
+/* ── scroll-spy: update active link as user scrolls ── */
+function pmInitScrollSpy() {
+  const body = $("pm-body"); if (!body) return;
+  const SEC_IDS = ["pm-s-bh","pm-s-es","pm-s-pipe","pm-s-sig","pm-s-rev","pm-s-wr","pm-s-act","pm-s-ind"];
+  body.addEventListener("scroll", () => {
+    const links = document.querySelectorAll(".pm-alink");
+    let active = 0;
+    SEC_IDS.forEach((id, i) => {
+      const el = $(id); if (!el) return;
+      if (pmOffsetTop(el, body) - body.scrollTop <= 60) active = i;
+    });
+    links.forEach((l, i) => l.classList.toggle("active", i === active));
+  }, { passive: true });
+}
+
+/* ── dropdown cascade: Portfolio → OA → Con ── */
+function pmOnPortChange() {
+  const portSel = $("pm-port-sel"); if (!portSel) return;
+  const portId  = portSel.value;
+  const portfolio = pmMeta.portfolio || [];
+  const port = portfolio.find(p => p.id === portId);
+  const oas  = port ? (port.offeringAreas || []) : (pmMeta.orderedOAs || []);
+
+  const oaSel = $("pm-oa-sel"); if (!oaSel) return;
+  oaSel.innerHTML = '<option value="ALL">All</option>';
+  oas.forEach(v => {
+    const o = document.createElement("option"); o.value = v; o.textContent = v; oaSel.appendChild(o);
+  });
+  pmOnOAChange();
+}
+
+function pmOnOAChange() {
+  const oaSel  = $("pm-oa-sel");  if (!oaSel)  return;
+  const conSel = $("pm-con-sel"); if (!conSel) return;
+  const oa = oaSel.value;
+  const cons = oa === "ALL"
+    ? [...new Set((pmMeta.orderedOAs||[]).flatMap(x => (pmMeta.conByOA||{})[x]||[]))].sort()
+    : ((pmMeta.conByOA||{})[oa]||[]);
+  conSel.innerHTML = '<option value="ALL">All</option>';
+  cons.forEach(v => {
+    const o = document.createElement("option"); o.value = v; o.textContent = v; conSel.appendChild(o);
+  });
+}
+
+/* ── init: populate dropdowns ── */
+async function initPMWizard() {
+  pmMeta = await fetch("/api/pm-meta").then(r => r.json()).catch(() => ({}));
+
+  // Exec OA selector
+  const exOA = $("ex-oa");
+  if (exOA && pmMeta.orderedOAs) {
+    pmMeta.orderedOAs.forEach(v => {
+      const o = document.createElement("option"); o.value = v; o.textContent = v; exOA.appendChild(o);
+    });
+  }
+
+  // Portfolio dropdown
+  const portSel = $("pm-port-sel"); if (!portSel) return;
+  portSel.innerHTML = '<option value="">All Portfolios</option>';
+  (pmMeta.portfolio || []).forEach(p => {
+    const o = document.createElement("option");
+    o.value = p.id; o.textContent = p.name;
+    if (p.phase !== "live") { o.disabled = true; o.textContent += " (Phase 2)"; }
+    portSel.appendChild(o);
+  });
+
+  pmOnPortChange(); // populate OA and Con from default selection
+  pmInitScrollSpy();
+}
+
+/* ── generate report ── */
+async function generatePMReport() {
+  const btn = $("pm-gen-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "Generating…"; }
+
+  const geo = ($("pm-geo")||{}).value || "WW";
+  const qtr = ($("pm-qtr")||{}).value || "2Q26";
+  const portSel = $("pm-port-sel"); const portId = portSel ? portSel.value : "";
+  const oaParam  = ($("pm-oa-sel") ||{}).value || "ALL";
+  const conParam = ($("pm-con-sel")||{}).value || "ALL";
+
+  // Scope label
+  const portfolio = pmMeta.portfolio || [];
+  const port = portfolio.find(p => p.id === portId);
+  const portLabel = port ? port.name : "TLS";
+  const scopeEl = $("pm-fb-scope");
+  if (scopeEl) {
+    const parts = [portLabel];
+    if (oaParam !== "ALL") parts.push(oaParam);
+    if (conParam !== "ALL") parts.push(conParam);
+    const first = parts.shift();
+    scopeEl.innerHTML = `<strong>${first}</strong>${parts.length ? " &nbsp;&middot;&nbsp; " + parts.join(" · ") : ""} &nbsp;&middot;&nbsp; <span style="color:var(--green)">${geo}</span> &nbsp;&middot;&nbsp; <span style="color:var(--yellow)">${qtr}</span>`;
+  }
+
+  const params = new URLSearchParams({ geo, quarter: qtr, offeringArea: oaParam, consolidatedOffering: conParam }).toString();
+  const [rpt, ind] = await Promise.all([
+    fetch(`/api/pm-report?${params}`).then(r => r.json()).catch(() => ({})),
+    fetch(`/api/pm-report/industry?${params}`).then(r => r.json()).catch(() => ({})),
+  ]);
+
+  if (btn) { btn.disabled = false; btn.textContent = "⚡ Generate Product Intelligence"; }
+
+  // Show anchor nav + content, hide empty state
+  const anav = $("pm-anav"); if (anav) anav.classList.add("show");
+  const empty = $("pm-empty-state"); if (empty) empty.style.display = "none";
+  const rptContent = $("pm-rpt-content"); if (rptContent) rptContent.style.display = "";
+
+  renderPMReport(rpt, ind, { geo, quarter: qtr, oa: oaParam });
+
+  // Scroll to top of report
+  const body = $("pm-body"); if (body) body.scrollTop = 0;
+  // Activate first nav link
+  document.querySelectorAll(".pm-alink").forEach((l, i) => l.classList.toggle("active", i === 0));
+}
+
+function pmTab(id) {
+  document.querySelectorAll(".pm-fb-tab").forEach(t => t.classList.remove("on"));
+  document.querySelectorAll(".pm-section").forEach(s => s.classList.remove("active"));
+  const ids = ["bh","es","pipe","sig","rev","wr","act","ind"];
+  const tabs = document.querySelectorAll(".pm-fb-tab");
+  const idx = ids.indexOf(id);
+  if (tabs[idx]) tabs[idx].classList.add("on");
+  const sec = $(`pm-s-${id}`); if (sec) sec.classList.add("active");
+}
+
+function renderPMReport(d, ind, scope) {
+  const fmt  = v => v==null?"—":(Math.abs(v)>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.abs(v).toFixed(1)}M`);
+  const fpp  = v => v==null?"—":`${v.toFixed(1)}%`;
+  const dS   = (v,pts=false) => v==null?"":(v>0?"+":"")+v.toFixed(1)+(pts?"pts":"%");
+  const dCls = v => v==null?"":"kd "+(v>0?"pos":v<0?"neg":"neu");
+  const kdH  = (v,pts=false) => v==null?"":`<span class="${dCls(v)}">${v>0?"▲":"▼"} ${dS(v,pts)}</span>`;
+  const GCL  = {Americas:"am",EMEA:"em",APAC:"ap",Japan:"jp"};
+
+  // Business Health
+  const bh = $("pm-s-bh"); if (bh && d.cq) {
+    const cq=d.cq, rev=d.revenue||{};
+    const accts = (d.topAccounts||[]).slice(0,8);
+    const mpA = Math.max(...accts.map(a=>a.pipeline),1);
+    bh.innerHTML = `
+      <div class="pm-sec-hd"><div><div class="pm-sec-title">Business Health</div><div class="pm-sec-sub">${scope.quarter} · ${scope.geo} · ${scope.oa!=="ALL"?scope.oa:"All Offerings"}</div></div></div>
+      <div class="pm-kpi-row">
+        <div class="pm-kpi-card pm-kc-sig"><div class="pm-kc-lbl">Signings</div><div class="pm-kc-val">${fmt(cq.signings)}</div><div class="pm-kc-sub">${cq.wonCount} won deals</div><div class="pm-kc-deltas">${kdH(d.sigQoQ)} QoQ &nbsp;${kdH(d.sigYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">Direct + Eco</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-pipe"><div class="pm-kc-lbl">Pipeline</div><div class="pm-kc-val">${fmt(cq.pipeline)}</div><div class="pm-kc-sub">${cq.activeCount} active opps</div><div class="pm-kc-deltas">${kdH(d.pipeQoQ)} QoQ &nbsp;${kdH(d.pipeYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
+      </div>
+      <div class="pm-geo-cards">
+        ${["Americas","EMEA","APAC","Japan"].map(g => {
+          const gd=(d.byGeo||[]).find(x=>x.geo===g)||{};
+          return `<div class="pm-geo-c ${GCL[g]}">
+            <div class="pm-geo-c-name">${g}</div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Signings</span><span class="pm-geo-c-val">${fmt(gd.signings)}</span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Pipeline</span><span class="pm-geo-c-val">${fmt(gd.pipeline)}</span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Win Rate</span><span class="pm-geo-c-val">${fpp(gd.winRate)}</span></div>
+            <div class="pm-geo-c-row"><span class="pm-geo-c-lbl">Sig YoY</span><span class="pm-geo-c-val">${gd.sigYoY!=null?dS(gd.sigYoY):"—"}</span></div>
+          </div>`;
+        }).join("")}
+      </div>
+      ${accts.length ? `<div class="pm-table-wrap" style="margin-top:14px">
+        <div class="pm-table-hd"><span>Top Accounts by Pipeline</span><span class="pm-table-cnt">${accts.length} accounts</span></div>
+        <table class="pm-tbl"><thead><tr>
+          <th>#</th><th>Account</th><th style="text-align:right">Pipeline</th>
+          <th style="text-align:right">Signings</th><th style="text-align:right">Win Rate</th><th style="text-align:right">FLM</th>
+        </tr></thead><tbody>
+        ${accts.map((a,i)=>{
+          const bw=Math.max(3,a.pipeline/mpA*70);
+          const wc=a.winRate>=65?"bg":a.winRate>=45?"bb":"br";
+          return `<tr>
+            <td style="color:var(--dim);width:24px">${i+1}</td>
+            <td><strong>${a.name}</strong><div style="height:2px;background:#0f62fe;width:${bw}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
+            <td style="text-align:right">${fmt(a.pipeline)}</td>
+            <td style="text-align:right">${fmt(a.signings)}</td>
+            <td style="text-align:right"><span class="bdg ${wc}">${fpp(a.winRate)}</span></td>
+            <td style="text-align:right;color:var(--muted)">${a.flmCount}</td>
+          </tr>`;
+        }).join("")}
+        </tbody></table></div>` : ""}`;
+  }
+
+  // Exec Summary
+  const es = $("pm-s-es"); if (es && d.narrative) {
+    es.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Executive Summary</div><div class="pm-sec-sub">AI-generated narrative · ${scope.quarter}</div></div></div>
+      <div class="pm-narrative">${d.narrative.split("\n\n").map(p=>`<p>${p.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>")}</p>`).join("")}</div>`;
+  }
+
+  // Pipeline
+  const pipe = $("pm-s-pipe"); if (pipe && d.byOA) {
+    const rows = d.byOA.slice(0,10), mp = Math.max(...rows.map(r=>r.pipeline),1);
+    pipe.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Pipeline Breakdown</div><div class="pm-sec-sub">By Offering Area · ${scope.quarter}</div></div></div>
+      <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Area</span><span class="pm-table-cnt">${rows.length} rows</span></div>
+      <table class="pm-tbl"><thead><tr><th>Offering Area</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Active Opps</th><th style="text-align:right">Sig QoQ</th><th style="text-align:right">Sig YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td><strong>${r.oa}</strong><div style="height:2px;background:#0f62fe;width:${Math.max(3,r.pipeline/mp*80)}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
+        <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${r.activeCount}</td>
+        <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
+        <td style="text-align:right;font-weight:700;color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${fpp(r.winRate)}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+  }
+
+  // Signings
+  const sig = $("pm-s-sig"); if (sig && d.byCon) {
+    const rows = d.byCon.slice(0,10);
+    sig.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Signings — Offering Detail</div><div class="pm-sec-sub">By Consolidated Offering · ${scope.quarter}</div></div></div>
+      <div class="pm-table-wrap"><div class="pm-table-hd"><span>By Offering Name</span><span class="pm-table-cnt">${rows.length} offerings</span></div>
+      <table class="pm-tbl"><thead><tr><th>Offering</th><th style="text-align:right">Signings</th><th style="text-align:right">Won</th><th style="text-align:right">QoQ</th><th style="text-align:right">YoY</th><th style="text-align:right">Win Rate</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td><strong>${r.con}</strong></td>
+        <td style="text-align:right">${fmt(r.signings)}</td><td style="text-align:right">${r.wonCount}</td>
+        <td style="text-align:right">${kdH(r.sigQoQ)}</td><td style="text-align:right">${kdH(r.sigYoY)}</td>
+        <td style="text-align:right;font-weight:700;color:${r.winRate>=60?"#198038":r.winRate>=45?"#b28600":"#da1e28"}">${fpp(r.winRate)}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+  }
+
+  // Revenue
+  const rev = $("pm-s-rev"); if (rev && d.revenue) {
+    const rv=d.revenue;
+    rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Actuals</div><div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
+      <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">PQ Revenue</div><div class="pm-kc-val">${fmt(rv.pq)}</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">PYQ Revenue</div><div class="pm-kc-val">${fmt(rv.pyq)}</div></div>
+      </div>
+      ${d.trend ? `<div class="pm-table-wrap"><div class="pm-table-hd"><span>6-Quarter Trend</span></div>
+        <table class="pm-tbl"><thead><tr><th>Quarter</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Signings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Win Rate</th></tr></thead>
+        <tbody>${d.trend.map(r=>`<tr><td><strong>${r.quarter}</strong></td>
+          <td style="text-align:right">${fmt(r.pipeline)}</td><td style="text-align:right">${fmt(r.signings)}</td>
+          <td style="text-align:right">${fmt(r.revenue)}</td><td style="text-align:right">${fpp(r.winRate)}</td>
+        </tr>`).join("")}</tbody></table></div>` : ""}`;
+  }
+
+  // Win Rate
+  const wr = $("pm-s-wr"); if (wr && d.winLoss) {
+    const cq=d.cq||{};
+    wr.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Win Rate & Win/Loss Analysis</div><div class="pm-sec-sub">${scope.quarter}</div></div></div>
+      <div class="pm-kpi-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Deals Won</div><div class="pm-kc-val" style="color:#198038">${cq.wonCount||0}</div></div>
+        <div class="pm-kpi-card"><div class="pm-kc-lbl">Deals Lost</div><div class="pm-kc-val" style="color:#da1e28">${cq.lostCount||0}</div></div>
+      </div>
+      <div class="pm-table-wrap"><div class="pm-table-hd"><span>Win / Loss Reasons</span><span class="pm-table-cnt">Top ${d.winLoss.length}</span></div>
+        <table class="pm-tbl"><thead><tr><th>Reason</th><th style="text-align:right">Won</th><th style="text-align:right">Lost</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${d.winLoss.map(r=>`<tr><td>${r.reason}</td>
+          <td style="text-align:right;color:#198038;font-weight:600">${r.won}</td>
+          <td style="text-align:right;color:#da1e28;font-weight:600">${r.lost}</td>
+          <td style="text-align:right">${r.total}</td>
+        </tr>`).join("")}</tbody></table></div>`;
+  }
+
+  // Actions
+  const act = $("pm-s-act"); if (act && d.actions) {
+    const indActions = (ind && ind.gtmActions)||[];
+    const allActions = [...d.actions, ...indActions.filter(a=>!d.actions.find(x=>x.category===a.type))].slice(0,10);
+    const watchlist  = (ind && ind.watchlist)||[];
+    act.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Recommended Actions</div><div class="pm-sec-sub">GTM motions · ${scope.quarter}</div></div></div>
+      <div class="pm-action-grid">${allActions.map(a=>{
+        const pri = a.priority==="HIGH"||a.priority==="HIGH"?"HIGH":"MED";
+        const cat = a.category||a.type||"Action";
+        const geo = a.geo||"WW";
+        return `<div class="pm-action-card ${pri==="HIGH"?"high":"med"}">
+          <div class="pm-act-top">
+            <span class="pm-act-pri ${pri==="HIGH"?"high":"med"}">${pri}</span>
+            <span class="pm-act-cat">${cat}</span>
+            <span class="pm-act-geo-badge">${geo}</span>
+          </div>
+          <div class="pm-act-body">${a.action}</div>
+          <div class="pm-act-deadline">&#9200; ${a.deadline}</div>
+        </div>`;
+      }).join("")}</div>
+      ${watchlist.length ? `<div class="pm-table-wrap" style="margin-top:14px">
+        <div class="pm-table-hd"><span>&#128680; Priority Watchlist</span><span class="pm-table-cnt">${watchlist.length} items</span></div>
+        <table class="pm-tbl"><thead><tr>
+          <th>Industry</th><th>Metric</th><th style="text-align:right">Value</th><th>Risk</th><th>Action</th><th style="text-align:right;white-space:nowrap">Due</th>
+        </tr></thead><tbody>
+        ${watchlist.map(w=>`<tr>
+          <td><strong>${w.industry}</strong></td>
+          <td><span class="bdg br">${w.metric}</span></td>
+          <td style="text-align:right;font-weight:700;color:#da1e28">${w.value}</td>
+          <td style="font-size:10px;color:var(--muted)">${w.risk}</td>
+          <td style="font-size:10px">${w.action}</td>
+          <td style="text-align:right;white-space:nowrap;color:var(--muted);font-size:10px">${w.deadline}</td>
+        </tr>`).join("")}
+        </tbody></table></div>` : ""}
+      ${d.stalled && d.stalled.length ? `<div class="pm-table-wrap" style="margin-top:14px">
+        <div class="pm-table-hd"><span>Stalled FLM=Y Opportunities</span><span class="pm-table-cnt">${d.stalled.length} opps</span></div>
+        <table class="pm-tbl"><thead><tr><th>Customer</th><th>Geo</th><th style="text-align:right">Pipeline</th><th style="text-align:right">Age (days)</th><th>Stage</th></tr></thead>
+        <tbody>${d.stalled.map(r=>`<tr><td><strong>${r.customer}</strong></td><td>${r.geo}</td>
+          <td style="text-align:right">${fmt(r.pipeline)}</td>
+          <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
+          <td>${r.stage}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+  }
+
+  // Industry (uses ind data from /api/pm-report/industry)
+  const indSec = $("pm-s-ind");
+  if (indSec && ind && ind.byIndustry && ind.byIndustry.length) {
+    const rows = ind.byIndustry;
+    const mpI  = Math.max(...rows.map(r=>r.cq.pipeline),1);
+    const GEOS4 = ["Americas","EMEA","APAC","Japan"];
+    const matrix = ind.geoIndMatrix||{};
+    const topInds = rows.slice(0,6).map(r=>r.industry);
+    const flmRows = (ind.flmByInd||[]).slice(0,8);
+    const tsRows  = (ind.topStalled||[]).slice(0,8);
+
+    indSec.innerHTML = `
+      <div class="pm-sec-hd"><div><div class="pm-sec-title">Industry Breakdown</div><div class="pm-sec-sub">Pipeline · Signings · Win Rate by vertical · ${scope.quarter}</div></div></div>
+
+      <div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>By Industry — ${scope.quarter}</span><span class="pm-table-cnt">${rows.length} verticals</span></div>
+        <table class="pm-tbl"><thead><tr>
+          <th>Industry</th>
+          <th style="text-align:right">Pipeline</th>
+          <th style="text-align:right">Signings</th>
+          <th style="text-align:right">Win Rate</th>
+          <th style="text-align:right">Pipe QoQ</th>
+          <th style="text-align:right">Sig YoY</th>
+          <th style="text-align:right">Active</th>
+        </tr></thead><tbody>
+        ${rows.map(r=>{
+          const bw = Math.max(3, r.cq.pipeline/mpI*60);
+          const wc = r.cq.winRate>=65?"bg":r.cq.winRate>=45?"bb":"br";
+          return `<tr>
+            <td><strong>${r.industry}</strong><div style="height:2px;background:#0f62fe;width:${bw}px;margin-top:3px;border-radius:1px;opacity:.4"></div></td>
+            <td style="text-align:right">${fmt(r.cq.pipeline)}</td>
+            <td style="text-align:right">${fmt(r.cq.signings)}</td>
+            <td style="text-align:right"><span class="bdg ${wc}">${fpp(r.cq.winRate)}</span></td>
+            <td style="text-align:right">${kdH(r.pipeQoQ)}</td>
+            <td style="text-align:right">${kdH(r.sigYoY)}</td>
+            <td style="text-align:right;color:var(--muted)">${r.cq.activeCount}</td>
+          </tr>`;
+        }).join("")}
+        </tbody></table>
+      </div>
+
+      ${topInds.length && Object.keys(matrix).length ? `
+      <div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>Pipeline — Geo × Industry Matrix</span><span class="pm-table-cnt">Top ${topInds.length} industries</span></div>
+        <div style="overflow-x:auto"><table class="pm-tbl"><thead><tr>
+          <th>Geo</th>
+          ${topInds.map(inm=>`<th style="text-align:right;max-width:90px;white-space:normal;font-size:8px">${inm}</th>`).join("")}
+        </tr></thead><tbody>
+        ${GEOS4.map(g=>`<tr>
+          <td><strong>${g}</strong></td>
+          ${topInds.map(iv=>{
+            const v=(matrix[g]&&matrix[g][iv]&&matrix[g][iv].pipeline)||0;
+            return `<td style="text-align:right;font-size:11px">${v>0?fmt(v):"—"}</td>`;
+          }).join("")}
+        </tr>`).join("")}
+        </tbody></table></div>
+      </div>` : ""}
+
+      ${flmRows.length ? `
+      <div class="pm-table-wrap" style="margin-bottom:14px">
+        <div class="pm-table-hd"><span>FLM Conviction by Industry</span><span class="pm-table-cnt">Active opps only</span></div>
+        <table class="pm-tbl"><thead><tr>
+          <th>Industry</th>
+          <th style="text-align:right">Pipeline</th>
+          <th style="text-align:right">Active Opps</th>
+          <th style="text-align:right">FLM=Y</th>
+          <th style="text-align:right">FLM %</th>
+          <th style="text-align:right">FLM Pipeline</th>
+        </tr></thead><tbody>
+        ${flmRows.map(r=>{
+          const fc = r.flmPct>=60?"bg":r.flmPct>=35?"bb":"br";
+          return `<tr>
+            <td><strong>${r.industry}</strong></td>
+            <td style="text-align:right">${fmt(r.pipeline)}</td>
+            <td style="text-align:right;color:var(--muted)">${r.total}</td>
+            <td style="text-align:right;color:var(--green);font-weight:600">${r.flmY}</td>
+            <td style="text-align:right"><span class="bdg ${fc}">${fpp(r.flmPct)}</span></td>
+            <td style="text-align:right">${fmt(r.flmPipeline)}</td>
+          </tr>`;
+        }).join("")}
+        </tbody></table>
+      </div>` : ""}
+
+      ${tsRows.length ? `
+      <div class="pm-table-wrap">
+        <div class="pm-table-hd"><span>Top Stalled Opportunities (FLM=Y, ≥30 days)</span><span class="pm-table-cnt">${tsRows.length} opps</span></div>
+        <table class="pm-tbl"><thead><tr>
+          <th>Customer</th><th>Industry</th><th>Geo</th>
+          <th style="text-align:right">Pipeline</th><th style="text-align:right">Age</th>
+          <th>Stage</th><th>Offering</th>
+        </tr></thead><tbody>
+        ${tsRows.map(r=>`<tr>
+          <td><strong>${r.customer}</strong></td>
+          <td style="color:var(--muted);font-size:10px">${r.industry||"—"}</td>
+          <td>${r.geo}</td>
+          <td style="text-align:right">${fmt(r.oppVal)}</td>
+          <td style="text-align:right;color:#da1e28;font-weight:600">${r.age}d</td>
+          <td style="font-size:10px">${r.stage}</td>
+          <td style="font-size:10px;color:var(--muted);max-width:120px;white-space:normal">${r.offering||"—"}</td>
+        </tr>`).join("")}
+        </tbody></table>
+      </div>` : ""}`;
+  } else if (indSec) {
+    indSec.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Industry Breakdown</div><div class="pm-sec-sub">No industry data available for this scope</div></div></div>`;
+  }
+}
+
+// ── Boot sequence ────────────────────────────────────────────────────────────
+function setFilterDefaults() {
+  // Compute current quarter from today's date
+  const now = new Date();
+  const yr  = String(now.getFullYear()).slice(-2);   // "26"
+  const q   = Math.ceil((now.getMonth() + 1) / 3);  // 1-4
+  const cq  = `${q}Q${yr}`;                          // e.g. "2Q26"
+
+  const fQtr  = $("fQtr");
+  const fYear = $("fYear");
+  // Set quarter — fall back to first available option if cq not in list
+  if (fQtr) {
+    const opt = [...fQtr.options].find(o => o.value === cq);
+    fQtr.value = opt ? cq : (fQtr.options[1]?.value || "ALL");
+  }
+  // Set year to current year; leave all other filters at "ALL" (their HTML default)
+  if (fYear) {
+    const yr4 = String(now.getFullYear());
+    const yopt = [...fYear.options].find(o => o.value === yr4);
+    if (yopt) fYear.value = yr4;
+  }
+  // Exec persona quarter picker
+  const exQtr = $("ex-qtr");
+  if (exQtr) {
+    const eopt = [...exQtr.options].find(o => o.value === cq);
+    if (eopt) exQtr.value = cq;
+  }
+  // PM wizard quarter picker
+  const pmQtr = $("pm-qtr");
+  if (pmQtr) {
+    const popt = [...pmQtr.options].find(o => o.value === cq);
+    if (popt) pmQtr.value = cq;
+  }
+}
+
+window.addEventListener("load", async () => {
+  setFilterDefaults();
+  // Fetch data-source dates and update header immediately
+  fetch("/api/data-info").then(r => r.json()).then(d => {
+    const el = $("h-data-dates");
+    if (el) el.innerHTML = `Pipeline Data &middot; ${d.pipelineDate} &nbsp;|&nbsp; Revenue Data &middot; ${d.revenueDate}`;
+  }).catch(() => {});
+  try { await Promise.all([ loadMeta(), initPMWizard() ]); } catch(e) { console.warn("Boot warning:", e); }
+  try { await Promise.all([ loadKPIs(), loadTrend(), loadInsights() ]); } catch(e) { console.warn(e); }
+  const lov = $("lov"); if (lov) lov.style.display = "none";
+});
+</script>
+</body>
+</html>
