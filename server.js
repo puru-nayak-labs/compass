@@ -3,6 +3,14 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
+// ── Agent run log — appends one JSONL record per chat interaction ─────────────
+const RUN_LOG_PATH = path.join(__dirname, "agent-runs.jsonl");
+function logAgentRun(entry) {
+  try {
+    fs.appendFileSync(RUN_LOG_PATH, JSON.stringify(entry) + "\n", "utf8");
+  } catch (_) { /* non-fatal */ }
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -1418,6 +1426,7 @@ function prevQuarter() {
 }
 
 app.post("/api/chat", (req, res) => {
+  const _reqStart = Date.now();
   const { message, sessionId } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
 
@@ -1909,7 +1918,36 @@ app.post("/api/chat", (req, res) => {
   }
   confidence = Math.min(confidence, 97);
 
-  res.json({ response, context: { geo, quarter, offeringArea, ut30 }, confidence });
+  // ── Build per-run trace ────────────────────────────────────────────────────
+  const latencyMs = Date.now() - _reqStart;
+  const trace = {
+    timestamp:     new Date().toISOString(),
+    sessionId:     sid,
+    intent:        intentMatched ? (
+                     msg.includes("pipeline")  ? "pipeline"  :
+                     msg.includes("signing")   ? "signings"  :
+                     msg.includes("revenue")   ? "revenue"   :
+                     msg.includes("win") || msg.includes("loss") ? "win-rate" :
+                     msg.includes("forecast") || msg.includes("coverage") ? "forecast-coverage" :
+                     msg.includes("focus") || msg.includes("priority") ? "priority" :
+                     msg.includes("offering") ? "offering-breakdown" :
+                     /top accounts?/.test(msg) ? "top-accounts" :
+                     /geo.*grow|which geo/.test(msg) ? "geo-growth" :
+                     "isc-knowledge"
+                   ) : "fallback",
+    kbUsed:        response.includes("IBM ISC") || response.includes("Forecast Category") || response.includes("Sales Stage") ? "ISC_FORECAST_KB" : "live-data",
+    filters:       { geo, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined, ut30: ut30 !== "ALL" ? ut30 : undefined },
+    recordsScanned: recs.length,
+    confidence,
+    latencyMs,
+    fallback:      !intentMatched,
+    message:       message.slice(0, 200),
+  };
+
+  // Persist to agent-runs.jsonl (non-blocking)
+  logAgentRun(trace);
+
+  res.json({ response, context: { geo, quarter, offeringArea, ut30 }, confidence, trace });
 });
 
 // ─── Revenue Actuals API ─────────────────────────────────────────────────────

@@ -379,7 +379,16 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 .tdots span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite}
 .tdots span:nth-child(2){animation-delay:.2s}.tdots span:nth-child(3){animation-delay:.4s}
 @keyframes tdot{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
-.cmeta{display:flex;align-items:center;gap:8px;margin-top:4px;padding:0 2px}
+.cmeta{display:flex;align-items:center;gap:8px;margin-top:4px;padding:0 2px;flex-wrap:wrap}
+.trace-toggle{font-size:9px;padding:2px 8px;border:1px solid #ccc;background:none;cursor:pointer;color:#555;border-radius:8px;letter-spacing:.3px}
+.trace-toggle:hover{border-color:#1a4fa8;color:#1a4fa8}
+.trace-panel{display:none;background:#0f1117;border-radius:4px;padding:10px 14px;margin-top:6px;font-size:11px;font-family:"DM Mono",monospace,monospace;width:100%}
+.trace-panel.trace-open{display:block}
+.trace-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #1e2230}
+.trace-row:last-child{border-bottom:none}
+.trace-key{color:rgba(244,241,235,.45);font-size:10px;letter-spacing:.5px}
+.trace-val{color:#7eb8f7;font-weight:600;font-size:10px;text-align:right}
+.conf-badge.low{background:rgba(200,57,26,.1);color:#c8391a;border-color:rgba(200,57,26,.2)}
 .conf-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;
             background:rgba(15,98,254,.08);color:var(--ibm);border:1px solid rgba(15,98,254,.2)}
 .conf-badge.high{background:rgba(25,128,56,.1);color:var(--green);border-color:rgba(25,128,56,.2)}
@@ -1463,15 +1472,32 @@ function showTyping(){
   const msgs=$("msgs"); if(msgs){ msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
 }
 let midCtr=0;
-function addChatMeta(msgEl,confidence,userMsg,botResp){
-  const confClass=confidence>=88?"high":confidence>=78?"mid":"";
-  const meta=document.createElement("div"); meta.className="cmeta";
+function addChatMeta(msgEl,confidence,userMsg,botResp,trace){
+  const confClass=confidence>=88?"high":confidence>=78?"mid":"low";
   const mid=msgEl.dataset.mid;
+  const meta=document.createElement("div"); meta.className="cmeta";
   meta.innerHTML=`<span class="conf-badge ${confClass}">Confidence: ${confidence}%</span>
     <button class="thumb-btn" id="tup-${mid}" title="Helpful" onclick="thumbUp(this)">\ud83d\udc4d</button>
-    <button class="thumb-btn" id="tdn-${mid}" title="Not helpful" onclick="thumbDown(this,'${escHtml(userMsg)}','${escHtml(botResp)}')">\ud83d\udc4e</button>`;
+    <button class="thumb-btn" id="tdn-${mid}" title="Not helpful" onclick="thumbDown(this,'${escHtml(userMsg)}','${escHtml(botResp)}')">\ud83d\udc4e</button>
+    ${trace?`<button class="trace-toggle" onclick="toggleTrace('trace-${mid}')">Run trace</button>`:''}`;
   msgEl.appendChild(meta);
+  if(trace){
+    const tp=document.createElement("div"); tp.className="trace-panel"; tp.id=`trace-${mid}`;
+    const f=trace.filters||{};
+    const filterStr=[f.geo&&`geo=${f.geo}`,f.quarter&&`qtr=${f.quarter}`,f.offeringArea&&`oa=${f.offeringArea}`].filter(Boolean).join(" · ")||"WW · ALL";
+    const kbLabel=trace.kbUsed==="ISC_FORECAST_KB"?"ISC Knowledge Base":"Live KPI Data";
+    const confColor=confidence>=88?"#5eca8a":confidence>=70?"#c9a84c":"#e87060";
+    tp.innerHTML=`<div class="trace-row"><span class="trace-key">Intent</span><span class="trace-val">${trace.intent||"—"}</span></div>
+<div class="trace-row"><span class="trace-key">Source</span><span class="trace-val">${kbLabel}</span></div>
+<div class="trace-row"><span class="trace-key">Filters</span><span class="trace-val">${filterStr}</span></div>
+<div class="trace-row"><span class="trace-key">Records scanned</span><span class="trace-val">${(trace.recordsScanned||0).toLocaleString()}</span></div>
+<div class="trace-row"><span class="trace-key">Confidence</span><span class="trace-val" style="color:${confColor}">${confidence}%</span></div>
+<div class="trace-row"><span class="trace-key">Latency</span><span class="trace-val">${trace.latencyMs||"—"}ms</span></div>
+<div class="trace-row"><span class="trace-key">Fallback triggered</span><span class="trace-val" style="color:${trace.fallback?"#e87060":"#5eca8a"}">${trace.fallback?"Yes":"No"}</span></div>`;
+    msgEl.appendChild(tp);
+  }
 }
+function toggleTrace(id){ const el=document.getElementById(id); if(el) el.classList.toggle("trace-open"); }
 function escHtml(s){ return (s||"").replace(/'/g,"\\'").replace(/\n/g," ").replace(/"/g,"&quot;"); }
 function thumbUp(btn){ btn.classList.toggle("active-up"); const dn=btn.parentElement.querySelector(".thumb-btn:last-child"); if(dn) dn.classList.remove("active-dn"); }
 function thumbDown(btn,userMsg,botResp){
@@ -1526,7 +1552,7 @@ async function sm(){
     $("typing")&&$("typing").remove();
     const botEl=am("bot",md(d.response));
     botEl.dataset.mid=++midCtr;
-    addChatMeta(botEl,d.confidence||80,msg,d.response);
+    addChatMeta(botEl,d.confidence||80,msg,d.response,d.trace||null);
     if(d.context&&d.context.geo&&d.context.geo!=="WW"){ const fg=$("fGeo"); if(fg){fg.value=d.context.geo;onGeoChange();} }
     const nba=buildNBA(msg,d.context);
     if(nba.length){

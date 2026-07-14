@@ -548,16 +548,69 @@ const result = await model.generateText({ input: prompt, modelId: "ibm/granite-1
 |---|---|---|---|
 | **Phase 0** — Product definition | Done | ✅ | KPI priority locked, personas defined |
 | **Phase 1** — Revenue + Pipeline MVP | Done | ✅ | Auto-ingest, KPI engine, chat, exec summary, PM report all working |
+| **Phase 1.5** — ISC Knowledge Layer | Done | ✅ | ISC forecasting KB, sales stage objectives, forecast categories, FLM Judgement, Manager's Call baked into chat agent |
+| **Phase 1.6** — Observability Foundation | Done | ✅ | Per-run trace object, agent-runs.jsonl log, confidence badge, collapsible trace panel in chat UI |
 | **Phase 2** — Multi-KPI + GTM Agent | Aug–Sep 2026 | 🔄 In Progress | GTM recommended motions with $M impact; KPI correlation engine |
 | **Phase 3** — Decision Intelligence | Q4 2026 | 📋 Planned | Orchestrate multi-agent; PPT/MBR/QBR auto-generation; feedback memory |
 
-**Immediate next steps:**
+---
+
+### Phase 2 — Multi-KPI + GTM Agent (Aug–Sep 2026)
+
+> Framework reference: Agentic AI PM Framework Stage 3–5 (Build, Evaluation, Production)
+
+**GTM & Intelligence:**
+- [ ] GTM Agent — routes KPI insight → recommended GTM motion with target accounts + expected $M impact
+- [ ] Wire real Granite LLM (watsonx.ai) for exec narrative — replace rule-based `/api/exec-summary`
+- [ ] KPI correlation engine — surface relationships between pipeline health, win rate, and revenue actuals
 - [ ] Connect Box folder for automated weekly Excel ingestion (watsonx.data / Orchestrate skill)
-- [ ] Add GTM Agent — routes KPI insight → recommended GTM motion with target accounts + expected $M impact
-- [ ] Wire real Granite LLM for exec narrative (current `/api/exec-summary` uses rule-based generation)
-- [ ] Add `insight → action → outcome` schema to feedback loop (memory moat)
-- [ ] Email subscription: automated weekly summary to PM subscribers
+- [ ] Email subscription — automated weekly PM summary to subscribers
+
+**Evals (Stage 4 of Agentic AI PM Framework):**
+- [ ] Golden test set — 30–50 question/answer pairs covering every chat intent (`evals/golden.json`)
+- [ ] Eval runner — `evals/run.mjs` POSTs each golden case to `/api/chat` and asserts pass/fail; target 95%+
+- [ ] Pre-commit eval gate — block pushes to `server.js` if eval pass rate drops below threshold
+- [ ] Feedback-driven eval capture — thumbs-down auto-appends full run trace to `evals/failures.jsonl`
+
+**Observability — Enhancements (Stage 6 of Agentic AI PM Framework):**
+- [ ] Admin dashboard tab (`?view=admin`) — total runs, intent distribution, avg confidence, avg latency, fallback rate, top unanswered questions
+- [ ] Time-to-Insight session metric — log session start → first insight action; display "Time saved vs. manual: ~Xhr" in UI
+- [ ] "Did this help you make a decision?" outcome prompt — yes / no / opened full report; log outcome rate; target ≥60% "Yes"
+
+---
+
+### Phase 3 — Decision Intelligence (Q4 2026)
+
+> Framework reference: Agentic AI PM Framework Stage 6–7 (Observability, Self-Improvement) → L4 Adaptive agent
+
+**Self-Improvement Loop (Stage 7 of Agentic AI PM Framework):**
+- [ ] Fallback mining — weekly `scripts/fallback-report.mjs` clusters unanswered questions by similarity; top 10 become next sprint's new chat intents
+- [ ] KB gap detection — tag concept-type fallbacks separately; auto-expand `ISC_FORECAST_KB` from real usage signals
+- [ ] Quality review loop — `scripts/quality-review.mjs` outputs Markdown report of all thumbs-down runs with full trace; "Fix rate" KPI: % of thumbs-down issues resolved within 1 week
+- [ ] `insight → action → outcome` schema — capture what action PM took after each insight, and what the outcome was; seed future recommendations with most-actioned patterns (memory moat)
+
+**Cost / Outcome Tracking (Stage 6 of Agentic AI PM Framework):**
+- [ ] Token cost tracking per insight — when Granite is wired, log `tokensUsed` + `estimatedCostUSD`; display in run trace panel
+- [ ] ROI dashboard — cumulative "Session cost" vs "Estimated value delivered" ($35/insight manual baseline from README)
+- [ ] North Star metric dashboard — track "Time-to-Action" reduction vs 2–4 hr manual baseline; target <4 min per insight
+
+**Scale & Multi-Agent:**
+- [ ] watsonx Orchestrate multi-agent routing — PM Report Agent + Chat Agent + GTM Agent coordinated
+- [ ] PPT/MBR/QBR auto-generation — export PM Report as PowerPoint via python-pptx or similar
+- [ ] Granite LLM fine-tune on feedback memory — use `insight → action → outcome` data to improve recommendation quality
+
+---
+
+### Immediate next steps (current sprint):
 - [x] Data path configurable via `DATA_DIR` env var — no code changes needed to use different data
+- [x] ISC forecasting & sales stage knowledge base in chat agent
+- [x] Per-run trace object in `/api/chat` response (intent, filters, latency, records scanned)
+- [x] `agent-runs.jsonl` run log — persistent per-session logging
+- [x] Confidence badge in chat UI (color-coded: green/amber/red)
+- [x] Collapsible trace panel per chat bubble
+- [ ] Deploy to IBM Cloud (pending paid account / Code Engine access)
+- [ ] Connect Box folder for automated weekly Excel ingestion
+- [ ] GTM Agent — routes KPI insight → recommended GTM motion
 
 ---
 
