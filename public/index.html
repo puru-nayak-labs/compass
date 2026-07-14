@@ -73,6 +73,94 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 .es-copy,.es-close{background:transparent;border:1px solid var(--bdr2);color:var(--muted);
                    padding:7px 16px;border-radius:4px;font-size:11px;cursor:pointer}
 
+/* About overlay */
+.ab-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
+        max-width:760px;width:90%;max-height:90vh;overflow-y:auto;
+        box-shadow:0 4px 24px rgba(0,0,0,.14);overflow-x:hidden}
+.ab-hero{background:#0f62fe;color:#fff;padding:22px 26px 18px}
+.ab-hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.ab-hero-brand{display:flex;align-items:center;gap:10px}
+.ab-ibm{background:#fff;color:#0f62fe;font-size:10px;font-weight:700;letter-spacing:2px;padding:3px 7px;border-radius:2px;flex-shrink:0}
+.ab-title{font-size:15px;font-weight:700;line-height:1.2}
+.ab-ver{background:rgba(255,255,255,.2);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.5px;margin-top:4px;display:inline-block}
+.ab-close-x{background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0}
+.ab-hero-def{font-size:12px;line-height:1.65;opacity:.9;max-width:640px;margin-bottom:14px}
+.ns-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.ns-kpi{background:rgba(0,0,0,.18);padding:9px 10px;text-align:center}
+.ns-kpi-num{font-size:18px;font-weight:700;line-height:1;display:block;margin-bottom:3px}
+.ns-kpi-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.8px;opacity:.7;line-height:1.3}
+.ns-goal{background:rgba(255,255,255,.12);padding:8px 12px;display:flex;align-items:center;gap:8px;margin-top:2px}
+.ns-goal-text{font-size:11px;opacity:.9;line-height:1.5}
+.ab-body{padding:18px 24px 20px}
+.ab-sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);
+        padding:5px 0 7px;border-bottom:1px solid var(--bdr);margin-bottom:11px;margin-top:18px}
+.ab-chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+.ab-chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:10px;border:1.5px solid;line-height:1.4}
+.ab-cy{background:rgba(25,128,56,.08);color:var(--green);border-color:rgba(25,128,56,.3)}
+.ab-cp{background:rgba(178,134,0,.08);color:var(--yellow);border-color:rgba(178,134,0,.3)}
+.ab-cf{background:rgba(105,41,196,.07);color:var(--purple);border-color:rgba(105,41,196,.25)}
+.ab-cn{background:rgba(141,145,153,.08);color:var(--dim);border-color:var(--bdr2)}
+.ab-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.ab-ps{border:1px solid var(--bdr);border-radius:6px;padding:10px 13px}
+.ab-ps-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.ab-ps.prob .ab-ps-lbl{color:var(--red)}.ab-ps.sol .ab-ps-lbl{color:var(--green)}
+.ab-ps ul{list-style:none;padding:0}
+.ab-ps li{font-size:11px;color:var(--muted);padding:3px 0;display:flex;gap:6px;line-height:1.4;border-bottom:1px solid var(--bdr)}
+.ab-ps li:last-child{border-bottom:none}
+.ab-ps.prob li::before{content:"✗";color:var(--red);font-size:10px;flex-shrink:0;margin-top:1px}
+.ab-ps.sol  li::before{content:"✓";color:var(--green);font-size:10px;flex-shrink:0;margin-top:1px}
+.ab-vs{width:100%;border-collapse:collapse;font-size:11px}
+.ab-vs thead tr{background:var(--text);color:#fff}
+.ab-vs thead th{padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.ab-vs tbody tr{border-bottom:1px solid var(--bdr)}
+.ab-vs tbody tr:last-child{border-bottom:none}
+.ab-vs tbody tr.ab-cr{background:rgba(15,98,254,.04)}
+.ab-vs td{padding:6px 8px;vertical-align:top;line-height:1.4;color:var(--muted)}
+.ab-vs td:first-child{font-weight:700;color:var(--text);white-space:nowrap}
+.ab-vs td.ab-cc{color:var(--blue);font-weight:600}
+.ab-dg::before{content:"● ";color:var(--green);font-size:9px}
+.ab-dy::before{content:"● ";color:var(--yellow);font-size:9px}
+.ab-dr::before{content:"● ";color:var(--red);font-size:9px}
+.ab-arch{background:var(--sur);border:1px solid var(--bdr);border-radius:6px;padding:10px 8px 6px;overflow:hidden}
+.ab-arch svg{display:block;width:100%;height:auto}
+.ab-tp-row{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 4px}
+.ab-tp{font-size:9px;font-weight:600;padding:2px 8px;border-radius:8px;border:1px solid;white-space:nowrap}
+.ab-tp-node{background:rgba(25,128,56,.07);color:var(--green);border-color:rgba(25,128,56,.2)}
+.ab-tp-ibm{background:rgba(15,98,254,.07);color:var(--blue);border-color:rgba(15,98,254,.2)}
+.ab-tp-chart{background:rgba(178,134,0,.07);color:var(--yellow);border-color:rgba(178,134,0,.2)}
+.ab-tp-vanilla{background:rgba(141,145,153,.08);color:var(--dim);border-color:var(--bdr2)}
+.ab-tp-future{background:rgba(105,41,196,.06);color:var(--purple);border-color:rgba(105,41,196,.2);opacity:.75}
+.ab-three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ab-rc{border:1px solid var(--bdr);border-radius:6px;padding:10px 12px}
+.ab-rbdg{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:2px 6px;border-radius:8px;margin-bottom:6px;display:inline-block}
+.ab-rc-title{font-size:11px;font-weight:700;margin-bottom:3px}
+.ab-rc-desc{font-size:10px;color:var(--muted);line-height:1.5}
+.ab-rc-verdict{font-size:10px;font-weight:700;margin-top:5px}
+.ab-mem{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ab-mc{border:1px solid var(--bdr);border-radius:6px;padding:10px 12px}
+.ab-mbdg{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:2px 6px;border-radius:8px;margin-bottom:6px;display:inline-block}
+.ab-mc-title{font-size:11px;font-weight:700;margin-bottom:3px}
+.ab-mc-desc{font-size:10px;color:var(--muted);line-height:1.5}
+.ab-abar{display:flex;gap:0;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;margin-bottom:6px}
+.ab-astep{flex:1;padding:7px 4px;text-align:center;font-size:9px;font-weight:600;border-right:1px solid var(--bdr);line-height:1.4}
+.ab-astep:last-child{border-right:none}
+.ab-astep .ab-asn{font-size:14px;font-weight:700;display:block;margin-bottom:2px}
+.ab-a-done{background:rgba(25,128,56,.08);color:var(--green)}
+.ab-a-cur{background:rgba(15,98,254,.1);color:var(--blue)}
+.ab-a-next{background:rgba(178,134,0,.07);color:var(--yellow)}
+.ab-a-fut{background:rgba(105,41,196,.05);color:var(--purple);opacity:.5}
+.ab-ver-wrap{border:1px solid var(--bdr);border-radius:6px;overflow:hidden}
+.ab-ver-row{display:grid;grid-template-columns:52px 68px 1fr;border-bottom:1px solid var(--bdr)}
+.ab-ver-row:last-child{border-bottom:none}
+.ab-vv{padding:6px 8px;font-size:10px;font-weight:700;color:var(--blue);background:rgba(15,98,254,.04);border-right:1px solid var(--bdr)}
+.ab-vd{padding:6px 8px;font-size:10px;color:var(--muted);border-right:1px solid var(--bdr)}
+.ab-vn{padding:6px 9px;font-size:10px;color:var(--text);line-height:1.5}
+.ab-ver-row.ab-vcur .ab-vv{color:#fff;background:var(--blue)}
+.ab-footer-row{display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:12px;border-top:1px solid var(--bdr);flex-wrap:wrap;gap:8px}
+.ab-link-btn{background:transparent;border:1px solid var(--bdr2);color:var(--muted);padding:6px 13px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer}
+.ab-link-btn:hover{border-color:var(--blue);color:var(--blue)}
+.ab-close-btn{background:var(--blue);border:none;color:#fff;padding:7px 22px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}
+
 /* Roadmap overlay */
 .rm-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;
         padding:28px 32px;max-width:760px;width:90%;max-height:86vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.12)}
@@ -294,6 +382,166 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
   </div>
 </div>
 
+<!-- About overlay -->
+<div id="ab-overlay" class="overlay">
+  <div class="ab-box">
+    <div class="ab-hero">
+      <div class="ab-hero-top">
+        <div class="ab-hero-brand">
+          <span class="ab-ibm">IBM</span>
+          <div>
+            <div class="ab-title">Compass &mdash; TLS Performance Intelligence Agent</div>
+            <span class="ab-ver">v1.6 &nbsp;&middot;&nbsp; Phase 1 Complete</span>
+          </div>
+        </div>
+        <button class="ab-close-x" onclick="closeOverlay('ab-overlay')">&times;</button>
+      </div>
+      <div class="ab-hero-def"><strong>IBM Compass</strong> is a purpose-built agentic intelligence system for IBM Technology Lifecycle Services Product Management. It ingests structured pipeline and revenue data, applies a real-time KPI aggregation engine across geographies, quarters, and offering areas, and delivers root-cause analysis, forecast intelligence, and GTM recommendations through a conversational, persona-driven interface &mdash; reducing time-to-action from 2&ndash;4 hours to under 4 minutes.</div>
+      <div class="ns-strip">
+        <div class="ns-kpi"><span class="ns-kpi-num">&lt;4 min</span><span class="ns-kpi-lbl">Time to Action<br>(from 2&ndash;4 hrs)</span></div>
+        <div class="ns-kpi"><span class="ns-kpi-num">30+</span><span class="ns-kpi-lbl">KPI API<br>Endpoints</span></div>
+        <div class="ns-kpi"><span class="ns-kpi-num">3</span><span class="ns-kpi-lbl">PM Personas<br>Analyst &middot; PM &middot; Leader</span></div>
+        <div class="ns-kpi"><span class="ns-kpi-num">97%</span><span class="ns-kpi-lbl">Max Confidence<br>Score</span></div>
+      </div>
+      <div class="ns-goal"><span class="ns-goal-text"><strong>North Star:</strong> Every IBMer in TLS PM can open Compass, ask a question about pipeline, signings, revenue, or forecast &mdash; and act on the answer in under 4 minutes, with no Excel, no BA, no waiting.</span></div>
+    </div>
+    <div class="ab-body">
+      <div class="ab-sec">What Kind of System Is This?</div>
+      <div class="ab-chip-row">
+        <span class="ab-chip ab-cy">Context-Aware Agent</span>
+        <span class="ab-chip ab-cy">Session Memory</span>
+        <span class="ab-chip ab-cy">Rule-Based KPI Engine</span>
+        <span class="ab-chip ab-cy">ISC Domain Knowledge Base</span>
+        <span class="ab-chip ab-cy">Observability Traces</span>
+        <span class="ab-chip ab-cp">Single-Agent (Phase 1)</span>
+        <span class="ab-chip ab-cf">Multi-Agent (Phase 2)</span>
+        <span class="ab-chip ab-cf">Granite LLM (Phase 2)</span>
+        <span class="ab-chip ab-cn">Vector DB / Semantic RAG</span>
+        <span class="ab-chip ab-cn">General-purpose chatbot</span>
+      </div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:4px">The intelligence engine is <strong style="color:var(--text)">deterministic today</strong> &mdash; structured retrieval + regex-matched KB lookup + rule-based insight generation. Zero hallucination risk, fully auditable. Granite LLM and semantic RAG are additive layers for Phase 2.</p>
+      <div class="ab-sec">The Problem It Solves</div>
+      <div class="ab-two">
+        <div class="ab-ps prob"><div class="ab-ps-lbl">Before Compass</div><ul>
+          <li>1&ndash;2 days of manual BA pivot table work per cycle</li>
+          <li>Data pulled separately from EPM, ISC, Pipeline tools</li>
+          <li>No standard narrative &mdash; varies by analyst</li>
+          <li>Static Excel / PDF &mdash; no follow-up questions</li>
+          <li>No root cause, no recommended action surfaced</li>
+          <li>FLM forecast context (Call, Upside) not visible</li>
+        </ul></div>
+        <div class="ab-ps sol"><div class="ab-ps-lbl">With Compass</div><ul>
+          <li>KPI dashboard loads in &lt;2 seconds from JSON</li>
+          <li>Ask in plain English &mdash; geo, quarter, offering, stage</li>
+          <li>Root cause + YoY / QoQ context auto-generated</li>
+          <li>ISC forecast terms (Call, Upside, Best Case) understood</li>
+          <li>3 personas &mdash; each sees the right intel for their role</li>
+          <li>Every response traced, logged, and confidence-scored</li>
+        </ul></div>
+      </div>
+      <div class="ab-sec">How Is It Different?</div>
+      <table class="ab-vs">
+        <thead><tr><th>Tool</th><th>Natural Language</th><th>Root Cause</th><th>ISC Domain Context</th><th>Session Memory</th><th>Time to Insight</th></tr></thead>
+        <tbody>
+          <tr class="ab-cr"><td>IBM Compass</td><td class="ab-dg ab-cc">Yes &mdash; chat agent</td><td class="ab-dg ab-cc">Yes &mdash; rule-based</td><td class="ab-dg ab-cc">Yes &mdash; built-in KB</td><td class="ab-dg ab-cc">Yes &mdash; per session</td><td class="ab-dg ab-cc">&lt;4 minutes</td></tr>
+          <tr><td>Excel / Pivot Tables</td><td class="ab-dr">No</td><td class="ab-dr">Manual only</td><td class="ab-dr">No</td><td class="ab-dr">No</td><td class="ab-dr">2&ndash;4 hours</td></tr>
+          <tr><td>Tableau / Power BI</td><td class="ab-dy">Limited NLQ</td><td class="ab-dr">No</td><td class="ab-dr">No</td><td class="ab-dr">No</td><td class="ab-dy">15&ndash;30 min setup</td></tr>
+          <tr><td>Generic LLM / ChatGPT</td><td class="ab-dg">Yes</td><td class="ab-dy">Hallucination risk</td><td class="ab-dr">No TLS / ISC data</td><td class="ab-dy">Context window only</td><td class="ab-dy">No live data</td></tr>
+          <tr><td>Salesforce / ISC Reports</td><td class="ab-dr">No</td><td class="ab-dr">No</td><td class="ab-dy">Data source only</td><td class="ab-dr">No</td><td class="ab-dr">1&ndash;2 hours</td></tr>
+        </tbody>
+      </table>
+      <div class="ab-sec">Architecture &amp; Tool Stack</div>
+      <div class="ab-tp-row">
+        <span class="ab-tp ab-tp-node">Node.js 20 + Express</span>
+        <span class="ab-tp ab-tp-vanilla">Vanilla JS SPA</span>
+        <span class="ab-tp ab-tp-chart">Chart.js 4</span>
+        <span class="ab-tp ab-tp-ibm">IBM Carbon Design</span>
+        <span class="ab-tp ab-tp-ibm">IBM Container Registry</span>
+        <span class="ab-tp ab-tp-ibm">IBM Code Engine (target)</span>
+        <span class="ab-tp ab-tp-node">In-memory JSON &mdash; no DB</span>
+        <span class="ab-tp ab-tp-future">watsonx.ai Granite (Phase 2)</span>
+        <span class="ab-tp ab-tp-future">watsonx Orchestrate (Phase 3)</span>
+      </div>
+      <div class="ab-arch">
+        <svg viewBox="0 0 700 210" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans',-apple-system,sans-serif">
+          <defs><marker id="abarr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#0f62fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="4" y="4" width="138" height="202" rx="4" fill="#f4f4f4" stroke="#e0e0e0"/><text x="73" y="18" text-anchor="middle" font-size="8" font-weight="700" fill="#525252" letter-spacing="1">DATA LAYER</text>
+          <rect x="11" y="24" width="124" height="26" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="73" y="36" text-anchor="middle" font-size="8" font-weight="700" fill="#161616">TLS Performance Data.xlsx</text><text x="73" y="46" text-anchor="middle" font-size="8" fill="#525252">Bob read_xlsx &#8594; JSON dumps</text>
+          <rect x="11" y="56" width="124" height="18" rx="3" fill="rgba(15,98,254,.07)" stroke="rgba(15,98,254,.2)"/><text x="73" y="69" text-anchor="middle" font-size="8" font-weight="600" fill="#0f62fe">Pipeline.json &amp; Revenue.json</text>
+          <rect x="11" y="80" width="124" height="18" rx="3" fill="rgba(25,128,56,.07)" stroke="rgba(25,128,56,.2)"/><text x="73" y="93" text-anchor="middle" font-size="8" font-weight="600" fill="#198038">agent-runs.jsonl (run log)</text>
+          <rect x="11" y="104" width="124" height="32" rx="3" fill="rgba(105,41,196,.06)" stroke="rgba(105,41,196,.2)"/><text x="73" y="117" text-anchor="middle" font-size="8" font-weight="700" fill="#6929c4">ISC_FORECAST_KB</text><text x="73" y="128" text-anchor="middle" font-size="8" fill="#6929c4">Stages &middot; Categories &middot; FLM</text>
+          <rect x="11" y="142" width="124" height="24" rx="3" fill="rgba(178,134,0,.06)" stroke="rgba(178,134,0,.2)" stroke-dasharray="3 2"/><text x="73" y="154" text-anchor="middle" font-size="8" font-weight="600" fill="#b28600">watsonx.data (Phase 2)</text><text x="73" y="163" text-anchor="middle" font-size="8" fill="#b28600">Box auto-ingest</text>
+          <line x1="142" y1="106" x2="160" y2="106" stroke="#0f62fe" stroke-width="1.5" marker-end="url(#abarr)"/>
+          <rect x="162" y="4" width="148" height="202" rx="4" fill="#f4f4f4" stroke="#e0e0e0"/><text x="236" y="18" text-anchor="middle" font-size="8" font-weight="700" fill="#525252" letter-spacing="1">KPI ENGINE &middot; server.js</text>
+          <rect x="169" y="24" width="134" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="236" y="37" text-anchor="middle" font-size="8" font-weight="600" fill="#161616">filter() &middot; filterRev() &middot; sumBy()</text>
+          <rect x="169" y="48" width="134" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="236" y="61" text-anchor="middle" font-size="8" fill="#525252">/api/kpi/* (20+ endpoints)</text>
+          <rect x="169" y="72" width="134" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="236" y="85" text-anchor="middle" font-size="8" fill="#525252">/api/revenue/*</text>
+          <rect x="169" y="96" width="134" height="18" rx="3" fill="rgba(15,98,254,.07)" stroke="rgba(15,98,254,.2)"/><text x="236" y="109" text-anchor="middle" font-size="8" font-weight="600" fill="#0f62fe">/api/chat (session memory)</text>
+          <rect x="169" y="120" width="134" height="18" rx="3" fill="rgba(25,128,56,.07)" stroke="rgba(25,128,56,.2)"/><text x="236" y="133" text-anchor="middle" font-size="8" fill="#198038">/api/pm-report &middot; /api/insights</text>
+          <rect x="169" y="144" width="134" height="18" rx="3" fill="rgba(105,41,196,.06)" stroke="rgba(105,41,196,.2)"/><text x="236" y="157" text-anchor="middle" font-size="8" fill="#6929c4">/api/feedback &middot; logAgentRun()</text>
+          <line x1="310" y1="106" x2="328" y2="106" stroke="#0f62fe" stroke-width="1.5" marker-end="url(#abarr)"/>
+          <rect x="330" y="4" width="148" height="202" rx="4" fill="#f4f4f4" stroke="#e0e0e0"/><text x="404" y="18" text-anchor="middle" font-size="8" font-weight="700" fill="#525252" letter-spacing="1">INTELLIGENCE</text>
+          <rect x="337" y="24" width="134" height="30" rx="3" fill="rgba(15,98,254,.07)" stroke="rgba(15,98,254,.2)"/><text x="404" y="37" text-anchor="middle" font-size="8" font-weight="700" fill="#0f62fe">Chat Agent</text><text x="404" y="48" text-anchor="middle" font-size="8" fill="#0f62fe">Intent &middot; ISC KB &middot; Confidence</text>
+          <rect x="337" y="60" width="134" height="26" rx="3" fill="rgba(25,128,56,.07)" stroke="rgba(25,128,56,.2)"/><text x="404" y="72" text-anchor="middle" font-size="8" font-weight="700" fill="#198038">Insight Engine</text><text x="404" y="82" text-anchor="middle" font-size="8" fill="#198038">YoY &middot; QoQ &middot; Risk &middot; Anomaly</text>
+          <rect x="337" y="92" width="134" height="26" rx="3" fill="rgba(178,134,0,.08)" stroke="rgba(178,134,0,.3)"/><text x="404" y="104" text-anchor="middle" font-size="8" font-weight="700" fill="#b28600">Exec Narrative</text><text x="404" y="114" text-anchor="middle" font-size="8" fill="#b28600">Rule-based &#8594; Granite P2</text>
+          <rect x="337" y="124" width="134" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="404" y="137" text-anchor="middle" font-size="8" fill="#525252">PM Report Engine (9-tab)</text>
+          <rect x="337" y="148" width="134" height="26" rx="3" fill="rgba(105,41,196,.06)" stroke="rgba(105,41,196,.2)"/><text x="404" y="160" text-anchor="middle" font-size="8" font-weight="700" fill="#6929c4">Observability</text><text x="404" y="170" text-anchor="middle" font-size="8" fill="#6929c4">Trace &middot; Confidence &middot; Latency</text>
+          <line x1="478" y1="106" x2="496" y2="106" stroke="#0f62fe" stroke-width="1.5" marker-end="url(#abarr)"/>
+          <rect x="498" y="4" width="198" height="202" rx="4" fill="#f4f4f4" stroke="#e0e0e0"/><text x="597" y="18" text-anchor="middle" font-size="8" font-weight="700" fill="#525252" letter-spacing="1">PRESENTATION &middot; index.html</text>
+          <rect x="505" y="24" width="184" height="18" rx="3" fill="rgba(15,98,254,.07)" stroke="rgba(15,98,254,.2)"/><text x="597" y="37" text-anchor="middle" font-size="9" font-weight="600" fill="#0f62fe">Analyst View</text>
+          <rect x="505" y="48" width="184" height="18" rx="3" fill="rgba(25,128,56,.07)" stroke="rgba(25,128,56,.2)"/><text x="597" y="61" text-anchor="middle" font-size="9" font-weight="600" fill="#198038">Product Manager View (9-tab)</text>
+          <rect x="505" y="72" width="184" height="18" rx="3" fill="rgba(178,134,0,.08)" stroke="rgba(178,134,0,.3)"/><text x="597" y="85" text-anchor="middle" font-size="9" font-weight="600" fill="#b28600">Portfolio Leader View</text>
+          <rect x="505" y="96" width="184" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="597" y="109" text-anchor="middle" font-size="8" fill="#525252">Right Intel Panel + Chat + Run Trace</text>
+          <rect x="505" y="120" width="184" height="18" rx="3" fill="#fff" stroke="#e0e0e0"/><text x="597" y="133" text-anchor="middle" font-size="8" fill="#525252">Chart.js 4 &mdash; Trend / Bar / Line</text>
+          <rect x="505" y="144" width="88" height="18" rx="3" fill="rgba(105,41,196,.06)" stroke="rgba(105,41,196,.2)"/><text x="549" y="157" text-anchor="middle" font-size="8" fill="#6929c4">Feedback Loop</text>
+          <rect x="599" y="144" width="88" height="18" rx="3" fill="rgba(105,41,196,.06)" stroke="rgba(105,41,196,.2)"/><text x="643" y="157" text-anchor="middle" font-size="8" fill="#6929c4">Geo Hierarchy</text>
+          <rect x="505" y="168" width="184" height="18" rx="3" fill="rgba(15,98,254,.07)" stroke="rgba(15,98,254,.2)" stroke-dasharray="3 2"/><text x="597" y="181" text-anchor="middle" font-size="8" fill="#0f62fe">IBM Code Engine + ICR (deploy target)</text>
+        </svg>
+      </div>
+      <div class="ab-sec">Data Retrieval &mdash; RAG vs Vector</div>
+      <div class="ab-three">
+        <div class="ab-rc"><span class="ab-rbdg" style="background:rgba(25,128,56,.1);color:var(--green)">Today &mdash; Active</span><div class="ab-rc-title">Structured Retrieval</div><div class="ab-rc-desc">Deterministic filter functions on in-memory JSON. Exact filter &rarr; exact aggregation. No embeddings.</div><div class="ab-rc-verdict" style="color:var(--green)">Zero hallucination. &lt;50ms.</div></div>
+        <div class="ab-rc"><span class="ab-rbdg" style="background:rgba(15,98,254,.1);color:var(--blue)">Today &mdash; Active</span><div class="ab-rc-title">Rule-Based KB Lookup</div><div class="ab-rc-desc">ISC_FORECAST_KB matched via regex intent detection. Functionally equivalent to RAG &mdash; no vector overhead.</div><div class="ab-rc-verdict" style="color:var(--blue)">Fully auditable. Deterministic.</div></div>
+        <div class="ab-rc" style="opacity:.65;border-style:dashed"><span class="ab-rbdg" style="background:rgba(105,41,196,.08);color:var(--purple)">Phase 2 &mdash; Planned</span><div class="ab-rc-title">Semantic RAG + Vector</div><div class="ab-rc-desc">Granite + watsonx.data vector store for unstructured intel. Milvus engine.</div><div class="ab-rc-verdict" style="color:var(--purple)">Phase 2 only.</div></div>
+      </div>
+      <div class="ab-sec">Memory Layers</div>
+      <div class="ab-mem">
+        <div class="ab-mc"><span class="ab-mbdg" style="background:rgba(15,98,254,.1);color:var(--blue)">Session</span><div class="ab-mc-title">Chat Context</div><div class="ab-mc-desc">Geo, quarter, OA persist across turns. Unique ID per tab. Resets on new session.</div></div>
+        <div class="ab-mc"><span class="ab-mbdg" style="background:rgba(105,41,196,.1);color:var(--purple)">Knowledge</span><div class="ab-mc-title">ISC Forecast KB</div><div class="ab-mc-desc">Sales stages, forecast categories, FLM Judgement baked in. Updated each sprint.</div></div>
+        <div class="ab-mc"><span class="ab-mbdg" style="background:rgba(25,128,56,.1);color:var(--green)">Run Log</span><div class="ab-mc-title">agent-runs.jsonl</div><div class="ab-mc-desc">Every chat logged: intent, confidence, latency, fallback. Seeds eval suite.</div></div>
+        <div class="ab-mc"><span class="ab-mbdg" style="background:rgba(178,134,0,.12);color:var(--yellow)">Data</span><div class="ab-mc-title">In-Memory JSON</div><div class="ab-mc-desc">Pipeline + Revenue loaded at startup. No DB round-trips. &lt;50ms per query.</div></div>
+        <div class="ab-mc"><span class="ab-mbdg" style="background:rgba(218,30,40,.1);color:var(--red)">Feedback</span><div class="ab-mc-title">Thumbs up / down</div><div class="ab-mc-desc">Feedback + run trace on thumbs-down. Phase 3: insight&rarr;action&rarr;outcome schema.</div></div>
+        <div class="ab-mc" style="opacity:.5;border-style:dashed"><span class="ab-mbdg" style="background:rgba(105,41,196,.08);color:var(--purple)">Phase 3</span><div class="ab-mc-title">LLM Memory</div><div class="ab-mc-desc">Granite fine-tune on feedback. Outcome-weighted recommendations.</div></div>
+      </div>
+      <div class="ab-sec">Agenticity Level</div>
+      <div class="ab-abar">
+        <div class="ab-astep ab-a-done"><span class="ab-asn">L1</span>Reactive<br><span style="font-weight:400;font-size:8px">Chatbot</span></div>
+        <div class="ab-astep ab-a-cur"><span class="ab-asn">L2</span>Augmented<br><span style="font-weight:400;font-size:8px">Compass now</span></div>
+        <div class="ab-astep ab-a-next"><span class="ab-asn">L3</span>Orchestrated<br><span style="font-weight:400;font-size:8px">Phase 2</span></div>
+        <div class="ab-astep ab-a-fut"><span class="ab-asn">L4</span>Adaptive<br><span style="font-weight:400;font-size:8px">Phase 3</span></div>
+        <div class="ab-astep ab-a-fut"><span class="ab-asn">L5</span>Autonomous<br><span style="font-weight:400;font-size:8px">North Star</span></div>
+      </div>
+      <p style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:4px"><strong style="color:var(--text)">L2 Augmented</strong> &mdash; structured retrieval + bounded KB + session-aware chat + observability. Phase 2 &rarr; <strong style="color:var(--yellow)">L3 Orchestrated</strong>. Phase 3 &rarr; <strong style="color:var(--purple)">L4 Adaptive</strong>.</p>
+      <div class="ab-sec">Version History</div>
+      <div class="ab-ver-wrap">
+        <div class="ab-ver-row ab-vcur"><div class="ab-vv">v1.6</div><div class="ab-vd">Jul 2026</div><div class="ab-vn"><strong>Observability Foundation</strong> &mdash; per-run trace panel, agent-runs.jsonl, confidence badge, collapsible run trace in chat UI</div></div>
+        <div class="ab-ver-row"><div class="ab-vv">v1.5</div><div class="ab-vd">Jul 2026</div><div class="ab-vn"><strong>ISC Knowledge Layer</strong> &mdash; ISC_FORECAST_KB: sales stage objectives, forecast categories, FLM Judgement, Manager's Call</div></div>
+        <div class="ab-ver-row"><div class="ab-vv">v1.3</div><div class="ab-vd">Jul 2026</div><div class="ab-vn"><strong>PM Report + Portfolio Leader</strong> &mdash; 9-tab PM report, geo intel, industry/channel/segment analysis</div></div>
+        <div class="ab-ver-row"><div class="ab-vv">v1.2</div><div class="ab-vd">Jul 2026</div><div class="ab-vn"><strong>Revenue Actuals Layer</strong> &mdash; real revenue data, Direct vs Ecosystem split, Revenue vs Signings trend</div></div>
+        <div class="ab-ver-row"><div class="ab-vv">v1.1</div><div class="ab-vd">Jul 2026</div><div class="ab-vn"><strong>Chat Agent + Intelligence Panel</strong> &mdash; session-aware chat, geo/quarter/OA memory, Highlights / Focus / Actions panel</div></div>
+        <div class="ab-ver-row"><div class="ab-vv">v1.0</div><div class="ab-vd">Jun 2026</div><div class="ab-vn"><strong>MVP Launch</strong> &mdash; KPI engine, pipeline/signings/win-rate tiles, Chart.js trends, tabular drill-down, Analyst persona</div></div>
+      </div>
+      <div class="ab-footer-row">
+        <div style="display:flex;gap:8px">
+          <button class="ab-link-btn" onclick="closeOverlay('ab-overlay');openRoadmap()">&#128204; View Roadmap</button>
+          <button class="ab-link-btn" onclick="closeOverlay('ab-overlay');openFeedbackLog()">&#128172; Feedback</button>
+        </div>
+        <button class="ab-close-btn" onclick="closeOverlay('ab-overlay')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="fbc-overlay" class="overlay">
   <div class="fb-box">
     <h2>Feedback</h2>
@@ -333,6 +581,7 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
   <span class="ldot" style="margin-left:14px"></span>
   <span id="h-data-dates" style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap">Pipeline Data &middot; &hellip; &nbsp;|&nbsp; Revenue Data &middot; &hellip;</span>
   <div class="h-right">
+    <button class="h-action-btn" onclick="openAbout()">&#8505; About</button>
     <button class="h-action-btn" onclick="openRoadmap()">&#128204; Roadmap</button>
     <button class="h-action-btn" onclick="openFeedbackLog()">&#128172; Feedback</button>
   </div>
@@ -1066,6 +1315,7 @@ function kdEl(v, pts=false) {
 
 // Overlay helpers
 function closeOverlay(id) { $(id).classList.remove("show"); }
+function openAbout()      { $("ab-overlay").classList.add("show"); }
 function openRoadmap()    { $("rm-overlay").classList.add("show"); }
 function openFeedbackLog() {
   fetch("/api/feedback").then(r=>r.json()).then(rows => {
