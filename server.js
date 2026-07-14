@@ -1242,6 +1242,166 @@ app.get("/api/insights", (req, res) => {
 // ─── POST /api/chat — context-aware Q&A with session memory ─────────────────
 const chatSessions = {};
 
+// ── ISC Forecasting & Sales Stage Knowledge Base ─────────────────────────────
+// Source: IBM ISC internal documentation on Forecasting and Sales Stages.
+const ISC_FORECAST_KB = {
+  overview: `IBM ISC Forecasting is the current assessment of an opportunity's likelihood of being won, using three key characteristics: close date, amount, and sales stage. A single opportunity owner controls one close date and one stage for the entire opportunity — this is the "1 customer decision = 1 opportunity = 1 owner" principle.`,
+
+  forecastCategories: {
+    Omitted:   { stages: ["Engage"],              description: "Opportunities in the Engage sales stage. Not yet qualified — excluded from forecast." },
+    Pipeline:  { stages: ["Qualified","Design"],  description: "Opportunities in Qualified and Design stages. In active pursuit but not yet proposed." },
+    BestCase:  { stages: ["Propose","Negotiate"], description: "Opportunities in Propose and Negotiate stages. Likely to close but not yet committed." },
+    Commit:    { stages: ["Closing"],             description: "Opportunities in the Closing stage. High-confidence, near-term close expected." },
+    Closed:    { stages: ["Won"],                 description: "Opportunities in the Won stage. Deal is signed and booked." },
+  },
+
+  salesStages: {
+    Prepare:   "Prepare for success by defining goals, strategies, and tactics (including knowledge and skills required) to successfully meet or exceed defined performance metrics. Pre-pipeline planning stage.",
+    Engage:    "Activate your Territory/Account Plan; engage prospects and clients to identify or co-create opportunities to improve client performance or uncover challenges IBM can win. Forecast Category: Omitted.",
+    Qualify:   "Determine which opportunities are worth IBM investment (we can compete and win) and qualify out those which are not. Forecast Category: Pipeline.",
+    Design:    "Clearly articulate a deep understanding of the business challenge, its impact, and complete requirements to fulfill the vision and value co-created with the client. Prove IBM's solution uniquely achieves the client's strategic objective and establishes emotional vendor preference. Forecast Category: Pipeline.",
+    Propose:   "Gain agreement and acceptance from the client on the unique solution, implementation plan, targeted timeline, potential business value, and financial investment required. Forecast Category: Best Case.",
+    Closing:   "Ensure all roadblocks are cleared in the purchasing process and transition to CSM has begun. Finalize architecture, implementation plan, gain commitment to timeline. Forecast Category: Commit. Automatically included in Manager's Call.",
+    Deploy:    "Install/provision, solution build, test, go live, onboard users, and ensure first usage. Post-signature delivery stage.",
+    Adopt:     "Drive adoption and confirm value realized. Post-delivery success stage.",
+    ConfirmExpand: "Confirm business value and identify opportunities to expand. Renewal and growth stage.",
+    Won:       "Deal signed and booked. Included in Manager's Call. Forecast Category: Closed.",
+    Lost:      "Opportunity was lost to competition or no-decision.",
+  },
+
+  salesStageObjectives: {
+    Prepare:   "Define goals, strategies, and tactics. Build knowledge and skills required to meet or exceed performance metrics. Activate territory and account plans.",
+    Engage:    "Activate Territory Plan / Account Plan. Engage prospects and clients to identify or co-create opportunities. Uncover challenges IBM can solve and generate qualified opportunities.",
+    Qualify:   "Determine which opportunities merit IBM investment — can we compete and win? Qualify out opportunities that don't meet the bar. Confirm budget, need, decision-maker, and timeline.",
+    Design:    "Articulate deep understanding of the client's business challenge and its organizational impact. Complete requirements gathering. Prove IBM's solution uniquely achieves the client's strategic objective. Establish emotional vendor preference.",
+    Propose:   "Gain client agreement and acceptance on: the unique solution, implementation plan, targeted timeline, potential business value, and financial investment required.",
+    Closing:   "Clear all purchasing roadblocks. Begin transition to CSM. Finalize architecture and implementation plan. Gain commitment to timeline. Ensure contracting is progressing.",
+    Deploy:    "Install and provision the solution. Execute solution build and testing. Go live. Onboard users. Ensure first usage and early adoption.",
+    Adopt:     "Drive user adoption. Confirm value is being realized by the client. Address any adoption barriers.",
+    ConfirmExpand: "Confirm business value delivered. Identify and qualify opportunities to expand the relationship, cross-sell, or upsell.",
+  },
+
+  forecastGroupings: {
+    "Stretch":       "Opportunities in Engage, Qualified, and Design stages where the FLM has NOT applied Forecast Judgement. Longest-range view of potential.",
+    "Upside":        "Opportunities in Propose or Negotiate stages where the FLM has NOT applied Forecast Judgement. Could close but not committed.",
+    "Call":          "Opportunities in Closing or Won stages, OR where the FLM HAS applied Forecast Judgement. This is the manager's committed forecast number.",
+    "Open Pipeline": "All active opportunities from Engage through Closing.",
+    "Qualify+":      "All opportunities from Qualify stage through Closing.",
+    "Propose+":      "All opportunities from Propose stage through Closing.",
+    "Negotiate+":    "Opportunities in Negotiate and Closing stages only.",
+  },
+
+  flmJudgement: `The First Line Manager (FLM) can pull any opportunity into their Call by checking the "FLM Forecast Judgement" checkbox — without changing the sales stage. Example: a seller has an opp in Negotiate (Best Case category) that both seller and manager agree will close. The FLM checks Forecast Judgement to add it to the Call. The FLM can also uncheck it to remove opps from Call — except if the opp is already in Closing or Won stage, which are always in Call.`,
+
+  managerCall: `The Manager's Call is the key forecast commitment metric. It includes all opportunities in Closing or Won sales stages, PLUS any opportunity where the FLM has applied Forecast Judgement. It represents the manager's high-confidence revenue number for the period.`,
+
+  buDisagreement: `If a stakeholder disagrees with the forecast put forward by the opportunity owner, they can record a "BU Disagreement on Forecast" Roadblock on the opportunity. This does not change the stage — it flags the disagreement for management visibility.`,
+
+  singleOwnership: `IBM ISC uses the principle of Single Opportunity Ownership: one customer decision = one opportunity = one opportunity owner. The owner controls the close date and sales stage. Multiple sellers and products can be associated with one opportunity, but the owner's stage drives the forecast category.`,
+};
+
+// Helper: answer a forecast/stage concept question from the KB
+function answerForecastQuestion(msg) {
+  const m = msg.toLowerCase();
+
+  // Forecast category mapping questions
+  if (/best.?case/.test(m)) {
+    const fc = ISC_FORECAST_KB.forecastCategories.BestCase;
+    return `**Best Case** is a Forecast Category in IBM ISC.\n\n` +
+      `• **Stages included:** ${fc.stages.join(", ")}\n` +
+      `• **Meaning:** ${fc.description}\n\n` +
+      `Best Case opps are active pursuits with a formal proposal submitted or in negotiation. They could close this quarter but are not yet committed. The FLM can promote a Best Case opp into the **Call** by applying Forecast Judgement.`;
+  }
+  if (/\bcommit\b/.test(m) && !/pipeline|signing|revenue/.test(m)) {
+    const fc = ISC_FORECAST_KB.forecastCategories.Commit;
+    return `**Commit** is a Forecast Category in IBM ISC.\n\n` +
+      `• **Stages included:** ${fc.stages.join(", ")}\n` +
+      `• **Meaning:** ${fc.description}\n\n` +
+      `All Commit opps are automatically included in the Manager's Call. These are deals in final contracting — high confidence, near-term close expected.`;
+  }
+  if (/\bupside\b/.test(m)) {
+    return `**Upside** is a Forecast Grouping in IBM ISC.\n\n` +
+      `• **Definition:** ${ISC_FORECAST_KB.forecastGroupings["Upside"]}\n\n` +
+      `Upside represents opportunities that could potentially close and improve the quarter's number, but are not yet in the committed Call. FLMs watch Upside closely to decide whether to apply Forecast Judgement and pull them into Call.`;
+  }
+  if (/\bstretch\b/.test(m)) {
+    return `**Stretch** is a Forecast Grouping in IBM ISC.\n\n` +
+      `• **Definition:** ${ISC_FORECAST_KB.forecastGroupings["Stretch"]}\n\n` +
+      `Stretch covers the earliest-stage opps (Engage, Qualify, Design) without FLM Judgement. It represents the longest-range potential pipeline — useful for capacity planning but not included in near-term forecast.`;
+  }
+  if (/\bthe call\b|\bmanager.?s? call\b|\bflm call\b|\bforecast call\b/.test(m)) {
+    return `**The Manager's Call** is the key forecast commitment metric in IBM ISC.\n\n` +
+      `${ISC_FORECAST_KB.managerCall}\n\n` +
+      `${ISC_FORECAST_KB.flmJudgement}`;
+  }
+  // Individual stage objective questions: "what is the objective of Design", "explain Closing stage", etc.
+  const stageNames = Object.keys(ISC_FORECAST_KB.salesStageObjectives);
+  for (const stage of stageNames) {
+    if (new RegExp(`\\b${stage.toLowerCase()}\\b`).test(m) &&
+        /objective|goal|purpose|mean|explain|what is|what does|describe/.test(m)) {
+      const stageKey = stage === "ConfirmExpand" ? "Confirm & Expand" : stage;
+      const def = ISC_FORECAST_KB.salesStages[stage];
+      const obj = ISC_FORECAST_KB.salesStageObjectives[stage];
+      return `**${stageKey} Stage — IBM ISC Sales Process**\n\n` +
+        `**Definition:** ${def}\n\n` +
+        `**Objective:** ${obj}`;
+    }
+  }
+  if (/flm.?judgement|forecast.?judgement|judgement/.test(m)) {
+    return `**FLM Forecast Judgement** — ${ISC_FORECAST_KB.flmJudgement}`;
+  }
+  if (/sales.?stage|what.?stage|stage.?mean|explain.*stage|stage.*objective/.test(m)) {
+    const stages = Object.entries(ISC_FORECAST_KB.salesStages);
+    const objectives = ISC_FORECAST_KB.salesStageObjectives;
+    return `**IBM ISC Sales Stages** (full lifecycle):\n\n` +
+      stages.map(([s, d]) => {
+        const obj = objectives[s];
+        return `• **${s}:** ${d}${obj ? `\n  _Objective: ${obj}_` : ""}`;
+      }).join("\n\n") +
+      `\n\n**Forecast Category mapping:**\n` +
+      `• Prepare → (Pre-pipeline planning)\n` +
+      `• Engage → **Omitted**\n` +
+      `• Qualify, Design → **Pipeline**\n` +
+      `• Propose → **Best Case**\n` +
+      `• Closing → **Commit** (auto in Manager's Call)\n` +
+      `• Won → **Closed**\n` +
+      `• Deploy, Adopt, Confirm & Expand → (Post-signature delivery stages)`;
+  }
+  if (/forecast.?categor|categor.*forecast/.test(m)) {
+    const cats = Object.entries(ISC_FORECAST_KB.forecastCategories);
+    return `**IBM ISC Forecast Categories:**\n\n` +
+      cats.map(([cat, d]) => `• **${cat}:** Stages — ${d.stages.join(", ")}. ${d.description}`).join("\n") +
+      `\n\nThe opportunity owner's sales stage automatically determines the Forecast Category. It should not be manipulated to adjust the forecast number.`;
+  }
+  if (/single.?owner|opportunity.?owner|1.?owner|one.?owner/.test(m)) {
+    return `**Single Opportunity Ownership** — ${ISC_FORECAST_KB.singleOwnership}`;
+  }
+  if (/bu.?disagree|disagreement|roadblock/.test(m)) {
+    return `**BU Disagreement on Forecast** — ${ISC_FORECAST_KB.buDisagreement}`;
+  }
+  if (/qualify\+|propose\+|negotiate\+|open.?pipeline/.test(m)) {
+    const groupings = ISC_FORECAST_KB.forecastGroupings;
+    return `**IBM ISC Forecast Groupings:**\n\n` +
+      Object.entries(groupings).map(([g, d]) => `• **${g}:** ${d}`).join("\n");
+  }
+  // General "what is forecasting" / "explain forecast"
+  return `**IBM ISC Forecasting Overview:**\n\n${ISC_FORECAST_KB.overview}\n\n` +
+    `**Forecast Categories (driven by Sales Stage):**\n` +
+    `• Prepare → (Pre-pipeline planning — no forecast category)\n` +
+    `• Engage → **Omitted**\n` +
+    `• Qualify, Design → **Pipeline**\n` +
+    `• Propose → **Best Case**\n` +
+    `• Closing → **Commit** (auto in Manager's Call)\n` +
+    `• Won → **Closed**\n` +
+    `• Deploy / Adopt / Confirm & Expand → (Post-signature delivery stages)\n\n` +
+    `**Key forecast groupings:**\n` +
+    `• **Stretch** — Engage/Qualify/Design, no FLM Judgement (longest range)\n` +
+    `• **Upside** — Propose/Negotiate, no FLM Judgement (could close this quarter)\n` +
+    `• **Call** — Closing/Won OR FLM Judgement applied (committed number)\n\n` +
+    `${ISC_FORECAST_KB.managerCall}\n\n` +
+    `Ask me about a specific stage or category: "What is Best Case?", "What is Upside?", "What is the Call?", "Explain sales stages", "What is FLM Judgement?", or "What is the objective of the Design stage?"`;
+}
+
 // Derive the current IBM fiscal quarter from today's date (calendar quarters)
 function currentQuarter() {
   const now = new Date();
@@ -1485,13 +1645,38 @@ app.post("/api/chat", (req, res) => {
         `📊 By Geo:\n${byGeo.map(g=>`• ${g.geo}: ${fmt(g.val)}`).join("\n")}\n\n` +
         `DNSO opportunities: ${dnso}. Recommended action: Accelerate DNSO pipeline to ${byGeo[byGeo.length-1].geo} to close the gap.`;
     }
+  } else if (
+    /what\s+is\s+(a\s+)?(forecast|best.?case|commit|upside|stretch|the call|flm|sales.?stage|forecast.?categor|single.?owner|bu.?disagree|qualify\+|propose\+|negotiate\+)/i.test(msg) ||
+    /explain\s+(forecast|sales.?stage|best.?case|commit|upside|stretch|the call|flm.?judge)/i.test(msg) ||
+    /how\s+does\s+(forecast|sales.?stage|flm|the call)/i.test(msg) ||
+    (/forecast/.test(msg) && /categor|stage|call|judgement|upside|stretch|best.?case|commit|omit|explain|definition|mean|how/.test(msg)) ||
+    /\bflm.?judgement\b|\bforecast.?judgement\b/.test(msg) ||
+    /\bsales.?stages?\b/.test(msg) ||
+    /\bmanager.?s?\s+call\b/.test(msg) ||
+    /\bbu.?disagree\b/.test(msg) ||
+    /\bsingle.?owner\b/.test(msg)
+  ) {
+    // Forecasting / sales stage concept question — answer from ISC KB
+    response = answerForecastQuestion(msg);
+    intentMatched = true;
   } else if (msg.includes("forecast") || msg.includes("coverage")) {
     const total = recs.reduce((s,r)=>s+r.oppVal,0);
     const coverage = total > 0 ? (call/total)*100 : 0;
+    const commitStages = ["Closing","Won"];
+    const bestCaseStages = ["Propose","Negotiate"];
+    const pipelineStages = ["Qualified","Design"];
+    const commitVal  = recs.filter(r => commitStages.includes(r.stage)).reduce((s,r)=>s+r.oppVal,0);
+    const bestCaseVal= recs.filter(r => bestCaseStages.includes(r.stage)).reduce((s,r)=>s+r.oppVal,0);
+    const pipelineVal= recs.filter(r => pipelineStages.includes(r.stage)).reduce((s,r)=>s+r.oppVal,0);
     response = `**Forecast Coverage – ${scopeHeader}:**\n\n` +
-      `• Total Pipeline: ${fmt(total)}\n• Call (Commit): ${fmt(call)} (${pct(coverage)} coverage)\n` +
+      `• Total Pipeline: ${fmt(total)}\n` +
+      `• **Commit** (Closing): ${fmt(commitVal)}\n` +
+      `• **Best Case** (Propose/Negotiate): ${fmt(bestCaseVal)}\n` +
+      `• **Pipeline** (Qualified/Design): ${fmt(pipelineVal)}\n` +
+      `• Call (Commit + FLM Judgement): ${fmt(call)} (${pct(coverage)} of total pipeline)\n` +
       `• Upside: ${fmt(recs.reduce((s,r)=>s+r.upside,0))}\n\n` +
-      `${coverage < 50 ? "⚠️ Coverage below 50% — recommend pulling in Best Case opps to call." : "✅ Coverage is healthy."}`;
+      `${coverage < 50 ? "⚠️ Coverage below 50% — recommend FLM review of Best Case opps to pull into Call." : "✅ Coverage is healthy."}\n\n` +
+      `💡 *Forecast categories are driven by sales stage: Engage=Omitted, Qualified/Design=Pipeline, Propose/Negotiate=Best Case, Closing=Commit, Won=Closed.*`;
   } else if (msg.includes("focus") || msg.includes("priority") || msg.includes("action")) {
     if (isGeoSpecific) {
       const byOA = recs.reduce((acc, r) => {
@@ -1649,7 +1834,9 @@ app.post("/api/chat", (req, res) => {
       `• Call coverage: ${fmt(call)}\n` +
       `• Win rate: ${pct(winRate)} (${won.length} won / ${closed.length} closed)\n` +
       `• DNSO opportunities: ${dnso}\n\n` +
-      `I can answer questions about **pipeline, signings, win/loss rate, forecast coverage, revenue, geo growth, offering breakdown, top accounts**, or **where to focus**. Try being more specific — e.g. "Which geo grew fastest in Q2 2026?" or "How is PSI Americas signings this quarter?"`;
+      `I can answer questions about **pipeline, signings, win/loss rate, forecast coverage, revenue, geo growth, offering breakdown, top accounts**, or **where to focus**.\n\n` +
+      `I also understand IBM ISC forecasting concepts — try: "What is Best Case?", "What is the Call?", "Explain sales stages", "What is Upside?", or "What is FLM Judgement?"\n\n` +
+      `For data questions, try: "Which geo grew fastest in Q2 2026?" or "How is PSI Americas signings this quarter?"`;
   }
 
   // ── Enriched context: append QoQ / YoY / vs-WW / vs-target when the scope is specific ──
