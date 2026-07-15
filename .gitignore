@@ -2,11 +2,14 @@
 node_modules/
 npm-debug.log*
 
-# Bob internal — exclude everything except the data dumps the server needs
-.bob/
-!.bob/tmp/
-!.bob/tmp/xlsx-dumps/
-!.bob/tmp/xlsx-dumps/**
+# Bob internal — exclude everything INSIDE .bob except the data dumps the server needs
+# Note: exclude subdirs individually rather than .bob/ so negation exceptions work
+.bob/tmp/xlsx-dumps/*/manifest.json
+.bob/settings/
+.bob/cache/
+.bob/logs/
+.bob/skills/
+.bob/workspace/
 
 # OS
 .DS_Store
