@@ -1745,32 +1745,156 @@ app.post("/api/chat", (req, res) => {
         : `Top area by pipeline: **${oaRows[0]?.oa || "—"}** at ${fmt(oaRows[0]?.pipe || 0)}. Focus enablement on highest-pipeline areas with lowest win rates.`);
 
   } else if (msg.includes("revenue")) {
-    // Use Revenue Actuals data (phase 2) — real numbers from the Revenue tab
-    const revRecs  = filterRev({ geo, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined });
-    const revTotal = revRecs.reduce((s, r) => s + r.revActM, 0);
-    const revDirect= revRecs.filter(r => r.ecoVsDirect === "Direct").reduce((s, r) => s + r.revActM, 0);
-    const revEco   = revRecs.filter(r => r.ecoVsDirect === "Ecosystem").reduce((s, r) => s + r.revActM, 0);
+    // ── Rich revenue intelligence handler ─────────────────────────────────────
+    const revFilter = { geo, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined };
+    const revRecs   = filterRev(revFilter);
+    const revTotal  = revRecs.reduce((s, r) => s + r.revActM, 0);
+    const revDirect = revRecs.filter(r => r.ecoVsDirect === "Direct").reduce((s, r) => s + r.revActM, 0);
+    const revEco    = revRecs.filter(r => r.ecoVsDirect === "Ecosystem").reduce((s, r) => s + r.revActM, 0);
 
-    if (isGeoSpecific) {
-      const byOA = {};
-      for (const r of revRecs) {
-        if (!byOA[r.offeringArea]) byOA[r.offeringArea] = 0;
-        byOA[r.offeringArea] += r.revActM;
-      }
-      const topOA = Object.entries(byOA).sort((a,b)=>b[1]-a[1]).slice(0,4);
-      response = `**Revenue Actuals – ${scopeHeader}:** ${fmt(revTotal)}\n` +
-        `• Direct: ${fmt(revDirect)} · Ecosystem: ${fmt(revEco)}\n\n` +
-        (topOA.length ? `📊 By Offering Area:\n${topOA.map(([oa,v])=>`• ${oa||"Unknown"}: ${fmt(v)}`).join("\n")}\n\n` : "") +
-        `Recommended action: Focus on growing Direct revenue in highest-potential offering areas.`;
-    } else {
-      const byGeo = ["Americas","EMEA","APAC","Japan"].map(g => ({
-        geo: g, val: filterRev({ geo: g, quarter, offeringArea: offeringArea !== "ALL" ? offeringArea : undefined }).reduce((s,r)=>s+r.revActM,0)
-      })).sort((a,b)=>b.val-a.val);
-      response = `**Revenue Actuals – ${scopeHeader}:** ${fmt(revTotal)}\n` +
-        `• Direct: ${fmt(revDirect)} · Ecosystem: ${fmt(revEco)}\n\n` +
-        `📊 By Geo:\n${byGeo.map(g=>`• ${g.geo}: ${fmt(g.val)}`).join("\n")}\n\n` +
-        `Recommended action: Review geo mix — Direct revenue drives higher margin than Ecosystem.`;
+    // ── Data-freshness: warn when revenue cut-off precedes quarter end ─────────
+    // REV_DATE is "Jun 18 2026"; quarter end dates are fixed calendar boundaries.
+    const QTR_END_MONTH = { "1Q": 3, "2Q": 6, "3Q": 9, "4Q": 12 };
+    const QTR_END_DAY   = { "1Q": 31, "2Q": 30, "3Q": 30, "4Q": 31 };
+    function revIsIncomplete(qtr) {
+      if (!qtr || qtr === "ALL") return false;
+      const qCode = qtr.slice(0, 2);
+      const qYr   = 2000 + parseInt(qtr.slice(2));
+      const endM  = QTR_END_MONTH[qCode]; if (!endM) return false;
+      const qtrEnd = new Date(qYr, endM - 1, QTR_END_DAY[qCode], 23, 59, 59);
+      const cutoff = new Date(REV_DATE);
+      return !isNaN(cutoff) && cutoff < qtrEnd;
     }
+    const dataPartial = revIsIncomplete(quarter);
+
+    // ── QoQ / YoY revenue comparisons ─────────────────────────────────────────
+    const allRevQtrs = [...new Set(revRecords.map(r => r.quarter))].filter(Boolean).sort();
+    let revQoQ = null, revYoY = null, PQrev = null, PYQrev = null;
+    if (quarter && quarter !== "ALL") {
+      const qNum = parseInt(quarter[0]), qYr = parseInt(quarter.slice(2));
+      const qi   = allRevQtrs.indexOf(quarter);
+      PQrev  = qi > 0 ? allRevQtrs[qi - 1] : null;
+      PYQrev = `${qNum}Q${qYr - 1}`;
+      if (PQrev) {
+        const pqVal = filterRev({ ...revFilter, quarter: PQrev }).reduce((s,r)=>s+r.revActM,0);
+        if (pqVal > 0) revQoQ = +((revTotal/pqVal - 1)*100).toFixed(1);
+      }
+      const pyqVal = filterRev({ ...revFilter, quarter: PYQrev }).reduce((s,r)=>s+r.revActM,0);
+      if (pyqVal > 0) revYoY = +((revTotal/pyqVal - 1)*100).toFixed(1);
+    }
+
+    // ── 6-quarter trend ────────────────────────────────────────────────────────
+    const trendQtrs = allRevQtrs.slice(-6);
+    const trendRows = trendQtrs.map(q => ({
+      q,
+      val: filterRev({ ...revFilter, quarter: q }).reduce((s,r)=>s+r.revActM,0)
+    })).filter(t => t.val > 0);
+
+    // ── By Geo breakdown ───────────────────────────────────────────────────────
+    const byGeoRev = ["Americas","EMEA","APAC","Japan"].map(g => ({
+      geo: g,
+      val: filterRev({ ...revFilter, geo: g }).reduce((s,r)=>s+r.revActM,0)
+    })).filter(g => g.val > 0).sort((a,b)=>b.val-a.val);
+
+    // ── By Channel breakdown ───────────────────────────────────────────────────
+    const revByCh = {};
+    for (const r of revRecs) {
+      const k = r.channel || "Unknown";
+      if (!revByCh[k]) revByCh[k] = 0;
+      revByCh[k] += r.revActM;
+    }
+    const topCh = Object.entries(revByCh).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+    // ── By Client Segment breakdown ────────────────────────────────────────────
+    const revBySeg = {};
+    for (const r of revRecs) {
+      const k = r.clientType || r.segment || "Unknown";
+      if (!revBySeg[k]) revBySeg[k] = 0;
+      revBySeg[k] += r.revActM;
+    }
+    const topSeg = Object.entries(revBySeg).filter(([k])=>k!=="Unknown").sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+    // ── By Offering Area breakdown ─────────────────────────────────────────────
+    const revByOA = {};
+    for (const r of revRecs) {
+      const k = r.offeringArea || "Unknown";
+      if (!revByOA[k]) revByOA[k] = 0;
+      revByOA[k] += r.revActM;
+    }
+    const topOA = Object.entries(revByOA).sort((a,b)=>b[1]-a[1]).slice(0,4);
+
+    // ── Anomaly: detect if PYQ had a large one-off deal that inflated the base ─
+    // A "large one-off" = any single customer that accounted for >20% of PYQ revenue
+    let anomalyNote = "";
+    if (PYQrev && revYoY !== null && revYoY < -10) {
+      const pyqRecs = filterRev({ ...revFilter, quarter: PYQrev });
+      const pyqByAcct = {};
+      for (const r of pyqRecs) {
+        const k = r.customer || r.market || "Unknown";
+        if (!pyqByAcct[k]) pyqByAcct[k] = 0;
+        pyqByAcct[k] += r.revActM;
+      }
+      const pyqTotal = pyqRecs.reduce((s,r)=>s+r.revActM,0);
+      const bigDeals = Object.entries(pyqByAcct)
+        .map(([acct,v])=>({ acct, val: v, pct: pyqTotal > 0 ? (v/pyqTotal*100) : 0 }))
+        .filter(x => x.pct > 20)
+        .sort((a,b)=>b.val-a.val);
+      if (bigDeals.length) {
+        anomalyNote = `\n\n🔍 **Anomaly detected:** In ${PYQrev}, **${bigDeals[0].acct}** contributed ${fmt(bigDeals[0].val)} (${bigDeals[0].pct.toFixed(0)}% of that quarter's revenue). This one-off inflated the ${PYQrev} base — the YoY decline may partly reflect the absence of a comparable deal rather than structural underperformance.`;
+      }
+    }
+
+    // ── Is revenue "low"? Determine if the question is about underperformance ──
+    const isLowQuery = /\blow\b|\bdeclin|\bdown\b|\bdrop|\bweak|\bunder|\bshort|\bwhy/.test(msg);
+
+    // ── Build response ─────────────────────────────────────────────────────────
+    const sgn = v => v == null ? "N/A" : (v >= 0 ? "+" : "") + v + "%";
+    const trendStr = trendRows.length >= 2
+      ? `📈 **6-Quarter Trend:** ${trendRows.map(t=>t.q+": "+fmt(t.val)).join(" → ")}`
+      : "";
+
+    let revLines = [`**Revenue Actuals – ${scopeHeader}:** ${fmt(revTotal)}`];
+    revLines.push(`• Direct: ${fmt(revDirect)} · Ecosystem: ${fmt(revEco)}`);
+
+    if (dataPartial) {
+      revLines.push(`\n⚠️ **Data note:** Revenue data is available through **${REV_DATE}** only — ${quarter} is not a complete quarter. The figures above reflect partial-quarter actuals and will increase as more data is posted.`);
+    }
+
+    if (revQoQ !== null || revYoY !== null) {
+      const comparisons = [];
+      if (revQoQ !== null) comparisons.push(`📈 QoQ: **${sgn(revQoQ)}** vs ${PQrev}`);
+      if (revYoY !== null) comparisons.push(`📅 YoY: **${sgn(revYoY)}** vs ${PYQrev}`);
+      revLines.push("\n" + comparisons.join(" · "));
+    }
+
+    if (trendStr) revLines.push(trendStr);
+
+    if (!isGeoSpecific && byGeoRev.length) {
+      revLines.push(`\n📊 **By Geo:**\n${byGeoRev.map(g=>`• ${g.geo}: ${fmt(g.val)}`).join("\n")}`);
+    }
+
+    if (isLowQuery || (revYoY !== null && revYoY < -5)) {
+      // Deep-dive: channel, segment, OA
+      if (topCh.length) revLines.push(`\n🔗 **By Channel:**\n${topCh.map(([c,v])=>`• ${c}: ${fmt(v)}`).join("\n")}`);
+      if (topSeg.length) revLines.push(`\n👥 **By Client Segment:**\n${topSeg.map(([s,v])=>`• ${s}: ${fmt(v)}`).join("\n")}`);
+      if (topOA.length > 1) revLines.push(`\n📦 **By Offering Area:**\n${topOA.map(([oa,v])=>`• ${oa||"Unknown"}: ${fmt(v)}`).join("\n")}`);
+      if (anomalyNote) revLines.push(anomalyNote);
+
+      // Recommended action for underperformance
+      const worstGeo = byGeoRev.length ? byGeoRev[byGeoRev.length - 1] : null;
+      revLines.push(`\n💡 **Recommended actions:**`);
+      if (dataPartial) revLines.push(`1. Data through ${REV_DATE} only — monitor weekly as actuals post through end of ${quarter}.`);
+      revLines.push(`${dataPartial ? "2" : "1"}. Review contract recognition milestones — delayed billing is the most common cause of in-quarter revenue shortfall.`);
+      if (worstGeo) revLines.push(`${dataPartial ? "3" : "2"}. ${worstGeo.geo} is the lowest-revenue geo (${fmt(worstGeo.val)}) — engage local FLM on acceleration opportunities.`);
+      if (anomalyNote) revLines.push(`${dataPartial ? "4" : "3"}. Normalise YoY comparison against a base that excludes the one-off deal in ${PYQrev} for a cleaner trend read.`);
+    } else {
+      if (isGeoSpecific && topOA.length) {
+        revLines.push(`\n📦 **By Offering Area:**\n${topOA.map(([oa,v])=>`• ${oa||"Unknown"}: ${fmt(v)}`).join("\n")}`);
+      }
+      revLines.push(`\n💡 Recommended action: Review geo mix — Direct revenue drives higher margin than Ecosystem.`);
+    }
+
+    response = revLines.join("\n");
   } else if (
     /\bwhich\s+(geo|geography)\b/.test(msg) ||
     /\bgeo(s|graphy)?\b.*(grow|grew|fast|best|perform|strong|weak|worst|rank|compar|doing|look)/.test(msg) ||
@@ -2218,15 +2342,38 @@ app.get("/api/pm-report", (req, res) => {
     .map(r => ({ customer: r.customer, offering: r.offering || r.consolidatedOffering,
       pipeline: +r.oppVal.toFixed(2), age: Math.round(r.oppAge), geo: r.geo, stage: r.stage }));
 
-  // ── 6-quarter trend (pipeline + signings) ──
+  // ── 6-quarter trend (pipeline + signings) — used by pipeline section ──────
   const allQtrs = [...new Set(records.map(r => r.quarter))].filter(Boolean).sort();
   const trendQtrs = allQtrs.slice(-6);
   const trend = trendQtrs.map(q => {
     const r = filter({ ...base, quarter: q });
     const a = aggRecs(r);
     const rv = filterRev({ ...revBase, quarter: q }).reduce((s,x) => s + x.revActM, 0);
-    return { quarter: q, pipeline: a.pipeline, signings: a.signings, winRate: a.winRate, revenue: +rv.toFixed(2) };
+    const geoRev = {};
+    for (const g of GEOS) {
+      geoRev[g] = +filterRev({ ...revBase, quarter: q, geo: g }).reduce((s,x) => s + x.revActM, 0).toFixed(2);
+    }
+    return { quarter: q, pipeline: a.pipeline, signings: a.signings, winRate: a.winRate, revenue: +rv.toFixed(2), geoRev };
   });
+
+  // ── Revenue-specific trend — all quarters present in the revenue dataset ──
+  // Sorted chronologically by year then quarter number (1Q < 2Q < 3Q < 4Q).
+  // This is the source for the Revenue Intelligence chart so it covers every
+  // quarter that has actual revenue data, not just the last 6 pipeline quarters.
+  const allRevQtrsForTrend = [...new Set(revRecords.map(r => r.quarter))].filter(Boolean).sort((a, b) => {
+    const ay = parseInt(a.slice(2)), by = parseInt(b.slice(2));
+    if (ay !== by) return ay - by;
+    return parseInt(a[0]) - parseInt(b[0]);
+  });
+  const revTrend = allRevQtrsForTrend.map(q => {
+    const wwRev = +filterRev({ ...revBase, quarter: q }).reduce((s,x) => s + x.revActM, 0).toFixed(2);
+    const geoRev = {};
+    for (const g of GEOS) {
+      const v = +filterRev({ ...revBase, quarter: q, geo: g }).reduce((s,x) => s + x.revActM, 0).toFixed(2);
+      geoRev[g] = v > 0 ? v : null;   // null = no data → renders as gap, not zero flat-line
+    }
+    return { quarter: q, revenue: wwRev > 0 ? wwRev : null, geoRev };
+  }).filter(r => r.revenue !== null || Object.values(r.geoRev).some(v => v !== null));
 
   // ── Geo × Offering matrix (CQ) ──
   const geoOAMatrix = {};
@@ -2314,6 +2461,8 @@ app.get("/api/pm-report", (req, res) => {
 
   res.json({
     scope: { geo: geoLabel, quarter: CQ, pq: PQ, pyq: PYQ, offeringArea, consolidatedOffering, ut30 },
+    revenueDate: REV_DATE,
+    pipelineDate: PIPE_DATE,
     cq, pq, pyq,
     revenue: { cq: +revCQ.toFixed(2), pq: +revPQ.toFixed(2), pyq: +revPYQ.toFixed(2) },
     revQoQ: revPQ  > 0 ? +((revCQ/revPQ  - 1)*100).toFixed(1) : null,
@@ -2324,7 +2473,7 @@ app.get("/api/pm-report", (req, res) => {
     pipeYoY: pyq.pipeline > 0 ? +((cq.pipeline/pyq.pipeline - 1)*100).toFixed(1) : null,
     wrDeltaQoQ: +(cq.winRate - pq.winRate).toFixed(1),
     wrDeltaYoY: +(cq.winRate - pyq.winRate).toFixed(1),
-    byGeo, byOA, byCon, winLoss, topAccounts, stalled, trend, geoOAMatrix,
+    byGeo, byOA, byCon, winLoss, topAccounts, stalled, trend, revTrend, geoOAMatrix,
     actions: actions.slice(0,8),
     narrative,
   });

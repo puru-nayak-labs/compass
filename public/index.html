@@ -1025,6 +1025,12 @@ Chart.register(ChartDataLabels);
   </div>
   <div class="exec-scroll">
   <div class="exec-kpi-grid" id="ex-kpi-grid">
+    <div class="exec-kpi-tile exec-kt-pipe">
+      <div class="exec-kpi-lbl">Pipeline</div>
+      <div class="exec-kpi-val" id="ex-pipe">&mdash;</div>
+      <div class="exec-kpi-sub" id="ex-pipe-sub"></div>
+      <div class="exec-kpi-deltas" id="ex-pipe-d"></div>
+    </div>
     <div class="exec-kpi-tile exec-kt-sig">
       <div class="exec-kpi-lbl">Signings</div>
       <div class="exec-kpi-val" id="ex-sig">&mdash;</div>
@@ -1036,12 +1042,6 @@ Chart.register(ChartDataLabels);
       <div class="exec-kpi-val" id="ex-rev">&mdash;</div>
       <div class="exec-kpi-sub" id="ex-rev-sub"></div>
       <div class="exec-kpi-deltas" id="ex-rev-d"></div>
-    </div>
-    <div class="exec-kpi-tile exec-kt-pipe">
-      <div class="exec-kpi-lbl">Pipeline</div>
-      <div class="exec-kpi-val" id="ex-pipe">&mdash;</div>
-      <div class="exec-kpi-sub" id="ex-pipe-sub"></div>
-      <div class="exec-kpi-deltas" id="ex-pipe-d"></div>
     </div>
     <div class="exec-kpi-tile exec-kt-wr">
       <div class="exec-kpi-lbl">Win Rate</div>
@@ -1062,6 +1062,11 @@ Chart.register(ChartDataLabels);
       <div class="exec-loading"><div class="spin" style="width:18px;height:18px;border-width:2px"></div>Generating executive narrative&hellip;</div>
     </div>
   </div>
+  <!-- Portfolio Signals -->
+  <div class="exec-narrative-card" id="ex-signals-card" style="display:none">
+    <div class="exec-narrative-hd">&#9889; Portfolio Signals &amp; Risk Indicators</div>
+    <div id="ex-signals" class="exec-narrative-body"></div>
+  </div>
   <!-- OA Intel -->
   <div class="exec-narrative-card" id="ex-oa-intel-card" style="display:none">
     <div class="exec-narrative-hd">&#128200; Intelligence by Offering Area</div>
@@ -1071,6 +1076,11 @@ Chart.register(ChartDataLabels);
   <div class="exec-narrative-card" id="ex-geo-intel-card" style="display:none">
     <div class="exec-narrative-hd">&#127758; Intelligence by Geography</div>
     <div id="ex-geo-intel" class="exec-narrative-body"></div>
+  </div>
+  <!-- Recommended Actions -->
+  <div class="exec-narrative-card" id="ex-actions-card" style="display:none">
+    <div class="exec-narrative-hd">&#127919; Recommended Portfolio Actions</div>
+    <div id="ex-actions" class="exec-narrative-body"></div>
   </div>
   </div>
 </div>`;
@@ -1229,7 +1239,7 @@ Chart.register(ChartDataLabels);
         <option value="1Q25">1Q25</option><option value="2Q25">2Q25</option>
         <option value="3Q25">3Q25</option><option value="4Q25">4Q25</option>
       </select>
-      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()" style="margin-left:4px">&#9889; Generate Intelligence</button>
+      <button class="pm-abtn" id="pm-gen-btn" onclick="generatePMReport()" style="margin-left:auto">&#9889; Generate Intelligence</button>
     </div>
   </div>
 
@@ -1300,6 +1310,45 @@ function dS(v, pts=false) { if(v==null) return ""; return (v>0?"+":"")+v.toFixed
 const arrow = v => v==null?"":v>0?"\u25b2":v<0?"\u25bc":"\u25cf";
 let   pmCharts = {};
 function dChart(id) { if(pmCharts[id]){ pmCharts[id].destroy(); delete pmCharts[id]; } }
+
+// ── Data-freshness helpers ────────────────────────────────────────────────────
+// Populated once on load from /api/data-info
+let dataInfo = { revenueDate: null, pipelineDate: null };
+
+// Quarter boundary map: first day of each quarter (inclusive)
+const QTR_START = { "1Q": [1,1], "2Q": [4,1], "3Q": [7,1], "4Q": [10,1] };
+const QTR_END   = { "1Q": [3,31], "2Q": [6,30], "3Q": [9,30], "4Q": [12,31] };
+
+/**
+ * Returns true if the revenue data cut-off date falls BEFORE the end of the
+ * requested quarter, meaning the data is potentially incomplete.
+ * @param {string} quarter  e.g. "2Q26"
+ * @param {string} revDate  e.g. "Jun 18 2026"  (from server)
+ */
+function isRevIncomplete(quarter, revDate) {
+  if (!quarter || quarter === "ALL" || !revDate) return false;
+  const qCode = quarter.slice(0, 2);           // "2Q"
+  const qYr   = 2000 + parseInt(quarter.slice(2)); // 2026
+  const end   = QTR_END[qCode];
+  if (!end) return false;
+  const qtrEnd = new Date(qYr, end[0] - 1, end[1], 23, 59, 59);
+  // Parse revDate "Jun 18 2026" → Date
+  const cutoff = new Date(revDate);
+  if (isNaN(cutoff.getTime())) return false;
+  return cutoff < qtrEnd;
+}
+
+/**
+ * Returns a small amber HTML banner when revenue data for the quarter is partial,
+ * or "" when the data is complete.
+ */
+function revDataNote(quarter, revDate) {
+  if (!isRevIncomplete(quarter, revDate)) return "";
+  return `<div style="display:flex;align-items:flex-start;gap:6px;background:#fff8e1;border:1px solid #f0c000;border-radius:4px;padding:5px 9px;margin-top:5px;font-size:9px;line-height:1.5;color:#7a5000">` +
+    `<span style="font-size:10px;flex-shrink:0">&#9888;</span>` +
+    `<span>Revenue data available through <strong>${revDate}</strong></span>` +
+    `</div>`;
+}
 
 const CD = {
   plugins:{ legend:{ labels:{ color:"#525252", font:{ size:9 } } },
@@ -1474,6 +1523,13 @@ async function loadKPIs() {
   setTile("kv-pip","kc-pip","kd-pip",fm(d.pipeline),`${d.oppCount} opps`,d.pipelineQoQ,d.pipelineYoY);
   setTile("kv-sig","kc-sig","kd-sig",fm(d.signings), `${d.wonCount} won`,d.signingsQoQ,d.signingsYoY);
   setTile("kv-rev","kc-rev","kd-rev",fm(rev.total),  `Direct: ${fm(rev.direct)} \u00b7 Eco: ${fm(rev.eco)}`,rev.revenueQoQ,rev.revenueYoY);
+  // Append data-freshness note to Revenue Actuals tile if data is incomplete for selected quarter
+  { const revTile=$("kt-rev")||document.querySelector(".kt-rev");
+    const note=revDataNote(f.quarter,dataInfo.revenueDate);
+    const existing=revTile&&revTile.querySelector(".rev-data-note");
+    if(existing) existing.remove();
+    if(note&&revTile){ const n=document.createElement("div"); n.className="rev-data-note"; n.innerHTML=note; revTile.appendChild(n); }
+  }
   setTile("kv-wr","kc-wr","kd-wr",  d.winRate!=null?fp(d.winRate):"\u2014",
     d.wonCount!=null?`${d.wonCount} won / ${d.wonCount+d.lostCount} closed`:"",d.winRateQoQ,d.winRateYoY,true);
   const f2=fq(), tgtEl=$("kt-sig-tgt");
@@ -1594,6 +1650,14 @@ async function loadTrend() {
   winLossBar("cWinLoss",winLoss);
   hBarOA("cRevOA",revOA,"revenue","rgba(178,134,0,0.7)");
   stackedGeoQtr("cRevQtr",revQtrD,6);
+  // Append data-freshness note under revenue charts if data is incomplete for selected quarter
+  ["cRevOA","cRevQtr"].forEach(cid => {
+    const wrap = $(cid) && $(cid).closest(".cc");
+    if (!wrap) return;
+    wrap.querySelectorAll(".rev-data-note").forEach(n=>n.remove());
+    const note = revDataNote(f.quarter, dataInfo.revenueDate);
+    if (note) { const d2=document.createElement("div"); d2.className="rev-data-note"; d2.innerHTML=note; wrap.appendChild(d2); }
+  });
   winRateLine("cWinRateTrend",wrTrend);
   const [sigGeoD,revGeoD]=await Promise.all([
     fetch(`/api/kpi/signings-by-geo?quarter=${CQ}&${pStr}`).then(r=>r.json()),
@@ -1901,6 +1965,13 @@ async function loadExec() {
   };
   setExTile("ex-sig",  fm(kpi.signings), `${kpi.wonCount} won`, kpi.signingsQoQ, kpi.signingsYoY);
   setExTile("ex-rev",  fm(rev.total),    `Direct: ${fm(rev.direct)} \u00b7 Eco: ${fm(rev.eco)}`, rev.revenueQoQ, rev.revenueYoY);
+  // Append data-freshness note to Executive Revenue tile if data is incomplete for selected quarter
+  { const revTile=$("ex-rev")&&$("ex-rev").closest(".exec-kpi-tile");
+    const note=revDataNote(qtr,dataInfo.revenueDate);
+    const existing=revTile&&revTile.querySelector(".rev-data-note");
+    if(existing) existing.remove();
+    if(note&&revTile){ const n=document.createElement("div"); n.className="rev-data-note"; n.innerHTML=note; revTile.appendChild(n); }
+  }
   setExTile("ex-pipe", fm(kpi.pipeline), `${kpi.oppCount} opps`, kpi.pipelineQoQ, kpi.pipelineYoY);
   setExTile("ex-wr",   kpi.winRate!=null?fp(kpi.winRate):"\u2014",
     kpi.wonCount!=null?`${kpi.wonCount} won / ${kpi.wonCount+kpi.lostCount} closed`:"",
@@ -2003,6 +2074,167 @@ async function loadExec() {
       </div>`;
     }).join("");
     if (geoCard) geoCard.style.display = "";
+  }
+
+  // ── Portfolio Signals & Risk Indicators ──
+  const sigCard  = $("ex-signals-card");
+  const sigEl    = $("ex-signals");
+  const actCard  = $("ex-actions-card");
+  const actEl    = $("ex-actions");
+  if (sigEl && pmRpt.byGeo && pmRpt.byGeo.length) {
+    const fmtE2 = v => v==null?"—":(Math.abs(v)>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.abs(v).toFixed(1)}M`);
+    const allGeos = pmRpt.byGeo;
+    const allOAs  = pmRpt.byOA || [];
+
+    // Coverage ratio across geos (pipeline / signings proxy)
+    const covRisk = allGeos.filter(g => g.pipeline>0 && g.signings>0 && (g.signings/g.pipeline)<0.25);
+    // Win rate trend signals
+    const wrUp   = allGeos.filter(g => g.wrDeltaQoQ != null && g.wrDeltaQoQ > 3);
+    const wrDown = allGeos.filter(g => g.wrDeltaQoQ != null && g.wrDeltaQoQ < -3);
+    // Revenue vs Signings conversion gap
+    const revGap = allGeos.filter(g => g.revenue!=null && g.signings>0 && g.revenue < g.signings * 0.5);
+    // Stalled pipeline signal
+    const stalledGeos = allGeos.filter(g => g.pipeline>0 && g.winRate < 40 && g.activeCount > 3);
+    // Top concentration risk (one OA > 50% of portfolio signings)
+    const totalSig = allOAs.reduce((s,r)=>s+(r.signings||0),0);
+    const concOA = allOAs.find(r => totalSig>0 && (r.signings/totalSig)>0.5);
+    // Momentum leaders
+    const momLeaders = allGeos.filter(g => g.sigYoY!=null && g.sigYoY > 15).sort((a,b)=>b.sigYoY-a.sigYoY);
+    // YoY decliners
+    const decliners  = allGeos.filter(g => g.sigYoY!=null && g.sigYoY < -10).sort((a,b)=>a.sigYoY-b.sigYoY);
+
+    const signals = [];
+
+    // Coverage signal
+    if (covRisk.length) signals.push({
+      level:"warn", icon:"⚠",
+      text:`<strong>Low pipeline conversion</strong> in ${covRisk.map(g=>`<strong>${g.geo}</strong>`).join(", ")} — signings are less than 25% of pipeline. Review stalled opportunities and accelerate close plans.`
+    });
+
+    // Win rate trend
+    if (wrDown.length) signals.push({
+      level:"risk", icon:"📉",
+      text:`<strong>Win rate deteriorating</strong> QoQ in ${wrDown.map(g=>`<strong>${g.geo}</strong> (${(g.wrDeltaQoQ>0?"+":"")+g.wrDeltaQoQ.toFixed(1)}pts)`).join(", ")}. Run deal-level coaching and competitive review in these geos immediately.`
+    });
+    if (wrUp.length) signals.push({
+      level:"good", icon:"📈",
+      text:`<strong>Win rate improving</strong> QoQ in ${wrUp.map(g=>`<strong>${g.geo}</strong> (+${g.wrDeltaQoQ.toFixed(1)}pts)`).join(", ")} — capture best practices and scale the winning motion.`
+    });
+
+    // Revenue recognition gap
+    if (revGap.length) signals.push({
+      level:"warn", icon:"💰",
+      text:`<strong>Revenue recognition lag</strong> detected in ${revGap.map(g=>`<strong>${g.geo}</strong>`).join(", ")} — revenue is below 50% of signings. Review contract terms, billing milestones, and recognition schedules.`
+    });
+
+    // Concentration risk
+    if (concOA) signals.push({
+      level:"warn", icon:"⚡",
+      text:`<strong>Portfolio concentration risk:</strong> <strong>${concOA.oa}</strong> accounts for ${totalSig>0?Math.round(concOA.signings/totalSig*100):0}% of total signings. Diversify offerings to reduce single-OA dependency.`
+    });
+
+    // Momentum leaders
+    if (momLeaders.length) signals.push({
+      level:"good", icon:"🚀",
+      text:`<strong>Momentum leaders:</strong> ${momLeaders.slice(0,2).map(g=>`<strong>${g.geo}</strong> (+${g.sigYoY.toFixed(1)}% YoY)`).join(", ")} — prioritise resources to maximise high-velocity execution.`
+    });
+
+    // YoY decliners
+    if (decliners.length) signals.push({
+      level:"risk", icon:"🔴",
+      text:`<strong>YoY declines requiring action:</strong> ${decliners.map(g=>`<strong>${g.geo}</strong> (${g.sigYoY.toFixed(1)}% YoY)`).join(", ")} — conduct root-cause analysis and develop a 30-day recovery plan.`
+    });
+
+    // Stalled pipeline
+    if (stalledGeos.length) signals.push({
+      level:"warn", icon:"⏳",
+      text:`<strong>Stalled pipeline risk</strong> in ${stalledGeos.map(g=>`<strong>${g.geo}</strong> (${g.winRate.toFixed(1)}% WR, ${g.activeCount} opps)`).join(", ")} — win rates below 40% signal competitive exposure or coverage gaps.`
+    });
+
+    // No issues signal
+    if (!signals.length) signals.push({
+      level:"good", icon:"✅",
+      text:"<strong>Portfolio health is strong</strong> — no critical signals detected. Maintain current execution cadence and look for cross-geo whitespace expansion opportunities."
+    });
+
+    const BG = { risk:"rgba(218,30,40,.06)", warn:"rgba(178,134,0,.07)", good:"rgba(25,128,56,.06)" };
+    const BC = { risk:"#da1e28", warn:"#b28600", good:"#198038" };
+    sigEl.innerHTML = signals.map(s=>`
+      <div style="display:flex;gap:10px;padding:8px 10px;background:${BG[s.level]};border-left:3px solid ${BC[s.level]};border-radius:0 4px 4px 0;margin-bottom:6px">
+        <span style="font-size:14px;flex-shrink:0;line-height:1.4">${s.icon}</span>
+        <span style="font-size:11px;line-height:1.65;color:#1f2328">${s.text}</span>
+      </div>`).join("");
+    if (sigCard) sigCard.style.display = "";
+  }
+
+  // ── Recommended Portfolio Actions ──
+  if (actEl && pmRpt.byGeo && pmRpt.byGeo.length) {
+    const fmtA = v => v==null?"—":(Math.abs(v)>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.abs(v).toFixed(1)}M`);
+    const allG2  = pmRpt.byGeo;
+    const allOA2 = pmRpt.byOA || [];
+    const actions = [];
+
+    // Pipeline coverage actions
+    const topPipe = [...allOA2].sort((a,b)=>(b.pipeline||0)-(a.pipeline||0)).slice(0,3);
+    if (topPipe.length) actions.push({
+      priority:"high", icon:"🎯",
+      title:"Accelerate Top Pipeline",
+      desc:`Focus deal pursuit resources on <strong>${topPipe.map(r=>r.oa).join(", ")}</strong> — these OAs hold the highest pipeline value and have the greatest near-term upside. Assign dedicated capture teams and executive sponsors to top accounts.`
+    });
+
+    // Win rate improvement
+    const lowWROA = allOA2.filter(r=>r.winRate!=null&&r.winRate<45&&r.activeCount>2).slice(0,2);
+    if (lowWROA.length) actions.push({
+      priority:"high", icon:"🏆",
+      title:"Win Rate Recovery",
+      desc:`<strong>${lowWROA.map(r=>r.oa).join(" and ")}</strong> have win rates below 45%. Schedule competitive deal reviews, deploy IBM value engineering sessions, and ensure FLM active coaching on all active opportunities this quarter.`
+    });
+
+    // Revenue recognition
+    const revShortGeos = allG2.filter(g=>g.revenue!=null&&g.signings>0&&g.revenue<g.signings*0.55);
+    if (revShortGeos.length) actions.push({
+      priority:"medium", icon:"💼",
+      title:"Revenue Recognition Pull-In",
+      desc:`In <strong>${revShortGeos.map(g=>g.geo).join(", ")}</strong>, revenue is lagging signings. Work with delivery and contracts teams to identify opportunities to accelerate contract start dates, billing milestones, and revenue recognition in the current quarter.`
+    });
+
+    // Geo whitespace
+    const growthGeos = allG2.filter(g=>g.sigYoY!=null&&g.sigYoY>10&&g.winRate>55);
+    if (growthGeos.length) actions.push({
+      priority:"medium", icon:"🌍",
+      title:"Expand Whitespace in Growth Geos",
+      desc:`<strong>${growthGeos.map(g=>g.geo).join(", ")}</strong> show strong signings momentum and healthy win rates. Prioritise account whitespace mapping and new-logo expansion to compound growth in these markets.`
+    });
+
+    // Stalled opp action
+    const stalledOA = allOA2.filter(r=>r.sigYoY!=null&&r.sigYoY<-10&&r.activeCount>2).slice(0,2);
+    if (stalledOA.length) actions.push({
+      priority:"high", icon:"🔧",
+      title:"Rescue Declining Offerings",
+      desc:`<strong>${stalledOA.map(r=>r.oa).join(" and ")}</strong> are down more than 10% YoY in signings. Conduct a 30-day sprint: review offer packaging, pricing competitiveness, partner ecosystem, and seller enablement materials.`
+    });
+
+    // Forecast discipline
+    actions.push({
+      priority:"low", icon:"📊",
+      title:"Quarterly Forecast Hygiene",
+      desc:`Ensure all active opportunities have updated FLM forecast calls and next steps entered. Stale pipeline data inflates coverage metrics and distorts prioritisation. Run a pipeline scrub with all geo FLMs before end of current quarter.`
+    });
+
+    const PC = { high:"#da1e28", medium:"#b28600", low:"#0f62fe" };
+    const PB = { high:"rgba(218,30,40,.08)", medium:"rgba(178,134,0,.07)", low:"rgba(15,98,254,.07)" };
+    actEl.innerHTML = actions.map((a,i)=>`
+      <div style="display:flex;gap:10px;padding:10px 12px;background:${PB[a.priority]};border-left:3px solid ${PC[a.priority]};border-radius:0 4px 4px 0;margin-bottom:8px">
+        <span style="font-size:16px;flex-shrink:0;line-height:1.3">${a.icon}</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#1f2328;margin-bottom:2px">
+            <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:1px 6px;border-radius:8px;background:${PB[a.priority]};color:${PC[a.priority]};border:1px solid ${PC[a.priority]};margin-right:6px">${a.priority}</span>
+            ${a.title}
+          </div>
+          <div style="font-size:11px;line-height:1.65;color:#1f2328">${a.desc}</div>
+        </div>
+      </div>`).join("");
+    if (actCard) actCard.style.display = "";
   }
 
   // ── Refresh right panel with exec filter context ──
@@ -2246,6 +2478,7 @@ function renderPMReport(d, ind, scope) {
   const GC   = {Americas:"var(--c-americas)",EMEA:"var(--c-emea)",APAC:"var(--c-apac)",Japan:"var(--c-japan)"};
   const ins  = (text) => `<div style="background:#f0f6ff;border-left:3px solid #0f62fe;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;line-height:1.65;color:#1f2328;margin-bottom:10px">${text}</div>`;
   const noData = (sec,title) => { const el=$(sec); if(el) el.innerHTML=`<div class="pm-sec-hd"><div><div class="pm-sec-title">${title}</div></div></div><div style="padding:24px;color:var(--muted);font-size:11px;text-align:center">No data available for this filter scope.</div>`; };
+  const cq   = d.cq || {};
 
   // ── 1. Business Health ─────────────────────────────────────────────────────
   const bh = $("pm-s-bh"); if (bh) { if (!d.cq) { noData("pm-s-bh","Business Health"); } else {
@@ -2280,7 +2513,7 @@ function renderPMReport(d, ind, scope) {
       </div>
       <div class="pm-kpi-row">
         <div class="pm-kpi-card pm-kc-sig"><div class="pm-kc-lbl">Signings</div><div class="pm-kc-val">${fmt(cq.signings)}</div><div class="pm-kc-sub">${cq.wonCount} won deals</div><div class="pm-kc-deltas">${kdH(d.sigQoQ)} QoQ &nbsp;${kdH(d.sigYoY)} YoY</div></div>
-        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">vs ${fmt(rev.pyq)} PYQ</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">Revenue Actuals${isRevIncomplete(scope.quarter,d.revenueDate)?` <span style="font-size:8px;color:#b28600;font-weight:400">partial</span>`:""}</div><div class="pm-kc-val">${fmt(rev.cq)}</div><div class="pm-kc-sub">vs ${fmt(rev.pyq)} PYQ</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div>${revDataNote(scope.quarter,d.revenueDate)}</div>
         <div class="pm-kpi-card pm-kc-pipe"><div class="pm-kc-lbl">Pipeline</div><div class="pm-kc-val">${fmt(cq.pipeline)}</div><div class="pm-kc-sub">${cq.activeCount} active opps</div><div class="pm-kc-deltas">${kdH(d.pipeQoQ)} QoQ &nbsp;${kdH(d.pipeYoY)} YoY</div></div>
         <div class="pm-kpi-card pm-kc-wr"><div class="pm-kc-lbl">Win Rate</div><div class="pm-kc-val">${fpp(cq.winRate)}</div><div class="pm-kc-sub">${cq.wonCount} won / ${cq.closedCount} closed</div><div class="pm-kc-deltas">${kdH(d.wrDeltaQoQ,true)} QoQ &nbsp;${kdH(d.wrDeltaYoY,true)} YoY</div></div>
       </div>
@@ -2416,7 +2649,9 @@ function renderPMReport(d, ind, scope) {
     const rv=d.revenue;
     const revGap=rv.cq!=null&&rv.pyq!=null?rv.cq-rv.pyq:null;
     // Actionable intelligence: tell the PM what to DO, not just what happened
-    const revTrend = d.trend||[];
+    // Use the dedicated revenue trend (all rev quarters, chronological) from server.
+    // Fall back to pipeline trend (d.trend) which also has geoRev if revTrend absent.
+    const revTrend = (d.revTrend && d.revTrend.length ? d.revTrend : d.trend)||[];
     const revDir   = d.revYoY!=null?(d.revYoY>=0?"growing":"declining"):"tracking";
     const lagLead  = (rv.cq!=null&&cq.signings!=null&&rv.cq<cq.signings*0.6)
       ? `Revenue conversion rate is low — only <strong>${(rv.cq/(cq.signings||1)*100).toFixed(0)}%</strong> of signings have converted. Review contract recognition timing and accelerate billing milestones.`
@@ -2426,59 +2661,135 @@ function renderPMReport(d, ind, scope) {
         :d.revQoQ<-5?`QoQ revenue dropped <strong style="color:#da1e28">${d.revQoQ.toFixed(1)}%</strong> — identify delayed recognitions or contract slippage and course-correct before quarter close.`
         :`QoQ revenue is broadly stable at <strong>${d.revQoQ>0?"+":""}${(d.revQoQ||0).toFixed(1)}%</strong>.`)
       : "";
-    // 3Q26 special case: data is only through Jun 18 2026 — near-zero revenue is expected
-    const is3Q26Empty = (scope.quarter === "3Q26") && (rv.cq == null || rv.cq < 1);
-    const revNarr = is3Q26Empty
-      ? `<span style="color:#b28600">⚠ Revenue data is through <strong>Jun 18, 2026</strong> (end of 2Q26). 3Q26 begins Jul 1 — near-zero revenue for this quarter is <strong>expected</strong> and is not a data error. Check back as July actuals are posted.</span>`
+    // Show data-freshness note whenever the cut-off date precedes the end of the selected quarter
+    const revIncomplete = isRevIncomplete(scope.quarter, d.revenueDate);
+    const revNarr = revIncomplete && (rv.cq == null || rv.cq < 1)
+      ? `<span style="color:#b28600">&#9888; Revenue data available through <strong>${d.revenueDate||"unknown"}</strong></span>`
       : rv.cq!=null
-        ? `Revenue actuals: <strong>${fmt(rv.cq)}</strong> — <strong>${revDir} ${Math.abs(d.revYoY||0).toFixed(1)}%</strong> YoY vs ${fmt(rv.pyq)} (same quarter prior year). ${momLine} ${lagLead}`
+        ? `Revenue actuals: <strong>${fmt(rv.cq)}</strong> — <strong>${d.revYoY!=null?(d.revYoY>=0?"growing":"declining"):"tracking"} ${Math.abs(d.revYoY||0).toFixed(1)}%</strong> YoY vs ${fmt(rv.pyq)} (same quarter prior year). ${momLine} ${lagLead}`
         : "Revenue data not available for this scope.";
     rev.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Revenue Intelligence</div>
-      <div class="pm-sec-sub">${scope.quarter} vs prior periods</div></div></div>
+      <div class="pm-sec-sub">${scope.quarter} vs prior periods${revIncomplete?` &nbsp;·&nbsp; <span style="color:#b28600;font-weight:600">&#9888; Data through ${d.revenueDate||"unknown"}</span>`:""}</div></div></div>
       ${ins(revNarr)}
       <div class="pm-kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
-        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
+        <div class="pm-kpi-card pm-kc-rev"><div class="pm-kc-lbl">CQ Revenue${revIncomplete?` <span style="font-size:8px;color:#b28600;font-weight:400">partial</span>`:""}</div><div class="pm-kc-val">${fmt(rv.cq)}</div><div class="pm-kc-deltas">${kdH(d.revQoQ)} QoQ &nbsp;${kdH(d.revYoY)} YoY</div></div>
         <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Quarter</div><div class="pm-kc-val">${fmt(rv.pq)}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">${fmt(rv.cq)} CQ</div></div>
         <div class="pm-kpi-card"><div class="pm-kc-lbl">Prior Year Same Qtr</div><div class="pm-kc-val">${fmt(rv.pyq)}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">${revGap!=null?(revGap>=0?"+":"")+fmt(revGap)+" YoY":""}</div></div>
         <div class="pm-kpi-card"><div class="pm-kc-lbl">Rev / Signings Ratio</div><div class="pm-kc-val">${cq.signings>0?((rv.cq/cq.signings)*100).toFixed(0)+"%":"—"}</div><div class="pm-kc-deltas" style="font-size:9px;color:var(--muted)">conversion rate</div></div>
       </div>
       ${revTrend.length?`<div class="pm-table-wrap" style="padding:12px 14px">
-        <div class="pm-table-hd" style="margin-bottom:8px"><span>6-Quarter Revenue vs Signings Trend</span></div>
-        <div style="position:relative;height:160px"><canvas id="pmRevChart"></canvas></div>
+        <div class="pm-table-hd" style="margin-bottom:8px">
+          <span>Revenue Actuals by Geo &mdash; ${revTrend.length} Quarters</span>
+          ${revIncomplete?`<span style="font-size:9px;color:#b28600;font-weight:400;margin-left:8px">&#9888; Revenue through ${d.revenueDate||"unknown"} only</span>`:""}
+        </div>
+        <div style="position:relative;height:300px"><canvas id="pmRevChart"></canvas></div>
       </div>`:""}`;
-    // Draw line chart after DOM is set
+    // Draw per-geo revenue line chart
     if (revTrend.length) {
-      requestAnimationFrame(() => {
+      // Use setTimeout so the canvas is fully laid out before Chart.js measures it
+      setTimeout(() => {
         const cvs = document.getElementById("pmRevChart"); if (!cvs) return;
-        if (cvs._pmChart) { cvs._pmChart.destroy(); }
+        if (cvs._pmChart) { try { cvs._pmChart.destroy(); } catch(e){} }
+
+        const GEO_LINE  = { Americas:"#0f62fe", EMEA:"#198038", APAC:"#b28600", Japan:"#6929c4" };
+
+        // Sort labels chronologically: year ascending, then quarter number ascending
+        const sortedTrend = [...revTrend].sort((a, b) => {
+          const ayStr = a.quarter, byStr = b.quarter;
+          const ay = parseInt(ayStr.slice(2)), by2 = parseInt(byStr.slice(2));
+          if (ay !== by2) return ay - by2;
+          return parseInt(ayStr[0]) - parseInt(byStr[0]);
+        });
+        const labels = sortedTrend.map(r => r.quarter);
+
+        // ── Per-geo revenue lines (no WW total) ───────────────────────────────
+        const geoDatasets = ["Americas","EMEA","APAC","Japan"].map(g => {
+          const data = sortedTrend.map(r => {
+            const v = r.geoRev && r.geoRev[g];
+            return (v != null && v > 0) ? +v.toFixed(1) : null;
+          });
+          if (!data.some(v => v !== null)) return null; // skip geo if no data at all
+          return {
+            label: g,
+            data,
+            borderColor: GEO_LINE[g],
+            backgroundColor: GEO_LINE[g] + "18", // faint fill for readability
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: GEO_LINE[g],
+            spanGaps: false,
+            tension: 0.3,
+            fill: false,
+            // Only label the last non-null point per geo — keeps chart clean
+            datalabels: {
+              display: (ctx) => {
+                const d2 = ctx.dataset.data;
+                if (d2[ctx.dataIndex] == null) return false;
+                // find last non-null index
+                for (let i = d2.length - 1; i >= 0; i--) { if (d2[i] != null) return i === ctx.dataIndex; }
+                return false;
+              },
+              align: "right",
+              anchor: "end",
+              offset: 6,
+              font: { size: 9, weight: "700" },
+              color: GEO_LINE[g],
+              formatter: (v) => `$${v}M`,
+            },
+          };
+        }).filter(Boolean);
+
         cvs._pmChart = new Chart(cvs, {
           type: "line",
-          data: {
-            labels: revTrend.map(r => r.quarter),
-            datasets: [
-              { label: "Revenue", data: revTrend.map(r => +(r.revenue||0).toFixed(1)),
-                borderColor: "#0f62fe", backgroundColor: "rgba(15,98,254,.08)",
-                borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#0f62fe", tension: 0.3, fill: true },
-              { label: "Signings", data: revTrend.map(r => +(r.signings||0).toFixed(1)),
-                borderColor: "#198038", backgroundColor: "rgba(25,128,56,.06)",
-                borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#198038", tension: 0.3, fill: false,
-                borderDash: [4,3] },
-            ]
-          },
+          data: { labels, datasets: geoDatasets },
           options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 12, right: 72, bottom: 4, left: 4 } },
             plugins: {
-              legend: { position:"top", labels:{ font:{size:9}, boxWidth:12, padding:8 } },
-              datalabels: { align:"top", anchor:"end", font:{size:8}, formatter: v => v>0?`$${v}M`:"",
-                            color: ctx => ctx.datasetIndex===0?"#0f62fe":"#198038" }
+              legend: {
+                position: "bottom",
+                labels: {
+                  font: { size: 10 },
+                  boxWidth: 12,
+                  padding: 16,
+                  usePointStyle: true,
+                  pointStyle: "circle",
+                },
+              },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+                backgroundColor: "#fff",
+                titleColor: "#161616",
+                bodyColor: "#525252",
+                borderColor: "#e0e0e0",
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: (ctx) => {
+                    const v = ctx.parsed.y;
+                    return `  ${ctx.dataset.label}: ${v != null ? "$" + v + "M" : "—"}`;
+                  },
+                },
+              },
+              datalabels: { display: false }, // per-dataset overrides above
             },
             scales: {
-              x: { ticks:{ font:{size:9} }, grid:{ display:false } },
-              y: { ticks:{ font:{size:9}, callback: v=>`$${v}M` }, grid:{ color:"rgba(0,0,0,.04)" } }
-            }
-          }
+              x: {
+                ticks: { font: { size: 10, weight: "600" }, maxRotation: 0, color: "#525252" },
+                grid: { color: "rgba(0,0,0,.04)" },
+              },
+              y: {
+                beginAtZero: false,
+                ticks: { font: { size: 9 }, callback: (v) => `$${v}M`, color: "#525252" },
+                grid: { color: "rgba(0,0,0,.05)" },
+              },
+            },
+          },
         });
-      });
+      }, 50);
     }
   }}
 
@@ -2519,7 +2830,7 @@ function renderPMReport(d, ind, scope) {
         (lowG&&lowG.winRate<60?`<strong>${lowG.geo}</strong> has the lowest win rate at ${fpp(lowG.winRate)} — targeted deal coaching and competitive positioning work is needed here.`:"Win rates are broadly healthy — focus on maintaining pipeline velocity across all regions.")
       : "Geography data not available.";
     geoSec.innerHTML = `<div class="pm-sec-hd"><div><div class="pm-sec-title">Geography Analysis</div>
-      <div class="pm-sec-sub">Detailed view by Geo · ${scope.quarter}</div></div></div>
+      <div class="pm-sec-sub">Detailed view by Geo · ${scope.quarter}${isRevIncomplete(scope.quarter,d.revenueDate)?` &nbsp;·&nbsp; <span style="color:#b28600;font-weight:600">&#9888; Revenue through ${d.revenueDate||"unknown"}</span>`:""}</div></div></div>
       ${ins(geoNarr)}
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
         ${["Americas","EMEA","APAC","Japan"].map(g=>{
@@ -2728,8 +3039,9 @@ function setFilterDefaults() {
 
 window.addEventListener("load", async () => {
   setFilterDefaults();
-  // Fetch data-source dates and update header immediately
+  // Fetch data-source dates, store globally, and update header
   fetch("/api/data-info").then(r => r.json()).then(d => {
+    dataInfo = d;
     const el = $("h-data-dates");
     if (el) el.innerHTML = `Pipeline Data &middot; ${d.pipelineDate} &nbsp;|&nbsp; Revenue Data &middot; ${d.revenueDate}`;
   }).catch(() => {});
