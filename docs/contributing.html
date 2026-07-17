@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compass — Extending the Platform</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.7; color: #1f2328; background: #ffffff;
+}
+a { color: #3b82d4; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+nav {
+  background: #1f2328; position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid #30363d;
+}
+.nav-inner {
+  max-width: 900px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 0; overflow-x: auto;
+}
+.nav-brand { font-size: 13px; font-weight: 800; color: #fff; padding: 14px 20px 14px 0;
+  border-right: 1px solid #30363d; margin-right: 4px; white-space: nowrap; }
+.nav-brand span { color: #7c5cd8; }
+nav a { font-size: 12px; color: #8b949e; padding: 14px 14px; white-space: nowrap; }
+nav a:hover { color: #fff; }
+nav a.active { color: #fff; border-bottom: 2px solid #3b82d4; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+h1 { font-size: 30px; font-weight: 800; color: #1f2328; margin-bottom: 8px; }
+h2 { font-size: 20px; font-weight: 700; color: #1f2328; margin-bottom: 10px; margin-top: 4px; }
+h3 { font-size: 15px; font-weight: 700; color: #1f2328; margin-bottom: 8px; margin-top: 20px; }
+h4 { font-size: 13px; font-weight: 700; color: #1f2328; margin-bottom: 6px; }
+p { color: #424a53; margin-bottom: 10px; }
+p:last-child { margin-bottom: 0; }
+ul, ol { padding-left: 20px; margin-bottom: 12px; }
+li { margin-bottom: 5px; color: #424a53; }
+li strong { color: #1f2328; }
+
+.page-header { padding: 32px 0 28px; border-bottom: 1px solid #e5e7eb; margin-bottom: 40px; }
+.page-header p { font-size: 15px; color: #57606a; max-width: 640px; }
+
+.section { margin-bottom: 56px; }
+.sh {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: #57606a; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.sh::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; }
+
+/* ── Steps ── */
+.steps { counter-reset: step; }
+.step {
+  counter-increment: step;
+  position: relative; padding-left: 44px; margin-bottom: 28px;
+}
+.step::before {
+  content: counter(step);
+  position: absolute; left: 0; top: 0;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #3b82d4; color: #fff;
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.step-title { font-size: 14px; font-weight: 700; color: #1f2328; margin-bottom: 6px; }
+
+/* ── Code ── */
+pre {
+  background: #161b22; color: #e6edf3; border-radius: 6px;
+  padding: 16px 18px; overflow-x: auto; font-size: 12.5px;
+  line-height: 1.6; margin: 12px 0 16px;
+  border: 1px solid #30363d;
+}
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+}
+p code, li code, td code, h3 code {
+  background: #f3f4f6; color: #c0392b;
+  padding: 1px 6px; border-radius: 3px;
+  border: 1px solid #e5e7eb; font-size: 12px;
+}
+
+/* ── Callout ── */
+.callout {
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; border-left: 4px solid;
+  font-size: 13.5px;
+}
+.callout-blue   { background: #f0f6ff; border-color: #3b82d4; }
+.callout-green  { background: #f0fdf4; border-color: #22c55e; }
+.callout-orange { background: #fffbeb; border-color: #f59e0b; }
+.callout-purple { background: #f5f0fe; border-color: #7c5cd8; }
+.ct { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.ct-blue   { color: #1a56db; }
+.ct-green  { color: #16a34a; }
+.ct-orange { color: #b45309; }
+.ct-purple { color: #7c5cd8; }
+
+/* ── Card grid ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.card { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; }
+.card-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px;
+  font-weight: 700; font-size: 11px; color: #57606a; text-transform: uppercase; }
+td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+tr:nth-child(even) td { background: #fafbfc; }
+td code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px;
+  font-size: 11.5px; border: 1px solid #e5e7eb; color: #c0392b; }
+
+/* ── Checklist ── */
+.checklist { list-style: none; padding: 0; }
+.checklist li {
+  padding: 6px 0 6px 26px; border-bottom: 1px solid #f3f4f6;
+  position: relative; font-size: 13px;
+}
+.checklist li:last-child { border-bottom: none; }
+.checklist li::before { content: "□"; position: absolute; left: 0; color: #d1d5db; font-size: 14px; }
+.checklist li.done::before { content: "✓"; color: #22c55e; }
+
+/* ── Inline badge ── */
+.tag {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px; margin-left: 6px;
+}
+.tag-new    { background: #d1fae5; color: #065f46; }
+.tag-config { background: #dce8fb; color: #1a4fa0; }
+.tag-zero   { background: #f5f0fe; color: #5b21b6; }
+
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 40px 0; }
+
+footer { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 32px;
+  font-size: 12px; color: #8b949e; text-align: center; }
+
+@media (max-width: 600px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand"><span>Compass</span> Platform</div>
+    <a href="index.html">Design Doc</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="contributing.html" class="active">Extending</a>
+    <a href="https://github.com/puru-nayak-labs/compass">GitHub →</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>Extending the Platform</h1>
+    <p>
+      Step-by-step guides for adding a new data source, KPI, domain configuration, agent, or
+      insight rule — without touching platform core code. Every extension point is an interface
+      or a configuration object. New capabilities are additions, never modifications.
+    </p>
+  </div>
+
+  <!-- ═══════════════════ TABLE OF CONTENTS ═══════════════════ -->
+  <div class="section">
+    <div class="sh">In This Guide</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">1. Add a New Data Source</div>
+        <p style="font-size:12px">Implement <code>DataConnector</code> for any source (DB2, Oracle, Snowflake, REST). Register it. No platform code changes.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Add a New KPI</div>
+        <p style="font-size:12px">Declare a <code>KpiDefinition</code> in the schema registry. The KPI Engine executes it automatically. Zero new endpoints.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">3. Add a New Domain</div>
+        <p style="font-size:12px">Create a <code>DomainConfig</code> object. Map any business domain (HR, Finance, Supply Chain) to the platform's abstract schema.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">4. Add a New Insight Rule</div>
+        <p style="font-size:12px">Register an <code>InsightRuleDef</code>. The deterministic InsightEngine picks it up automatically. No changes to InsightEngine itself.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">5. Add a New Agent</div>
+        <p style="font-size:12px">Implement the <code>Agent</code> interface. Register it with the Orchestrator. Emits standard <code>AgentResult + RunTrace</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">6. Switch the LLM</div>
+        <p style="font-size:12px">Implement <code>NarratorService</code> for any LLM (GPT-4, Llama, Granite, Claude). Swap the binding. Zero changes to calling code.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ 1. NEW DATA SOURCE ═══════════════════ -->
+  <div class="section">
+    <div class="sh">01 · Add a New Data Source</div>
+    <h2>Implementing a <code>DataConnector</code></h2>
+    <p>
+      Any new data source requires exactly one new class implementing the <code>DataConnector</code>
+      interface, and one registration call. The entire platform above Layer 1 is unaffected.
+    </p>
+
+    <div class="callout callout-blue">
+      <div class="ct ct-blue">Contract</div>
+      Your connector must implement <code>connect()</code>, <code>fetch()</code>, <code>status()</code>,
+      and <code>disconnect()</code>. The <code>fetch()</code> method must return a valid <code>DataSet</code>
+      with a populated schema, rows, checksum, and <code>fetchedAt</code> timestamp.
+      All column types must be coerced at ingest — never at query time.
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Create the connector class</div>
+        <p>Extend the abstract <code>BaseConnector</code> to inherit boilerplate (logging, retry logic, status tracking).</p>
+        <pre><code>// src/connectors/SnowflakeConnector.ts
+import { BaseConnector, DataSet, ConnectorQuery, ColumnSchema } from "../platform/connectors";
+import { createConnection } from "snowflake-sdk";
+
+export class SnowflakeConnector extends BaseConnector {
+  readonly id = "snowflake";
+  readonly displayName = "Snowflake Data Warehouse";
+
+  private conn: snowflake.Connection | null = null;
+
+  constructor(private config: SnowflakeConfig) {
+    super();
+  }
+
+  async connect(): Promise&lt;void&gt; {
+    this.conn = createConnection({
+      account:   this.config.account,
+      username:  this.config.username,
+      privateKey: this.config.privateKeyPath,  // key-pair auth (no password in env)
+      database:  this.config.database,
+      warehouse: this.config.warehouse,
+    });
+    await this.conn.connect();
+    this.markHealthy();
+  }
+
+  async fetch(query: ConnectorQuery, schema: ColumnSchema[]): Promise&lt;DataSet&gt; {
+    if (!this.conn) throw new ConnectorError("Not connected. Call connect() first.");
+
+    // Build SQL from the ConnectorQuery (table name + optional WHERE clause)
+    const sql = query.rawSql ?? this.buildSql(query, schema);
+
+    const rows = await this.executeQuery(sql);
+
+    // BaseConnector.normalizeRows() coerces types, validates against schema,
+    // collects warnings, and computes the SHA-256 checksum
+    return this.normalizeRows(rows, schema, query);
+  }
+
+  async status() {
+    return this.conn
+      ? { healthy: true, lastFetchedAt: this.lastFetchedAt, rowCount: this.lastRowCount }
+      : { healthy: false, error: "Not connected" };
+  }
+
+  async disconnect(): Promise&lt;void&gt; {
+    await this.conn?.destroy();
+    this.conn = null;
+  }
+
+  private buildSql(query: ConnectorQuery, schema: ColumnSchema[]): string {
+    const cols = schema.map(c => c.aliases?.[0] ?? c.name).join(", ");
+    const where = query.filter ? `WHERE ${query.filter}` : "";
+    return `SELECT ${cols} FROM ${query.table} ${where}`;
+  }
+}</code></pre>
+      </div>
+
+      <div class="step">
+        <div class="step-title">Register the connector</div>
+        <pre><code>// src/platform/ConnectorRegistry.ts
+import { SnowflakeConnector } from "../connectors/SnowflakeConnector";
+
+ConnectorRegistry.register("snowflake", (config) =&gt; new SnowflakeConnector(config));
+// That's it. The platform will resolve "snowflake" from any DomainConfig that references it.</code></pre>
+      </div>
+
+      <div class="step">
+        <div class="step-title">Reference in a DomainConfig</div>
+        <pre><code>// Any domain can now use the Snowflake connector as its data source
+const SUPPLY_CHAIN_DOMAIN: DomainConfig = {
+  id: "supply_chain",
+  dataSources: [
+    {
+      connectorId: "snowflake",
+      role: "inventory",
+      config: {
+        account: process.env.SNOWFLAKE_ACCOUNT,
+        username: process.env.SNOWFLAKE_USER,
+        database: "SUPPLY_CHAIN_DB",
+        warehouse: "ANALYTICS_WH",
+      },
+      query: { table: "INVENTORY_FACTS", filter: "YEAR = CURRENT_YEAR" },
+      refreshIntervalMs: 3_600_000,  // hourly
+    }
+  ]
+};</code></pre>
+      </div>
+
+      <div class="step">
+        <div class="step-title">Write the connector test</div>
+        <p>
+          Every connector must pass the standard <code>ConnectorContractTest</code> suite,
+          which validates that <code>fetch()</code> returns a well-formed <code>DataSet</code>
+          with the correct schema, checksum, and type coercions.
+        </p>
+        <pre><code>// src/connectors/__tests__/SnowflakeConnector.test.ts
+import { ConnectorContractTest } from "../../platform/testing";
+
+// Runs 12 standard contract assertions automatically
+ConnectorContractTest.run(
+  () =&gt; new SnowflakeConnector(TEST_CONFIG),
+  SNOWFLAKE_FIXTURE_QUERY,
+  EXPECTED_SCHEMA
+);</code></pre>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="ct ct-green">No-touch guarantee</div>
+      After these 4 steps, the Snowflake connector is available to every domain config
+      and every layer above Layer 1. The KPI Engine, Intelligence Layer, Narrator, and
+      all agents are completely unaware that a new source type was added.
+    </div>
+  </div>
+
+  <!-- ═══════════════════ 2. NEW KPI ═══════════════════ -->
+  <div class="section">
+    <div class="sh">02 · Add a New KPI</div>
+    <h2>Declaring a <code>KpiDefinition</code> <span class="tag tag-zero">Zero Code Change</span></h2>
+    <p>
+      KPIs are <em>declared</em>, not coded. The <code>AggregationEngine</code> reads the
+      <code>SchemaRegistry</code> and executes every registered <code>KpiDefinition</code> automatically.
+      There is no "add a new endpoint" step — the REST API exposes all registered KPIs dynamically.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Declare the KpiDefinition</div>
+        <pre><code>// src/kpi/definitions/backlog.kpi.ts
+import { KpiDefinition } from "../../platform/kpi";
+
+export const BACKLOG_KPI: KpiDefinition = {
+  id: "backlog",
+  displayName: "Order Backlog",
+  unit: "currency_usd",
+  aggregation: "sum",
+  sourceColumn: "Backlog Value",          // must match a column in the DataSet schema
+  filterDimensions: ["geo", "market", "quarter", "year", "offeringArea"],
+  comparisons: [
+    { type: "QoQ", priorPeriodFn: "prevQuarter" },
+    { type: "YoY", priorPeriodFn: "sameQtrPriorYear" },
+  ],
+  thresholds: [
+    { condition: "qoq_delta &lt; -15", severity: "HIGH",  label: "Backlog declining rapidly" },
+    { condition: "qoq_delta &lt; -5",  severity: "MED",   label: "Backlog declining" },
+    { condition: "value === 0",      severity: "HIGH",  label: "No backlog recorded" },
+  ],
+  insightRules: [
+    { id: "backlog_geo_concentration", description: "Flag if 1 geo holds &gt;60% of total backlog" },
+    { id: "backlog_pipeline_coverage", description: "Compare backlog to active pipeline as coverage ratio" },
+  ],
+};</code></pre>
+      </div>
+
+      <div class="step">
+        <div class="step-title">Register in the SchemaRegistry</div>
+        <pre><code">// src/kpi/SchemaRegistry.ts  (or domain-level config)
+import { BACKLOG_KPI } from "./definitions/backlog.kpi";
+
+SchemaRegistry.register(BACKLOG_KPI);
+// Done. The KPI Engine will now compute backlog for every filter combination.
+// /api/kpi/summary will include "backlog" in its response automatically.</code></pre>
+      </div>
+
+      <div class="step">
+        <div class="step-title">Add the source column to the DataSet schema</div>
+        <pre><code">// Ensure "Backlog Value" is declared in your domain's DataSet column schema
+const PIPELINE_SCHEMA: ColumnSchema[] = [
+  // ... existing columns ...
+  { name: "Backlog Value", type: "number", required: false, aliases: ["Backlog $M", "BacklogVal"] },
+];</code></pre>
+      </div>
+    </div>
+
+    <p>
+      The backlog KPI is now available in every API response, the PM Report,
+      the chat agent (via the IntentParser's KPI vocabulary), and the InsightEngine's
+      threshold checks — with zero changes to any platform code.
+    </p>
+  </div>
+
+  <!-- ═══════════════════ 3. NEW DOMAIN ═══════════════════ -->
+  <div class="section">
+    <div class="sh">03 · Add a New Business Domain</div>
+    <h2>Writing a <code>DomainConfig</code> <span class="tag tag-config">Config Only</span></h2>
+    <p>
+      A <code>DomainConfig</code> is a plain object that maps a business domain to the platform's
+      abstract schema. It specifies which connectors to use, which KPIs to activate,
+      which insight rules to apply, and which personas to expose. The platform code
+      does not change.
+    </p>
+
+    <pre><code>// src/domains/ibm-procurement/domain.config.ts
+import { DomainConfig } from "../../platform/domain";
+
+export const PROCUREMENT_DOMAIN: DomainConfig = {
+  id: "procurement",
+  displayName: "Procurement Intelligence",
+  version: "1.0.0",
+
+  // ── Data sources ──
+  dataSources: [
+    {
+      connectorId: "rest",
+      role: "purchase_orders",
+      config: {
+        baseUrl: "https://your-procurement-api.example.com/api/v2",
+        authType: "bearer",
+        tokenEnvVar: "ARIBA_API_TOKEN",
+      },
+      query: { endpoint: "/purchase-orders", params: { status: "open,closed" } },
+      refreshIntervalMs: 3_600_000,
+    },
+    {
+      connectorId: "db2",
+      role: "supplier_master",
+      config: {
+        host: process.env.DB2_HOST,
+        database: "PROCUREMENT",
+      },
+      query: { table: "SUPPLIER_MASTER" },
+      refreshIntervalMs: 86_400_000,   // daily
+    }
+  ],
+
+  // ── KPIs to activate ──
+  kpiIds: ["po_volume", "supplier_lead_time", "cost_savings", "contract_coverage"],
+
+  // ── Dimension mapping (source column names → platform dimension names) ──
+  dimensionMap: {
+    geo:          "BuyerRegion",
+    market:       "BuyerCountry",
+    offeringArea: "SpendCategory",
+    quarter:      "FiscalQuarter",
+    year:         "FiscalYear",
+  },
+
+  // ── Personas ──
+  personas: [
+    { id: "procurement_lead",  displayName: "Procurement Lead",  defaultFilters: { geo: "WW" } },
+    { id: "cpo",               displayName: "Chief Procurement Officer", defaultFilters: { geo: "WW", quarter: "CURRENT" } },
+  ],
+
+  // ── Domain-specific insight rules (in addition to platform defaults) ──
+  domainInsightRules: [
+    { id: "supplier_concentration", threshold: 0.4, description: "Alert if top-3 suppliers hold &gt;40% of spend" },
+    { id: "lead_time_degradation",  threshold: 10,  description: "Flag suppliers with lead time increase &gt;10 days QoQ" },
+  ],
+
+  // ── Knowledge base entries for chat agent ──
+  knowledgeBase: [
+    { topic: "spot_buy",   content: "A spot buy is a one-time purchase outside contracted agreements..." },
+    { topic: "renegotiate", content: "Renegotiation is triggered when contract coverage drops below 70%..." },
+  ],
+
+  // ── Narrator persona prompt overrides ──
+  narratorPersonaOverrides: {
+    cpo: "You are a procurement intelligence advisor for the Chief Procurement Officer. Focus on cost savings, supplier risk, and contract coverage. Always quantify savings in $M.",
+  },
+};</code></pre>
+
+    <div class="callout callout-orange">
+      <div class="ct ct-orange">Registration</div>
+      <code>DomainRegistry.register(PROCUREMENT_DOMAIN)</code> — then start the server.
+      The platform bootstraps the connectors, activates the specified KPIs, and exposes all API
+      endpoints scoped to this domain at <code>/api/domains/ibm_procurement/...</code>.
+      No other code change required.
+    </div>
+  </div>
+
+  <!-- ═══════════════════ 4. NEW INSIGHT RULE ═══════════════════ -->
+  <div class="section">
+    <div class="sh">04 · Add a New Insight Rule</div>
+    <h2>Writing an <code>InsightRuleDef</code></h2>
+    <p>
+      Insight rules are declarative functions that receive a <code>KpiSnapshot</code> and
+      return a typed <code>Insight | null</code>. They are pure functions —
+      no side effects, no external calls. The InsightEngine runs every registered rule
+      and aggregates the results into the <code>InsightBundle</code>.
+    </p>
+
+    <pre><code>// src/insights/rules/pipeline-stall.rule.ts
+import { InsightRule, KpiSnapshot, Insight } from "../../platform/insights";
+
+/**
+ * PipelineStallRule — fires when active pipeline has not grown for 2+ consecutive quarters.
+ * Severity scales with stagnation depth: &gt;10% decline = HIGH, flat = MED.
+ */
+export const PIPELINE_STALL_RULE: InsightRule = {
+  id: "pipeline_stall",
+  displayName: "Pipeline Stagnation Detector",
+  appliesTo: ["pipeline"],   // which KPI this rule fires on
+
+  evaluate(snapshot: KpiSnapshot): Insight | null {
+    const { current, priorQuarter, priorPriorQuarter } = snapshot.pipeline;
+
+    // Need at least 2 prior quarters to detect stagnation
+    if (!priorQuarter || !priorPriorQuarter) return null;
+
+    const qoq1 = (current - priorQuarter) / priorQuarter;      // current vs PQ
+    const qoq2 = (priorQuarter - priorPriorQuarter) / priorPriorQuarter;  // PQ vs PPQ
+
+    // Two consecutive declines
+    if (qoq1 &lt; 0 && qoq2 &lt; 0) {
+      const severity = qoq1 &lt; -0.10 ? "HIGH" : "MED";
+      return {
+        id: `pipeline_stall_${snapshot.scope.geo}_${snapshot.scope.quarter}`,
+        ruleId: "pipeline_stall",
+        severity,
+        headline: `${snapshot.scope.geo} pipeline declining for 2 consecutive quarters (${(qoq1*100).toFixed(1)}% QoQ, ${(qoq2*100).toFixed(1)}% prior QoQ)`,
+        supportingData: { current, priorQuarter, priorPriorQuarter, qoq1, qoq2 },
+        confidence: snapshot.dataQuality.completeness,  // 0–1 from DataSet
+      };
+    }
+    return null;  // rule did not fire — not an insight
+  }
+};</code></pre>
+
+    <pre><code>// Register in InsightEngine (or domain config)
+InsightEngine.registerRule(PIPELINE_STALL_RULE);
+// The rule now runs automatically on every InsightEngine.analyse() call.</code></pre>
+
+    <div class="callout callout-green">
+      <div class="ct ct-green">Testing insight rules</div>
+      Because rules are pure functions (KpiSnapshot in, Insight out), they are trivially
+      unit-testable without mocking any infrastructure.
+      <pre style="margin-top:8px;background:#f0fdf4;border-color:#86efac;color:#14532d"><code>const insight = PIPELINE_STALL_RULE.evaluate(MOCK_SNAPSHOT_TWO_DECLINES);
+expect(insight?.severity).toBe("HIGH");
+expect(insight?.headline).toContain("2 consecutive quarters");</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ 5. NEW AGENT ═══════════════════ -->
+  <div class="section">
+    <div class="sh">05 · Add a New Agent</div>
+    <h2>Implementing the <code>Agent</code> Interface</h2>
+    <p>
+      All agents implement the same typed interface. The Orchestrator discovers agents
+      via the <code>AgentRegistry</code> and routes to them based on <code>IntentResult.agentTarget</code>.
+    </p>
+
+    <pre><code>// src/agents/ForecastRiskAgent.ts — a new agent for forecast risk analysis
+import { BaseAgent, AgentResult, RunTrace } from "../platform/agents";
+import { InsightEngine } from "../platform/insights";
+
+interface ForecastRiskContext {
+  snapshot: KpiSnapshot;
+  quarter: string;
+  geo: string;
+}
+
+interface ForecastRiskResult {
+  coverageRatio: number;
+  atRiskPipeline: number;
+  riskLevel: "HIGH" | "MED" | "LOW";
+  topRiskyOpportunities: Opportunity[];
+  recommendation: string;
+}
+
+export class ForecastRiskAgent extends BaseAgent&lt;ForecastRiskContext, ForecastRiskResult&gt; {
+  readonly id = "forecast_risk";
+  readonly version = "1.0.0";
+
+  // BaseAgent.execute() wraps this in try/catch, emits RunTrace, measures latency
+  protected async run(ctx: ForecastRiskContext): Promise&lt;ForecastRiskResult&gt; {
+    const coverage = ctx.snapshot.call / ctx.snapshot.pipeline;
+    const atRisk   = ctx.snapshot.upside + ctx.snapshot.bestCase;
+
+    // Pure deterministic computation — no LLM call here
+    const riskLevel = coverage &lt; 0.5 ? "HIGH" : coverage &lt; 0.7 ? "MED" : "LOW";
+
+    const topRisky = await this.getTopRiskyOpps(ctx);
+
+    return {
+      coverageRatio: coverage,
+      atRiskPipeline: atRisk,
+      riskLevel,
+      topRiskyOpportunities: topRisky,
+      recommendation: this.buildRecommendation(riskLevel, coverage, ctx.geo),
+    };
+  }
+
+  async healthCheck() {
+    return { healthy: true, agentId: this.id, version: this.version };
+  }
+}</code></pre>
+
+    <pre><code">// Register with the Orchestrator
+AgentRegistry.register(new ForecastRiskAgent());
+
+// Add routing in IntentParser so chat can trigger it
+IntentParser.addRoute({
+  pattern: /forecast risk|coverage risk|at.?risk/i,
+  agentTarget: "forecast_risk",
+});</code></pre>
+  </div>
+
+  <!-- ═══════════════════ 6. SWITCH LLM ═══════════════════ -->
+  <div class="section">
+    <div class="sh">06 · Switch or Add a Narrator (LLM)</div>
+    <h2>Implementing <code>NarratorService</code></h2>
+    <p>
+      The platform ships with <code>LlmNarrator</code> (any LLM provider) and
+      <code>TemplateNarrator</code> (deterministic fallback). To add GPT-4, Llama 3,
+      or any other LLM: implement <code>NarratorService</code>, update the binding. Zero other changes.
+    </p>
+
+    <pre><code">// src/narrators/Gpt4Narrator.ts
+import { NarratorService, NarrativeResult, InsightBundle, NarratorContext } from "../platform/narrator";
+import OpenAI from "openai";
+
+export class Gpt4Narrator implements NarratorService {
+  private client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  async narrate(bundle: InsightBundle, ctx: NarratorContext): Promise&lt;NarrativeResult&gt; {
+    const prompt = PromptBuilder.build(bundle, ctx);
+
+    const response = await this.client.chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0,                          // deterministic
+      response_format: { type: "json_object" }, // enforce JSON output
+      messages: [
+        { role: "system", content: prompt.system },
+        { role: "user",   content: JSON.stringify(bundle) },
+      ],
+      max_tokens: 600,
+    });
+
+    const parsed = JSON.parse(response.choices[0].message.content!);
+
+    // OutputValidator: every number in parsed must exist in bundle
+    const validation = OutputValidator.validate(parsed, bundle);
+    if (!validation.passed) {
+      // Automatic fallback — never propagate a bad LLM response
+      return TemplateNarrator.narrate(bundle, ctx);
+    }
+
+    return {
+      text: parsed.body,
+      structuredFallback: bundle,    // always present
+      llmUsed: true,
+      validationPassed: true,
+      tokensUsed: response.usage?.total_tokens,
+    };
+  }
+}</code></pre>
+
+    <pre><code">// Swap the binding in the DI container — one line change
+Container.bind(NarratorService).to(Gpt4Narrator);
+// LlmNarrator is replaced; TemplateNarrator fallback is unchanged.
+// All agents, all API endpoints, all chat flows continue to work.</code></pre>
+  </div>
+
+  <!-- ═══════════════════ CHECKLIST ═══════════════════ -->
+  <div class="section">
+    <div class="sh">Extension Checklist</div>
+    <h2>Before Opening a Pull Request</h2>
+    <p>Every extension must pass this checklist before merging.</p>
+
+    <ul class="checklist">
+      <li class="done">New connector/agent/rule implements its interface — not a concrete dependency</li>
+      <li class="done">New connector passes <code>ConnectorContractTest</code> (12 standard assertions)</li>
+      <li class="done">New insight rule is a pure function with unit tests — no infrastructure mocks needed</li>
+      <li class="done">New KpiDefinition has at least one threshold rule and one insight rule</li>
+      <li class="done">New domain config has a dimension map covering geo, quarter, offeringArea</li>
+      <li>New agent emits <code>RunTrace</code> on every execution (success and failure)</li>
+      <li>New endpoint added to the golden eval test set (<code>evals/golden.json</code>)</li>
+      <li>Eval pass rate ≥95% after changes (run <code>npm run eval</code>)</li>
+      <li>No new imports from a higher layer into the modified layer</li>
+      <li>PR description includes: layer modified, interface implemented, zero-touch guarantee confirmed</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════ QUICK REFERENCE ═══════════════════ -->
+  <hr>
+  <h2 style="margin-bottom:14px">Quick Reference — Extension Points</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>What to Add</th><th>Interface/Base</th><th>Register With</th><th>Files to Change</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>New data source</strong></td>
+          <td><code>DataConnector</code> / <code>BaseConnector</code></td>
+          <td><code>ConnectorRegistry.register()</code></td>
+          <td>New connector file + test file + domain config update</td>
+        </tr>
+        <tr>
+          <td><strong>New KPI</strong></td>
+          <td><code>KpiDefinition</code> object</td>
+          <td><code>SchemaRegistry.register()</code></td>
+          <td>New definition file only</td>
+        </tr>
+        <tr>
+          <td><strong>New domain</strong></td>
+          <td><code>DomainConfig</code> object</td>
+          <td><code>DomainRegistry.register()</code></td>
+          <td>New domain config file only</td>
+        </tr>
+        <tr>
+          <td><strong>New insight rule</strong></td>
+          <td><code>InsightRule</code> (pure fn)</td>
+          <td><code>InsightEngine.registerRule()</code></td>
+          <td>New rule file + test file</td>
+        </tr>
+        <tr>
+          <td><strong>New agent</strong></td>
+          <td><code>Agent&lt;C,R&gt;</code> / <code>BaseAgent</code></td>
+          <td><code>AgentRegistry.register()</code></td>
+          <td>New agent file + IntentParser route + test file</td>
+        </tr>
+        <tr>
+          <td><strong>New LLM narrator</strong></td>
+          <td><code>NarratorService</code></td>
+          <td>DI container binding swap</td>
+          <td>New narrator file — one binding line change</td>
+        </tr>
+        <tr>
+          <td><strong>New persona</strong></td>
+          <td><code>DomainConfig.personas[]</code></td>
+          <td>Domain config update</td>
+          <td>Domain config file + optional narrator prompt override</td>
+        </tr>
+        <tr>
+          <td><strong>New chat intent</strong></td>
+          <td><code>IntentParser.addRoute()</code></td>
+          <td>Intent registry</td>
+          <td>IntentParser route file + golden eval entry</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;gap:14px;margin-top:28px;flex-wrap:wrap">
+    <a href="index.html" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;color:#1f2328;text-decoration:none;flex:1;min-width:200px">
+      <div style="font-weight:700;margin-bottom:3px">← Design Document</div>
+      <div style="font-size:12px;color:#57606a">Full platform architecture, principles, and interface catalogue</div>
+    </a>
+    <a href="architecture.html" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;color:#1f2328;text-decoration:none;flex:1;min-width:200px">
+      <div style="font-weight:700;margin-bottom:3px">← System Diagram</div>
+      <div style="font-size:12px;color:#57606a">Visual 7-layer architecture with data flow and interface contracts</div>
+    </a>
+    <a href="https://github.com/puru-nayak-labs/compass" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;color:#1f2328;text-decoration:none;flex:1;min-width:200px">
+      <div style="font-weight:700;margin-bottom:3px">GitHub Repository →</div>
+      <div style="font-size:12px;color:#57606a">Source code, issues, and pull requests</div>
+    </a>
+  </div>
+
+</div>
+
+<footer>
+  Compass Intelligence Platform &nbsp;·&nbsp; Platform Extension Guide &nbsp;·&nbsp; Puru Nayak &nbsp;·&nbsp; github.com/puru-nayak-labs
+  <br><span style="margin-top:6px;display:block">Made with ❤️</span>
+</footer>
+
+</body>
+</html>

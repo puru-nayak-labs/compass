@@ -1,16 +1,34 @@
-# Node
+# ── Node ────────────────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
+package-lock.json
 
-# Bob internal — exclude everything INSIDE .bob except the data dumps the server needs
-# Note: exclude subdirs individually rather than .bob/ so negation exceptions work
-.bob/tmp/xlsx-dumps/*/manifest.json
-.bob/settings/
-.bob/cache/
-.bob/logs/
-.bob/skills/
-.bob/workspace/
+# ── Proprietary / sensitive data — never commit ─────────────────────────────
+# Raw source spreadsheets
+*.xlsx
+*.xls
+*.csv
 
-# OS
+# Pre-processed JSON data dumps (large + potentially sensitive)
+.bob/tmp/
+
+# Agent run logs (may contain KPI data)
+agent-runs.jsonl
+
+# ── IBM-internal content ─────────────────────────────────────────────────────
+ibm_compass_content.txt
+
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# ── Editor ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

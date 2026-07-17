@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compass — System Architecture Diagram</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px; line-height: 1.5; color: #1f2328; background: #f0f2f5;
+}
+a { color: #3b82d4; text-decoration: none; }
+
+nav {
+  background: #1f2328; position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid #30363d;
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 0; overflow-x: auto;
+}
+.nav-brand { font-size: 13px; font-weight: 800; color: #fff; padding: 14px 20px 14px 0;
+  border-right: 1px solid #30363d; margin-right: 4px; white-space: nowrap; }
+.nav-brand span { color: #7c5cd8; }
+nav a { font-size: 12px; color: #8b949e; padding: 14px 14px; white-space: nowrap; }
+nav a:hover { color: #fff; }
+nav a.active { color: #fff; border-bottom: 2px solid #3b82d4; }
+
+.page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+
+h1 { font-size: 26px; font-weight: 800; color: #1f2328; margin-bottom: 6px; }
+h2 { font-size: 18px; font-weight: 700; color: #1f2328; margin-bottom: 12px; }
+h3 { font-size: 14px; font-weight: 700; color: #1f2328; margin-bottom: 8px; }
+p { color: #57606a; margin-bottom: 10px; }
+
+.page-header { padding: 28px 0 24px; margin-bottom: 28px; border-bottom: 1px solid #e5e7eb; }
+.page-header .sub { font-size: 14px; color: #57606a; }
+
+/* ── Main diagram canvas ── */
+.diagram { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 28px 24px; margin-bottom: 28px; overflow-x: auto; }
+
+/* ── Data flow arrow ── */
+.flow-arrow {
+  display: flex; align-items: center; justify-content: center;
+  padding: 4px 0; color: #9ca3af; font-size: 11px; gap: 6px;
+}
+.flow-arrow::before, .flow-arrow::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; max-width: 80px; }
+
+/* ── Layer row ── */
+.layer {
+  border-radius: 6px; border: 1px solid; padding: 14px 16px; margin-bottom: 4px;
+}
+.layer-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.layer-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.layer-name { font-size: 14px; font-weight: 700; }
+.layer-desc { font-size: 11.5px; color: #57606a; }
+.layer-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 4px; padding: 4px 10px; font-size: 11.5px; font-weight: 600;
+  border: 1px solid;
+}
+.arrow-down {
+  text-align: center; color: #9ca3af; font-size: 18px; line-height: 1;
+  padding: 2px 0; letter-spacing: -2px;
+}
+.badge-sm {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ── Layer color themes ── */
+.layer-src  { background: #fefce8; border-color: #fde68a; }
+.layer-src  .layer-num  { background: #d97706; }
+.layer-src  .layer-name { color: #92400e; }
+.layer-src  .chip { background: #fef9c3; border-color: #fde047; color: #713f12; }
+
+.layer-con  { background: #fff7ed; border-color: #fed7aa; }
+.layer-con  .layer-num  { background: #ea580c; }
+.layer-con  .layer-name { color: #7c2d12; }
+.layer-con  .chip { background: #ffedd5; border-color: #fdba74; color: #7c2d12; }
+
+.layer-kpi  { background: #f0fdf4; border-color: #bbf7d0; }
+.layer-kpi  .layer-num  { background: #16a34a; }
+.layer-kpi  .layer-name { color: #14532d; }
+.layer-kpi  .chip { background: #dcfce7; border-color: #86efac; color: #14532d; }
+
+.layer-int  { background: #f5f0fe; border-color: #c4b5fd; }
+.layer-int  .layer-num  { background: #7c5cd8; }
+.layer-int  .layer-name { color: #4c1d95; }
+.layer-int  .chip { background: #ede9fe; border-color: #a78bfa; color: #4c1d95; }
+
+.layer-nar  { background: #fef2f2; border-color: #fecaca; }
+.layer-nar  .layer-num  { background: #dc2626; }
+.layer-nar  .layer-name { color: #7f1d1d; }
+.layer-nar  .chip { background: #fee2e2; border-color: #fca5a5; color: #7f1d1d; }
+
+.layer-bus  { background: #eff6ff; border-color: #bfdbfe; }
+.layer-bus  .layer-num  { background: #2563eb; }
+.layer-bus  .layer-name { color: #1e3a8a; }
+.layer-bus  .chip { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+
+.layer-prs  { background: #f8fafc; border-color: #cbd5e1; }
+.layer-prs  .layer-num  { background: #475569; }
+.layer-prs  .layer-name { color: #1e293b; }
+.layer-prs  .chip { background: #f1f5f9; border-color: #94a3b8; color: #334155; }
+
+/* ── Output badge ── */
+.output-row {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb;
+  display: flex; align-items: center; gap: 8px; font-size: 11px; color: #57606a;
+}
+.output-row strong { color: #1f2328; }
+
+/* ── Interface callout ── */
+.iface-row {
+  display: flex; align-items: center; gap: 8px; margin: 2px 0;
+  font-size: 11.5px;
+}
+.iface-badge {
+  font-size: 10px; font-weight: 700; background: #1f2328; color: #fff;
+  padding: 1px 6px; border-radius: 3px; letter-spacing: 0.5px; flex-shrink: 0;
+}
+
+/* ── Cross-cutting concerns sidebar ── */
+.section-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+.sidebar-block {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px;
+  margin-bottom: 14px;
+}
+.sidebar-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #57606a; margin-bottom: 10px;
+}
+.sidebar-item {
+  padding: 6px 0; border-bottom: 1px solid #f3f4f6;
+  font-size: 12px; display: flex; align-items: flex-start; gap: 6px;
+}
+.sidebar-item:last-child { border-bottom: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.dot-green  { background: #22c55e; }
+.dot-blue   { background: #3b82d4; }
+.dot-purple { background: #7c5cd8; }
+.dot-orange { background: #f59e0b; }
+.dot-red    { background: #dc2626; }
+
+/* ── Determinism guarantee box ── */
+.det-box {
+  background: #1f2328; color: #e6edf3; border-radius: 6px;
+  padding: 16px 18px; margin-bottom: 20px;
+}
+.det-box h3 { color: #79c0ff; margin-bottom: 10px; font-size: 13px; }
+.det-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; font-size: 12px; }
+.det-layer { color: #7c5cd8; font-weight: 700; min-width: 90px; flex-shrink: 0; font-size: 11px; }
+.det-text { color: #c9d1d9; }
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; font-weight: 700;
+  font-size: 11px; color: #57606a; text-transform: uppercase; }
+td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+tr:nth-child(even) td { background: #fafbfc; }
+code { font-family: monospace; font-size: 11.5px; background: #f3f4f6;
+  padding: 1px 5px; border-radius: 3px; border: 1px solid #e5e7eb; color: #c0392b; }
+
+/* ── Callout ── */
+.callout { border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; border-left: 4px solid; }
+.callout-blue { background: #f0f6ff; border-color: #3b82d4; font-size: 12.5px; }
+.callout-green { background: #f0fdf4; border-color: #22c55e; font-size: 12.5px; }
+
+/* ── Section header ── */
+.sh { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: #57606a; display: flex; align-items: center; gap: 8px; margin: 28px 0 14px; }
+.sh::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; }
+
+footer { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 32px;
+  font-size: 11px; color: #8b949e; text-align: center; background: #fff; padding: 20px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand"><span>Compass</span> Platform</div>
+    <a href="index.html">Design Doc</a>
+    <a href="architecture.html" class="active">Architecture</a>
+    <a href="contributing.html">Extending</a>
+    <a href="https://github.com/puru-nayak-labs/compass">GitHub →</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>System Architecture Diagram</h1>
+    <p class="sub">7-Layer platform architecture · Data flow · Interface contracts · Determinism guarantees · Deployment topology</p>
+  </div>
+
+  <!-- ═══ MAIN DIAGRAM ═══ -->
+  <div class="section-grid">
+
+    <!-- LEFT: Layer stack -->
+    <div>
+      <h2 style="margin-bottom:14px">Full System Architecture — Data Flow Top to Bottom</h2>
+
+      <div class="diagram">
+
+        <!-- LAYER 0 — Source -->
+        <div class="layer layer-src">
+          <div class="layer-header">
+            <div class="layer-num">0</div>
+            <div>
+              <div class="layer-name">Source Layer</div>
+              <div class="layer-desc">Any structured data source — no assumptions about origin or format</div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">Excel / CSV</span>
+            <span class="chip">DB2</span>
+            <span class="chip">Oracle</span>
+            <span class="chip">Snowflake</span>
+            <span class="chip">Data Lake</span>
+            <span class="chip">Salesforce / ISC</span>
+            <span class="chip">EPM</span>
+            <span class="chip">REST API</span>
+            <span class="chip">Box / SharePoint</span>
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 1 — Connector -->
+        <div class="layer layer-con">
+          <div class="layer-header">
+            <div class="layer-num">1</div>
+            <div>
+              <div class="layer-name">Connector Layer</div>
+              <div class="layer-desc">One <code>DataConnector</code> interface · N concrete implementations · all produce identical <code>DataSet</code> output</div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">ExcelConnector</span>
+            <span class="chip">Db2Connector</span>
+            <span class="chip">OracleConnector</span>
+            <span class="chip">SnowflakeConnector</span>
+            <span class="chip">WatsonxDataConnector</span>
+            <span class="chip">SalesforceConnector</span>
+            <span class="chip">RestApiConnector</span>
+          </div>
+          <div class="output-row">
+            <span class="iface-badge">INTERFACE</span>
+            <strong>DataConnector</strong> →
+            emits: <strong>DataSet</strong> (normalized rows · typed schema · checksum · fetchedAt · warnings)
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 2 — KPI Engine -->
+        <div class="layer layer-kpi">
+          <div class="layer-header">
+            <div class="layer-num">2</div>
+            <div>
+              <div class="layer-name">KPI Engine Layer</div>
+              <div class="layer-desc">Schema-driven · fully deterministic · all aggregation, delta, and accuracy checks happen here</div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">SchemaRegistry</span>
+            <span class="chip">FilterEngine</span>
+            <span class="chip">AggregationEngine</span>
+            <span class="chip">DeltaEngine (QoQ · YoY · MoM)</span>
+            <span class="chip">AccuracyCheckpoint</span>
+            <span class="chip">KpiCache (in-memory · TTL)</span>
+          </div>
+          <div class="output-row">
+            <span class="iface-badge">VALUE OBJECT</span>
+            emits: <strong>KpiSnapshot</strong> (computed values · deltas · cache metadata · checksum validation result)
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 3 — Intelligence -->
+        <div class="layer layer-int">
+          <div class="layer-header">
+            <div class="layer-num">3</div>
+            <div>
+              <div class="layer-name">Intelligence Layer</div>
+              <div class="layer-desc">100% deterministic · rule-based · reproducible · independently unit-testable · zero LLM calls</div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">TrendAnalyser</span>
+            <span class="chip">AnomalyDetector</span>
+            <span class="chip">RiskScorer</span>
+            <span class="chip">GtmRecommender</span>
+            <span class="chip">MemoryRetriever</span>
+            <span class="chip">CorrelationEngine</span>
+          </div>
+          <div class="output-row">
+            <span class="iface-badge">INTERFACE</span>
+            <strong>InsightEngine</strong> →
+            emits: <strong>InsightBundle</strong> (highlights · risks · anomalies · recommendations · confidence scores — all deterministic)
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 4 — Narrator -->
+        <div class="layer layer-nar">
+          <div class="layer-header">
+            <div class="layer-num">4</div>
+            <div>
+              <div class="layer-name">Narrator Layer</div>
+              <div class="layer-desc">The LLM boundary — receives validated JSON, produces language only · OutputValidator enforces correctness · TemplateNarrator is always the fallback</div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">NarratorService Interface</span>
+            <span class="chip">LlmNarrator (temp=0)</span>
+            <span class="chip">TemplateNarrator (deterministic fallback)</span>
+            <span class="chip">OutputValidator</span>
+            <span class="chip">PromptBuilder</span>
+          </div>
+          <div class="output-row">
+            <span class="iface-badge">INTERFACE</span>
+            <strong>NarratorService</strong> →
+            emits: <strong>NarrativeResult</strong> (text · structuredFallback always present · llmUsed flag · validationPassed · tokensUsed)
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 5 — Agent Bus -->
+        <div class="layer layer-bus">
+          <div class="layer-header">
+            <div class="layer-num">5</div>
+            <div>
+              <div class="layer-name">Agent Bus Layer</div>
+              <div class="layer-desc">Watsonx Orchestrate routes between agents · every agent implements the same <code>Agent</code> interface · all emit <code>AgentResult + RunTrace</code></div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">Orchestrator (watsonx Orchestrate)</span>
+            <span class="chip">IntentParser (deterministic NLU)</span>
+            <span class="chip">DataAgent</span>
+            <span class="chip">AnalyticsAgent</span>
+            <span class="chip">InsightAgent</span>
+            <span class="chip">GtmAgent</span>
+            <span class="chip">ReviewAgent</span>
+            <span class="chip">MemoryAgent</span>
+          </div>
+          <div class="output-row">
+            <span class="iface-badge">INTERFACE</span>
+            <strong>Agent&lt;TContext, TResult&gt;</strong> →
+            emits: <strong>AgentResult&lt;T&gt;</strong> (data · error · RunTrace — always emitted, even on failure)
+          </div>
+        </div>
+
+        <div class="arrow-down">↓</div>
+
+        <!-- LAYER 6 — Presentation -->
+        <div class="layer layer-prs">
+          <div class="layer-header">
+            <div class="layer-num">6</div>
+            <div>
+              <div class="layer-name">Presentation Layer</div>
+              <div class="layer-desc">Consumer-facing surfaces — all receive typed JSON · never raw data · data-freshness warnings from <code>fetchedAt</code></div>
+            </div>
+          </div>
+          <div class="layer-chips">
+            <span class="chip">REST API (Express)</span>
+            <span class="chip">Chat Interface (Watsonx Assistant)</span>
+            <span class="chip">PM Report SPA</span>
+            <span class="chip">Email Digest</span>
+            <span class="chip">Admin Dashboard</span>
+            <span class="chip">PPT / MBR Auto-gen</span>
+          </div>
+        </div>
+
+      </div><!-- /diagram -->
+
+      <!-- ═══ DETERMINISM GUARANTEE ═══ -->
+      <div class="det-box">
+        <h3>Determinism Guarantee — Layer by Layer</h3>
+        <div class="det-row">
+          <span class="det-layer">Layer 1</span>
+          <span class="det-text">SHA-256 checksum on every DataSet. Identical source data always produces identical DataSet.</span>
+        </div>
+        <div class="det-row">
+          <span class="det-layer">Layer 2</span>
+          <span class="det-text">Pure functions only in AggregationEngine. AccuracyCheckpoint cross-validates UI totals vs API sums. Same inputs → identical KpiSnapshot every time.</span>
+        </div>
+        <div class="det-row">
+          <span class="det-layer">Layer 3</span>
+          <span class="det-text">Rule-based engine. No probabilistic models. Every InsightBundle is reproducible given the same KpiSnapshot.</span>
+        </div>
+        <div class="det-row">
+          <span class="det-layer">Layer 4</span>
+          <span class="det-text">LLM called with temperature=0 + JSON mode. OutputValidator: every number in LLM output must appear in InsightBundle. Failure → TemplateNarrator activates automatically.</span>
+        </div>
+        <div class="det-row">
+          <span class="det-layer">Layer 5</span>
+          <span class="det-text">IntentParser is pure regex/rule NLU — no LLM in routing path. Identical message + session context → identical intent → identical agent route.</span>
+        </div>
+      </div>
+
+      <!-- ═══ INTERFACE CONTRACTS ═══ -->
+      <div class="sh">Core Interface Contracts</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Interface</th><th>Layer</th><th>Implemented By</th><th>Emits</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>DataConnector</code></td><td>1</td>
+              <td>ExcelConnector · Db2Connector · SnowflakeConnector · OracleConnector · RestApiConnector · WatsonxDataConnector</td>
+              <td><code>DataSet</code></td>
+            </tr>
+            <tr>
+              <td><code>InsightEngine</code></td><td>3</td>
+              <td>DefaultInsightEngine · DomainInsightEngine (override)</td>
+              <td><code>InsightBundle</code></td>
+            </tr>
+            <tr>
+              <td><code>NarratorService</code></td><td>4</td>
+              <td>LlmNarrator · TemplateNarrator</td>
+              <td><code>NarrativeResult</code></td>
+            </tr>
+            <tr>
+              <td><code>Agent&lt;C,R&gt;</code></td><td>5</td>
+              <td>DataAgent · AnalyticsAgent · InsightAgent · GtmAgent · ReviewAgent · MemoryAgent</td>
+              <td><code>AgentResult&lt;R&gt; + RunTrace</code></td>
+            </tr>
+            <tr>
+              <td><code>MemoryStore</code></td><td>5</td>
+              <td>InMemoryStore (dev) · WatsonxVectorStore (prod)</td>
+              <td><code>MemoryRecord[]</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ═══ AGENT ROUTING ═══ -->
+      <div class="sh">Agent Routing Flow — Chat Request</div>
+      <div class="diagram" style="padding:16px">
+        <div style="font-size:12px;line-height:1.8;font-family:monospace">
+          <div style="color:#57606a">// User sends: "How is EMEA signings this quarter?"</div>
+          <br>
+          <div>Chat UI &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → POST /api/chat { message, sessionId }</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div>
+          <div>IntentParser &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → IntentResult { intent:"signings", geo:"EMEA", quarter:"3Q26" }</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓  (deterministic — no LLM)</div>
+          <div>Orchestrator &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → routes to AnalyticsAgent</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div>
+          <div>AnalyticsAgent &nbsp;&nbsp;&nbsp;&nbsp; → KpiEngine.compute(EMEA, 3Q26, "signings")</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓  KpiSnapshot (deterministic)</div>
+          <div>InsightAgent &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → InsightEngine.analyse(snapshot) → InsightBundle</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓  (deterministic)</div>
+          <div>ReviewAgent &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → NarratorService.narrate(bundle, {persona:"pm"})</div>
+          <div style="color:#57606a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓  LlmNarrator (temp=0) OR TemplateNarrator</div>
+          <div>Chat UI &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ← NarrativeResult { text, structuredFallback, trace }</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Sidebar -->
+    <div>
+
+      <!-- Cross-cutting concerns -->
+      <div class="sidebar-block">
+        <div class="sidebar-title">Cross-Cutting Concerns</div>
+        <div class="sidebar-item">
+          <div class="dot dot-blue"></div>
+          <div><strong>Observability</strong> — RunTrace emitted by every agent. Feeds agent-runs.jsonl, admin dashboard, and eval harness.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-green"></div>
+          <div><strong>Caching</strong> — KpiCache stores pre-computed snapshots for standard filter combinations. P95 cache-hit response: &lt;200ms.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-purple"></div>
+          <div><strong>Data Freshness</strong> — Every DataSet carries <code>fetchedAt</code>. UI shows staleness warning if data age exceeds domain threshold.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-orange"></div>
+          <div><strong>Fallback Chain</strong> — LLM → TemplateNarrator → raw InsightBundle JSON. Product never fully fails.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-red"></div>
+          <div><strong>Validation</strong> — AccuracyCheckpoint at Layer 2. OutputValidator at Layer 4. Schema validation at Layer 1.</div>
+        </div>
+      </div>
+
+      <!-- Deployment topology -->
+      <div class="sidebar-block">
+        <div class="sidebar-title">Deployment Topology</div>
+        <div class="sidebar-item">
+          <div class="dot dot-blue"></div>
+          <div><strong>Container Platform</strong> — any serverless or container hosting (Fly.io, Railway, Render, AWS ECS). Recommended for API + SPA.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-blue"></div>
+          <div><strong>Container Registry</strong> — Docker image at <code>ghcr.io/puru-nayak-labs/compass-app</code></div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-green"></div>
+          <div><strong>Data Layer</strong> — ingestion + KPI memory store (Phase 2+). Any SQL-compatible data warehouse.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-purple"></div>
+          <div><strong>LLM (any provider)</strong> — narrator layer. Called only for narrative generation, never for computation.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-orange"></div>
+          <div><strong>Agent Orchestrator</strong> — agent routing bus (Phase 3). Manages multi-agent chains and skill registration.</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-red"></div>
+          <div><strong>Chat Interface</strong> — chat frontend. Session-aware. Routes to Orchestrator or direct REST API.</div>
+        </div>
+      </div>
+
+      <!-- Memory schema -->
+      <div class="sidebar-block">
+        <div class="sidebar-title">Memory Agent Schema</div>
+        <p style="font-size:12px;color:#57606a;margin-bottom:8px">The long-term moat. Compounds with every business cycle.</p>
+        <div style="font-size:11.5px;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-family:monospace;line-height:1.8">
+          MemoryRecord {<br>
+          &nbsp; id: uuid<br>
+          &nbsp; period: "3Q26"<br>
+          &nbsp; geo: "EMEA"<br>
+          &nbsp; <strong>insight</strong>: InsightBundle<br>
+          &nbsp; <strong>action</strong>: Recommendation<br>
+          &nbsp; <strong>outcome</strong>: KpiDelta (next period)<br>
+          &nbsp; actionTaken: boolean<br>
+          &nbsp; outcomeValue: number<br>
+          &nbsp; recordedAt: Date<br>
+          }
+        </div>
+      </div>
+
+      <!-- Eval harness -->
+      <div class="sidebar-block">
+        <div class="sidebar-title">Eval Harness</div>
+        <div class="sidebar-item">
+          <div class="dot dot-green"></div>
+          <div><strong>Golden test set</strong> — 30–50 question/answer pairs covering every chat intent</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-green"></div>
+          <div><strong>Eval runner</strong> — POST each golden case to /api/chat; assert pass/fail; target ≥95%</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-orange"></div>
+          <div><strong>Pre-commit gate</strong> — CI fails if eval pass rate drops below threshold</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="dot dot-red"></div>
+          <div><strong>Thumbs-down capture</strong> — auto-appends full RunTrace to failures.jsonl for offline review</div>
+        </div>
+      </div>
+
+      <!-- KPI Schema example -->
+      <div class="sidebar-block">
+        <div class="sidebar-title">KPI Schema Registry (Declarative)</div>
+        <p style="font-size:12px;color:#57606a;margin-bottom:8px">Adding a KPI = adding a schema entry. Zero code change.</p>
+        <div style="font-size:11px;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-family:monospace;line-height:1.8">
+          KpiDefinition {<br>
+          &nbsp; id · displayName · unit<br>
+          &nbsp; aggregation: sum|count|ratio<br>
+          &nbsp; sourceColumn: string<br>
+          &nbsp; filterDimensions: string[]<br>
+          &nbsp; comparisons: [QoQ, YoY]<br>
+          &nbsp; thresholds: ThresholdRule[]<br>
+          &nbsp; insightRules: RuleDef[]<br>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /section-grid -->
+
+  <!-- ═══ PHASE MIGRATION ═══ -->
+  <div class="sh">Migration Path — Current MVP → Platform</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Component</th><th>MVP (Today)</th><th>Phase 2 (Aug–Sep)</th><th>Phase 3 (Q4 2026)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Data Ingestion</strong></td>
+          <td>Direct fs.readFileSync JSON dump in server.js startup</td>
+          <td><code>ExcelConnector</code> implementing <code>DataConnector</code> interface · Box-triggered refresh</td>
+          <td><code>WatsonxDataConnector</code> for large-scale; all sources via registry</td>
+        </tr>
+        <tr>
+          <td><strong>KPI Computation</strong></td>
+          <td>filter() + sumBy() functions inline in route handlers</td>
+          <td>Extracted to <code>AggregationEngine</code> class · KpiCache added</td>
+          <td>Full <code>SchemaRegistry</code> + <code>KpiDefinition</code> — schema-driven</td>
+        </tr>
+        <tr>
+          <td><strong>Insight Generation</strong></td>
+          <td>Rule strings embedded in /api/pm-report response handler</td>
+          <td>Extracted to <code>InsightEngine</code> class · typed <code>InsightBundle</code></td>
+          <td>Domain-configurable rule sets via <code>DomainConfig.insightRules</code></td>
+        </tr>
+        <tr>
+          <td><strong>Narrative (LLM)</strong></td>
+          <td>Template string concatenation in exec-summary endpoint</td>
+          <td><code>LlmNarrator</code> + <code>TemplateNarrator</code> fallback behind <code>NarratorService</code></td>
+          <td>OutputValidator · per-persona prompts · MBR/QBR auto-gen</td>
+        </tr>
+        <tr>
+          <td><strong>Chat Agent</strong></td>
+          <td>Single 600-line if/else intent dispatch in /api/chat</td>
+          <td>Extracted <code>IntentParser</code> class · session context object</td>
+          <td>Agent Orchestrator routing · 5 specialized agents</td>
+        </tr>
+        <tr>
+          <td><strong>Memory</strong></td>
+          <td>In-process chatSessions{} object (lost on restart)</td>
+          <td>Persistent session store (Redis / DB2)</td>
+          <td><code>MemoryAgent</code> · insight→action→outcome schema · vector store</td>
+        </tr>
+        <tr>
+          <td><strong>Observability</strong></td>
+          <td>agent-runs.jsonl append · confidence badge · trace panel</td>
+          <td>Structured <code>RunTrace</code> object on every response · token cost tracking</td>
+          <td>Admin dashboard · North Star metric tracking · ROI dashboard</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  Compass Intelligence Platform &nbsp;·&nbsp; System Architecture Reference &nbsp;·&nbsp; Puru Nayak &nbsp;·&nbsp; github.com/puru-nayak-labs
+  <br><span style="margin-top:6px;display:block">Made with ❤️</span>
+</footer>
+
+</body>
+</html>

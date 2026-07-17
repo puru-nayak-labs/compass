@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compass — Platform Design &amp; Architecture</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.7; color: #1f2328; background: #ffffff;
+}
+a { color: #3b82d4; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── layout ── */
+.page { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* ── nav ── */
+nav {
+  background: #1f2328; position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid #30363d;
+}
+.nav-inner {
+  max-width: 900px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 0; overflow-x: auto;
+}
+.nav-brand {
+  font-size: 13px; font-weight: 800; color: #ffffff;
+  padding: 14px 20px 14px 0; border-right: 1px solid #30363d;
+  margin-right: 4px; white-space: nowrap;
+}
+.nav-brand span { color: #7c5cd8; }
+nav a {
+  font-size: 12px; color: #8b949e; padding: 14px 14px;
+  white-space: nowrap; border-bottom: 2px solid transparent;
+  transition: color 0.15s;
+}
+nav a:hover { color: #ffffff; text-decoration: none; }
+nav a.active { color: #ffffff; border-bottom-color: #3b82d4; }
+
+/* ── hero ── */
+.hero {
+  padding: 56px 0 40px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 48px;
+}
+.hero-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #7c5cd8; margin-bottom: 12px;
+}
+.hero h1 {
+  font-size: 40px; font-weight: 800; letter-spacing: -0.5px;
+  color: #1f2328; margin-bottom: 12px; line-height: 1.15;
+}
+.hero h1 em { font-style: normal; color: #3b82d4; }
+.hero-sub {
+  font-size: 16px; color: #57606a; max-width: 680px; line-height: 1.6;
+  margin-bottom: 32px;
+}
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px; letter-spacing: 0.3px;
+}
+.badge-blue   { background: #dce8fb; color: #1a4fa0; }
+.badge-purple { background: #ede9fe; color: #5b21b6; }
+.badge-green  { background: #d1fae5; color: #065f46; }
+.badge-gray   { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+.badge-orange { background: #fef3c7; color: #92400e; }
+
+/* ── section headings ── */
+.section { margin-bottom: 56px; }
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #57606a;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.section-label::after {
+  content: ""; flex: 1; height: 1px; background: #e5e7eb;
+}
+h2 {
+  font-size: 24px; font-weight: 700; color: #1f2328;
+  margin-bottom: 12px; letter-spacing: -0.2px;
+}
+h3 {
+  font-size: 16px; font-weight: 700; color: #1f2328; margin-bottom: 8px;
+}
+h4 {
+  font-size: 13px; font-weight: 700; color: #1f2328; margin-bottom: 6px;
+}
+p { margin-bottom: 12px; color: #424a53; }
+p:last-child { margin-bottom: 0; }
+
+/* ── callout boxes ── */
+.callout {
+  border-radius: 6px; padding: 16px 18px; margin-bottom: 16px;
+  border-left: 4px solid;
+}
+.callout-blue   { background: #f0f6ff; border-color: #3b82d4; }
+.callout-purple { background: #f5f0fe; border-color: #7c5cd8; }
+.callout-green  { background: #f0fdf4; border-color: #22c55e; }
+.callout-orange { background: #fffbeb; border-color: #f59e0b; }
+.callout-dark   { background: #1f2328; color: #e6edf3; border-color: #3b82d4; border-radius: 6px; padding: 16px 20px; }
+.callout-dark p { color: #c9d1d9; }
+.callout-dark strong { color: #79c0ff; }
+.callout-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.callout-blue   .callout-title { color: #1a56db; }
+.callout-purple .callout-title { color: #7c5cd8; }
+.callout-green  .callout-title { color: #16a34a; }
+.callout-orange .callout-title { color: #b45309; }
+
+/* ── grid ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+
+/* ── card ── */
+.card {
+  background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px;
+  padding: 16px;
+}
+.card-title { font-size: 13px; font-weight: 700; color: #1f2328; margin-bottom: 6px; }
+.card-meta  { font-size: 11px; color: #57606a; margin-bottom: 8px; }
+
+/* ── table ── */
+.table-wrap { overflow-x: auto; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: #f7f8fa; border: 1px solid #e5e7eb;
+  padding: 8px 12px; text-align: left; font-weight: 700;
+  font-size: 11px; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px;
+}
+td { border: 1px solid #e5e7eb; padding: 8px 12px; vertical-align: top; }
+tr:nth-child(even) td { background: #fafbfc; }
+td code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+/* ── code block ── */
+pre {
+  background: #161b22; color: #e6edf3; border-radius: 6px;
+  padding: 16px 18px; overflow-x: auto; font-size: 12.5px;
+  line-height: 1.6; margin-bottom: 16px;
+  border: 1px solid #30363d;
+}
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+}
+p code, li code, td code {
+  background: #f3f4f6; color: #c0392b;
+  padding: 1px 6px; border-radius: 3px;
+  border: 1px solid #e5e7eb;
+}
+
+/* ── list ── */
+ul, ol { padding-left: 20px; margin-bottom: 12px; }
+li { margin-bottom: 5px; color: #424a53; }
+li strong { color: #1f2328; }
+
+/* ── layer stack (architecture) ── */
+.arch-stack { display: flex; flex-direction: column; gap: 3px; margin-bottom: 20px; }
+.arch-layer {
+  display: grid; grid-template-columns: 140px 1fr;
+  align-items: stretch; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden;
+}
+.arch-label {
+  background: #1f2328; color: #ffffff; padding: 12px 14px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  display: flex; align-items: center;
+}
+.arch-content {
+  padding: 10px 14px; font-size: 12.5px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.arch-layer.l0 .arch-label { background: #374151; }
+.arch-layer.l1 .arch-label { background: #1e3a5f; }
+.arch-layer.l2 .arch-label { background: #1a4731; }
+.arch-layer.l3 .arch-label { background: #4a1d96; }
+.arch-layer.l4 .arch-label { background: #7c2d12; }
+.arch-layer.l5 .arch-label { background: #1f2328; }
+.arch-layer.l6 .arch-label { background: #4b3510; }
+.chip {
+  display: inline-block; background: #f7f8fa; border: 1px solid #e5e7eb;
+  border-radius: 4px; padding: 3px 8px; font-size: 11.5px; color: #1f2328; font-weight: 600;
+}
+.chip-blue   { background: #dce8fb; border-color: #bdd0f0; color: #1a4fa0; }
+.chip-green  { background: #d1fae5; border-color: #a7f3d0; color: #065f46; }
+.chip-purple { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+.chip-red    { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.chip-orange { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+
+/* ── principle cards ── */
+.principle {
+  background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px;
+  padding: 14px 16px; border-top: 3px solid;
+}
+.principle.p-det { border-top-color: #3b82d4; }
+.principle.p-acc { border-top-color: #22c55e; }
+.principle.p-res { border-top-color: #7c5cd8; }
+.principle.p-eff { border-top-color: #f59e0b; }
+.principle.p-abs { border-top-color: #ef4444; }
+
+/* ── divider ── */
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 40px 0; }
+
+/* ── phase timeline ── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: ""; position: absolute; left: 8px; top: 0; bottom: 0;
+  width: 2px; background: #e5e7eb;
+}
+.tl-item { position: relative; margin-bottom: 28px; }
+.tl-dot {
+  position: absolute; left: -24px; top: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #ffffff; box-shadow: 0 0 0 2px currentColor;
+}
+.tl-dot.done   { background: #22c55e; color: #22c55e; }
+.tl-dot.active { background: #3b82d4; color: #3b82d4; }
+.tl-dot.plan   { background: #7c5cd8; color: #7c5cd8; }
+.tl-dot.future { background: #e5e7eb; color: #9ca3af; }
+.tl-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; margin-bottom: 4px;
+}
+.tl-title { font-size: 15px; font-weight: 700; color: #1f2328; margin-bottom: 6px; }
+
+/* ── stat row ── */
+.stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.stat {
+  background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px;
+  padding: 14px 18px; flex: 1; min-width: 100px; text-align: center;
+}
+.stat-val { font-size: 28px; font-weight: 800; color: #3b82d4; line-height: 1.1; }
+.stat-lbl { font-size: 11px; color: #57606a; margin-top: 4px; }
+
+/* ── footer ── */
+footer {
+  border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 40px;
+  font-size: 12px; color: #8b949e; text-align: center;
+}
+
+@media (max-width: 640px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .arch-layer { grid-template-columns: 1fr; }
+  .arch-label { writing-mode: horizontal-tb; }
+  .hero h1 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand"><span>Compass</span> Platform</div>
+    <a href="#summary" class="active">Summary</a>
+    <a href="#principles">Principles</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#abstractions">Abstractions</a>
+    <a href="#determinism">Determinism</a>
+    <a href="#datasources">Data Sources</a>
+    <a href="#agents">Agent Design</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="architecture.html">Visual Diagram →</a>
+    <a href="contributing.html">Extending →</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ═══ HERO ═══ -->
+  <div class="hero" id="summary">
+    <div class="hero-eyebrow">Platform Design &amp; Architecture Reference</div>
+    <h1>Compass<br><em>Intelligence Platform</em></h1>
+    <p class="hero-sub">
+      A rigorous, co-designed architectural blueprint for building Compass as a reusable,
+      source-agnostic, determinism-first AI intelligence platform — engineered for accuracy,
+      resiliency, and efficiency across any business domain, KPI set, or data source.
+    </p>
+    <div class="hero-badges">
+      <span class="badge badge-blue">Accuracy-First</span>
+      <span class="badge badge-purple">Deterministic Core</span>
+      <span class="badge badge-green">Source-Agnostic</span>
+      <span class="badge badge-orange">Agentic AI</span>
+      <span class="badge badge-gray">OOP / Abstraction</span>
+      <span class="badge badge-gray">LLM-agnostic</span>
+    </div>
+  </div>
+
+  <!-- ═══ HIGH-LEVEL PLAN ═══ -->
+  <div class="section">
+    <div class="section-label">00 · High-Level Plan</div>
+    <h2>The 7-Point Platform Blueprint</h2>
+    <p>
+      If a world-class AI Product Leader, Data Science Engineer, and Software Architect
+      co-designed Compass from scratch as a platform — not a single-purpose app —
+      these are the seven structural decisions they would make before writing a single line of code.
+    </p>
+
+    <div class="callout callout-dark">
+      <div class="callout-title">Core Design Thesis</div>
+      <p>
+        <strong>The non-deterministic nature of LLMs is the single biggest risk to enterprise AI trust.</strong>
+        The platform's answer: LLMs are optional and late-stage. Every KPI calculation,
+        every trend, every anomaly, every recommendation is computed deterministically first.
+        The LLM is a <em>narrator</em>, not a <em>calculator</em>.
+        The structured output is always the source of truth.
+      </p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">1 · Source-Agnostic Data Contract</div>
+        <p>All data enters through a single <code>DataConnector</code> interface. Whether the source is Excel, DB2, Oracle, Snowflake, a REST API, or a data lake, the platform always receives normalized <code>DataSet</code> objects. Zero upstream assumptions in any downstream layer.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">2 · Schema-Driven KPI Engine</div>
+        <p>KPI definitions are <em>declared</em> in a JSON schema — not hard-coded in route handlers. Adding a new KPI is adding a schema entry, not writing a new API endpoint. The engine executes the schema; it does not embed it.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">3 · Deterministic Intelligence Layer</div>
+        <p>Every insight (trend, anomaly, risk, recommendation) is produced by a deterministic rule engine with a typed <code>InsightResult</code> output. This layer has 100% unit-testable, reproducible output. LLMs only convert structured output to natural language — they never produce the numbers.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">4 · Typed Agent Contract</div>
+        <p>Every agent (Data Agent, Analytics Agent, Insight Agent, GTM Agent, Memory Agent) implements a standard <code>Agent</code> interface: <code>execute(context) → AgentResult</code>. Agents are composable, replaceable, and independently testable. Watsonx Orchestrate routes between them.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">5 · LLM as Isolated Narrator</div>
+        <p>The LLM receives only pre-validated, structured JSON. Its sole responsibility is to produce human-readable language from that JSON. It cannot call tools, modify data, or affect downstream state. Output is validated against a schema before it ever reaches the client.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">6 · Observability as a First-Class Citizen</div>
+        <p>Every agent execution produces a <code>RunTrace</code> object: inputs, outputs, latency, confidence score, data lineage, and LLM token cost. This is not a bolt-on — it is part of the <code>Agent</code> base class. The trace is the audit log, the eval dataset, and the ROI proof.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">7 · Domain-Configurable, Not Domain-Specific</div>
+      <p>
+        The platform is deployed once. A <strong>domain config</strong> object maps any business domain
+        (Sales KPIs, HR metrics, Supply Chain, Finance P&amp;L) to the platform's abstract schema.
+        Reuse is a configuration problem, not a code problem. The same platform serves sales performance today,
+        and procurement analytics tomorrow, with zero change to platform code.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══ DESIGN PRINCIPLES ═══ -->
+  <div class="section" id="principles">
+    <div class="section-label">01 · Design Principles</div>
+    <h2>Five Non-Negotiable Principles</h2>
+
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="principle p-det">
+        <h4>Determinism First</h4>
+        <p>Any output that includes a number must be reproducible. Given the same input data, the platform produces the exact same KPI values, trend deltas, and recommendations — every time. LLM text may vary; structured data never does.</p>
+      </div>
+      <div class="principle p-acc">
+        <h4>Accuracy by Contract</h4>
+        <p>Every <code>DataConnector</code> validates against a schema. Every aggregation has an associated <code>AccuracyCheckpoint</code> that cross-validates totals. Numbers presented in the UI are checksummed against the source layer before display.</p>
+      </div>
+      <div class="principle p-res">
+        <h4>Resiliency by Default</h4>
+        <p>No single point of failure. If the LLM is unavailable, the platform falls back to template-based narratives. If a data source is stale, the UI shows a data-freshness warning with the last-known timestamp. Degraded mode is always better than failure.</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="principle p-eff">
+        <h4>Efficiency through Caching &amp; Pre-computation</h4>
+        <p>KPI summaries for standard filter combinations (WW, current quarter, all geos) are pre-computed at data load time and served from an in-memory cache. The vast majority of requests are cache hits. LLM calls are never made for repeat queries within a session TTL.</p>
+      </div>
+      <div class="principle p-abs">
+        <h4>Abstraction over Implementation</h4>
+        <p>Every dependency is accessed through an interface, not a concrete class. <code>DataConnector</code>, <code>InsightEngine</code>, <code>NarratorService</code>, <code>MemoryStore</code> — all are interfaces first. This is what makes the platform reusable: swap the implementation, keep the contract.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ARCHITECTURE ═══ -->
+  <div class="section" id="architecture">
+    <div class="section-label">02 · Architecture</div>
+    <h2>7-Layer Platform Architecture</h2>
+    <p>
+      The platform is organized into seven vertical layers. Data flows strictly downward.
+      No layer may call upward. Every cross-layer call is mediated by a typed interface.
+      See <a href="architecture.html">architecture.html</a> for the full visual diagram.
+    </p>
+
+    <div class="arch-stack">
+      <div class="arch-layer l0">
+        <div class="arch-label">Layer 0<br>Source</div>
+        <div class="arch-content">
+          <span class="chip chip-orange">Excel / CSV</span>
+          <span class="chip chip-orange">DB2</span>
+          <span class="chip chip-orange">Oracle</span>
+          <span class="chip chip-orange">Snowflake</span>
+          <span class="chip chip-orange">REST API</span>
+          <span class="chip chip-orange">Data Lake</span>
+          <span class="chip chip-orange">Salesforce / ISC</span>
+          <span class="chip chip-orange">EPM</span>
+          <span class="chip chip-orange">Box / SharePoint</span>
+        </div>
+      </div>
+      <div class="arch-layer l1">
+        <div class="arch-label">Layer 1<br>Connector</div>
+        <div class="arch-content">
+          <span class="chip chip-blue">DataConnector Interface</span>
+          <span class="chip">ExcelConnector</span>
+          <span class="chip">Db2Connector</span>
+          <span class="chip">SnowflakeConnector</span>
+          <span class="chip">RestConnector</span>
+          <span class="chip">DataLakeConnector</span>
+          <span style="font-size:11.5px;color:#57606a">→ All emit: <strong>DataSet</strong> (normalized rows + typed schema)</span>
+        </div>
+      </div>
+      <div class="arch-layer l2">
+        <div class="arch-label">Layer 2<br>KPI Engine</div>
+        <div class="arch-content">
+          <span class="chip chip-green">SchemaRegistry</span>
+          <span class="chip chip-green">FilterEngine</span>
+          <span class="chip chip-green">AggregationEngine</span>
+          <span class="chip chip-green">DeltaEngine (QoQ/YoY)</span>
+          <span class="chip chip-green">AccuracyCheckpoint</span>
+          <span class="chip chip-green">KpiCache</span>
+          <span style="font-size:11.5px;color:#57606a">→ All emit: <strong>KpiSnapshot</strong></span>
+        </div>
+      </div>
+      <div class="arch-layer l3">
+        <div class="arch-label">Layer 3<br>Intelligence</div>
+        <div class="arch-content">
+          <span class="chip chip-purple">TrendAnalyser</span>
+          <span class="chip chip-purple">AnomalyDetector</span>
+          <span class="chip chip-purple">RiskScorer</span>
+          <span class="chip chip-purple">GtmRecommender</span>
+          <span class="chip chip-purple">MemoryRetriever</span>
+          <span style="font-size:11.5px;color:#57606a">→ All emit: <strong>InsightBundle</strong> (typed, deterministic)</span>
+        </div>
+      </div>
+      <div class="arch-layer l4">
+        <div class="arch-label">Layer 4<br>Narrator</div>
+        <div class="arch-content">
+          <span class="chip chip-red">NarratorService Interface</span>
+          <span class="chip">LlmNarrator</span>
+          <span class="chip">TemplateNarrator (fallback)</span>
+          <span class="chip">OutputValidator</span>
+          <span style="font-size:11.5px;color:#57606a">→ Emits: <strong>NarrativeResult</strong> (LLM text + structured fallback)</span>
+        </div>
+      </div>
+      <div class="arch-layer l5">
+        <div class="arch-label">Layer 5<br>Agent Bus</div>
+        <div class="arch-content">
+          <span class="chip chip-blue">Orchestrator</span>
+          <span class="chip">DataAgent</span>
+          <span class="chip">AnalyticsAgent</span>
+          <span class="chip">InsightAgent</span>
+          <span class="chip">GtmAgent</span>
+          <span class="chip">ReviewAgent</span>
+          <span class="chip">MemoryAgent</span>
+          <span style="font-size:11.5px;color:#57606a">→ All implement: <strong>Agent</strong> interface · emit: <strong>AgentResult + RunTrace</strong></span>
+        </div>
+      </div>
+      <div class="arch-layer l6">
+        <div class="arch-label">Layer 6<br>Presentation</div>
+        <div class="arch-content">
+          <span class="chip chip-orange">REST API (Express / FastAPI)</span>
+          <span class="chip chip-orange">Chat Interface (Watsonx Assistant)</span>
+          <span class="chip chip-orange">PM Report UI (SPA)</span>
+          <span class="chip chip-orange">Email Digest</span>
+          <span class="chip chip-orange">Admin / Observability Dashboard</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue">
+      <div class="callout-title">Key Architectural Constraint</div>
+      <p>
+        Data flows strictly downward: Source → Connector → KPI Engine → Intelligence → Narrator → Agent Bus → Presentation.
+        No layer may import from a layer above it. All cross-layer communication is through typed interfaces and immutable value objects.
+        This constraint is what makes individual layers independently testable, deployable, and replaceable.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══ OOP ABSTRACTIONS ═══ -->
+  <div class="section" id="abstractions">
+    <div class="section-label">03 · Object-Oriented Abstractions</div>
+    <h2>Core Interfaces &amp; Value Objects</h2>
+    <p>
+      Every reusable platform component is defined as an interface first.
+      Concrete implementations are injected — they are never instantiated inline.
+      This is the structural reason the platform can serve multiple domains and multiple data sources.
+    </p>
+
+    <h3>DataConnector — The Source Abstraction</h3>
+    <pre><code>/**
+ * DataConnector — implemented once per source type.
+ * The platform never sees raw source data; it only sees DataSet objects.
+ */
+interface DataConnector {
+  readonly id: string;                   // "excel" | "db2" | "snowflake" | "rest" | ...
+  readonly displayName: string;
+
+  /** Test connection; throw ConnectorError if unreachable */
+  connect(): Promise&lt;void&gt;;
+
+  /**
+   * Ingest source and emit a normalized DataSet.
+   * @param query  — optional source-specific filter (SQL WHERE, API params, sheet name, etc.)
+   * @param schema — the ColumnSchema the caller expects; connector must validate and coerce
+   */
+  fetch(query: ConnectorQuery, schema: ColumnSchema[]): Promise&lt;DataSet&gt;;
+
+  /** Return metadata: last-modified timestamp, row count estimate, connection health */
+  status(): Promise&lt;ConnectorStatus&gt;;
+
+  disconnect(): Promise&lt;void&gt;;
+}
+
+// Concrete implementations:
+class ExcelConnector     implements DataConnector { ... }
+class Db2Connector       implements DataConnector { ... }
+class OracleConnector    implements DataConnector { ... }
+class SnowflakeConnector implements DataConnector { ... }
+class RestApiConnector   implements DataConnector { ... }
+class DataLakeConnector    implements DataConnector { ... }  // any SQL data lake
+class SalesforceConnector  implements DataConnector { ... }  // ISC / CRM
+</code></pre>
+
+    <h3>DataSet — The Normalized Value Object</h3>
+    <pre><code>/**
+ * DataSet is the universal currency between Layer 0/1 and Layer 2.
+ * Once data is a DataSet, the KPI Engine does not care about its origin.
+ */
+interface DataSet {
+  readonly id: string;                   // uuid — for cache keying and lineage tracking
+  readonly sourceId: string;             // which connector produced it
+  readonly fetchedAt: Date;              // used for data-freshness warnings
+  readonly schema: ColumnSchema[];       // typed column definitions
+  readonly rows: ReadonlyArray&lt;Row&gt;;     // normalized, coerced, validated rows
+  readonly rowCount: number;
+  readonly checksum: string;             // SHA-256 of serialized rows — for accuracy verification
+  readonly warnings: DataWarning[];      // e.g. missing columns, partial data, coercion counts
+}
+
+// Column types — all values coerced at ingestion, never at query time
+type ColumnType = "string" | "number" | "date" | "boolean" | "enum";
+interface ColumnSchema {
+  name: string;
+  type: ColumnType;
+  required: boolean;
+  enumValues?: string[];       // for "enum" type — validated at ingest
+  aliases?: string[];          // alternative source column names (Excel header variants, etc.)
+}
+</code></pre>
+
+    <h3>KpiDefinition — The Schema-Driven KPI</h3>
+    <pre><code>/**
+ * KPIs are declared, not coded. The KPI Engine reads this schema
+ * and executes it — it does not contain KPI-specific logic.
+ * Adding a new KPI = adding a KpiDefinition entry.
+ */
+interface KpiDefinition {
+  id: string;                        // "revenue" | "signings" | "pipeline" | "win_rate"
+  displayName: string;
+  unit: "currency_usd" | "count" | "percentage" | "ratio";
+  aggregation: AggregationFn;        // sum | count | ratio | weighted_average
+  sourceColumn: string;              // maps to DataSet column name
+  filterDimensions: string[];        // which dimensions can slice this KPI
+  comparisons: ComparisonDef[];      // QoQ, YoY, MoM — computed automatically
+  thresholds: ThresholdRule[];       // defines what "at risk" means for this KPI
+  insightRules: InsightRuleDef[];    // deterministic insight rules for this KPI
+}
+
+// Example declaration (no code change needed to add Backlog, NPS, etc.):
+const REVENUE_KPI: KpiDefinition = {
+  id: "revenue",
+  displayName: "Revenue Actuals",
+  unit: "currency_usd",
+  aggregation: "sum",
+  sourceColumn: "Rev Act @ PC",
+  filterDimensions: ["geo", "market", "country", "quarter", "year", "offeringArea"],
+  comparisons: [
+    { type: "QoQ", label: "vs Prior Quarter" },
+    { type: "YoY", label: "vs Prior Year Quarter" }
+  ],
+  thresholds: [
+    { condition: "yoy_delta &lt; -10", severity: "HIGH",  label: "Revenue declining YoY" },
+    { condition: "qoq_delta &lt; -5",  severity: "MED",   label: "Revenue declining QoQ" },
+  ],
+  insightRules: [
+    { id: "rev_anomaly_large_deal", description: "Detect prior-period one-off deals inflating YoY base" },
+    { id: "rev_geo_concentration", description: "Flag if top-1 geo accounts for >50% of total revenue" },
+  ]
+};
+</code></pre>
+
+    <h3>Agent — The Agentic Abstraction</h3>
+    <pre><code>/**
+ * Every agent in the platform — Data, Analytics, Insight, GTM, Memory —
+ * implements this single interface. The Orchestrator calls execute();
+ * it never knows which agent it is calling.
+ */
+interface Agent&lt;TContext, TResult&gt; {
+  readonly id: string;
+  readonly version: string;
+
+  /** Primary execution — always returns a typed result, never throws */
+  execute(context: TContext): Promise&lt;AgentResult&lt;TResult&gt;&gt;;
+
+  /** Health check — called by Orchestrator before routing */
+  healthCheck(): Promise&lt;AgentHealth&gt;;
+}
+
+interface AgentResult&lt;T&gt; {
+  success: boolean;
+  data: T | null;
+  error: AgentError | null;
+  trace: RunTrace;                  // ALWAYS emitted — even on failure
+}
+
+interface RunTrace {
+  agentId: string;
+  traceId: string;                  // uuid — correlates across multi-agent chains
+  startedAt: Date;
+  durationMs: number;
+  inputSummary: Record&lt;string, unknown&gt;;
+  outputSummary: Record&lt;string, unknown&gt;;
+  confidence: number;               // 0–1 — deterministic score, not LLM probability
+  confidenceFactors: string[];      // human-readable reasons for the confidence score
+  dataLineage: string[];            // DataSet ids consumed
+  llmUsed: boolean;
+  llmTokensUsed?: number;
+  llmCostUsd?: number;
+  fallbackActivated: boolean;
+  warnings: string[];
+}
+</code></pre>
+
+    <h3>InsightEngine — Deterministic Intelligence</h3>
+    <pre><code>/**
+ * InsightEngine is deterministic. Given the same KpiSnapshot, it always
+ * produces the same InsightBundle. No randomness, no LLM calls.
+ * This is the accuracy and reproducibility guarantee.
+ */
+interface InsightEngine {
+  analyse(snapshot: KpiSnapshot, rules: InsightRuleDef[]): InsightBundle;
+}
+
+interface InsightBundle {
+  readonly snapshotId: string;      // links back to the KpiSnapshot that produced it
+  readonly computedAt: Date;
+  readonly highlights: Insight[];   // what's going well
+  readonly risks: Insight[];        // what needs attention
+  readonly anomalies: Insight[];    // statistical outliers
+  readonly recommendations: Recommendation[];  // ranked by expected $M impact
+}
+
+interface Insight {
+  id: string;
+  ruleId: string;                   // which InsightRuleDef fired
+  severity: "HIGH" | "MED" | "LOW" | "INFO";
+  headline: string;                 // concise, numbers-included string (deterministic)
+  supportingData: Record&lt;string, unknown&gt;;  // the raw numbers behind the headline
+  confidence: number;               // 0–1 — based on data completeness, sample size
+}
+
+interface Recommendation {
+  id: string;
+  category: "pipeline" | "win_rate" | "revenue" | "forecast" | "gtm";
+  geo: string;
+  action: string;                   // deterministic action string
+  expectedImpactM: number | null;   // estimated $M impact (rule-based, not LLM)
+  confidence: number;
+  priority: "HIGH" | "MED" | "LOW";
+  deadline: string;
+}
+</code></pre>
+
+    <h3>NarratorService — The LLM Isolation Boundary</h3>
+    <pre><code">/**
+ * The LLM is behind this interface. If the LLM is down, TemplateNarrator
+ * activates automatically. The caller never knows the difference — it
+ * always receives a NarrativeResult with the same shape.
+ */
+interface NarratorService {
+  narrate(bundle: InsightBundle, context: NarratorContext): Promise&lt;NarrativeResult&gt;;
+}
+
+interface NarratorContext {
+  persona: "executive" | "pm" | "analyst";
+  language: string;                 // "en" | "de" | "ja" | ...
+  lengthHint: "brief" | "standard" | "detailed";
+  domainConfig: DomainConfig;       // provides domain-specific terminology
+}
+
+interface NarrativeResult {
+  text: string;                     // the human-readable narrative
+  structuredFallback: InsightBundle; // ALWAYS present — the source of truth
+  llmUsed: boolean;                 // false if TemplateNarrator activated
+  validationPassed: boolean;        // output was schema-validated
+  tokensUsed?: number;
+}
+
+// LlmNarrator: calls any LLM (OpenAI, Anthropic, Granite, Llama) with structured prompt
+// TemplateNarrator: produces deterministic text from InsightBundle templates (zero LLM)
+// OutputValidator: validates that LLM output contains all required numbers from the bundle
+</code></pre>
+  </div>
+
+  <!-- ═══ DETERMINISM ═══ -->
+  <div class="section" id="determinism">
+    <div class="section-label">04 · Solving Non-Determinism</div>
+    <h2>How the Platform Eliminates AI Non-Determinism</h2>
+
+    <p>
+      Non-determinism in enterprise AI is not just a technical problem — it's a trust problem.
+      If two executives ask the same question and get different numbers, the product is dead.
+      The platform's answer is a four-layer determinism guarantee.
+    </p>
+
+    <div class="grid-2">
+      <div class="callout callout-orange">
+        <div class="callout-title">The Problem with Naive LLM Integration</div>
+        <ul>
+          <li>LLM asked to analyse data → hallucinates numbers</li>
+          <li>LLM called twice → different answers</li>
+          <li>LLM prompt changes → all historical outputs become inconsistent</li>
+          <li>LLM temperature > 0 → non-reproducible text</li>
+          <li>LLM downtime → complete product failure</li>
+        </ul>
+      </div>
+      <div class="callout callout-green">
+        <div class="callout-title">The Platform's Solution</div>
+        <ul>
+          <li><strong>Compute first, narrate second</strong> — all numbers from KPI Engine, never LLM</li>
+          <li><strong>Structured prompt contract</strong> — LLM receives JSON, must return JSON</li>
+          <li><strong>OutputValidator</strong> — every LLM response is schema-validated; if it fails, TemplateNarrator activates</li>
+          <li><strong>Temperature = 0</strong> — all LLM calls use deterministic sampling</li>
+          <li><strong>Fallback chain</strong> — LLM → TemplateNarrator → raw structured data</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>The Structured Prompt Contract</h3>
+    <p>
+      The LLM is never given raw data and asked "what do you think?". It is given a validated
+      <code>InsightBundle</code> JSON and a strict output schema, and asked to produce language only.
+    </p>
+    <pre><code>// LlmNarrator sends this — never raw data, never open-ended questions
+const prompt = {
+  system: `You are an executive business narrator. You receive a structured InsightBundle JSON.
+           Your ONLY job is to convert the pre-computed data into clear, concise executive language.
+           You must NOT compute, invent, or modify any numbers. Every statistic in your output
+           must appear verbatim in the InsightBundle you received.
+           Respond in this JSON schema: { "headline": string, "body": string, "bullets": string[] }`,
+
+  user: JSON.stringify(insightBundle),   // validated, typed, checksummed
+
+  config: {
+    temperature: 0,                      // fully deterministic sampling
+    maxTokens: 500,
+    responseFormat: "json_object",       // enforce JSON output mode
+  }
+};
+
+// After receiving LLM response:
+const validated = OutputValidator.validate(response, insightBundle);
+// OutputValidator checks: every number in the narrative appears in the InsightBundle.
+// Any number in the narrative NOT in the InsightBundle → validation failure → fallback.
+if (!validated.passed) {
+  return TemplateNarrator.narrate(insightBundle, context);
+}</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Naive LLM Approach</th>
+            <th>Platform's Mitigation</th>
+            <th>Layer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Hallucinated numbers</strong></td>
+            <td>LLM invents KPI values</td>
+            <td>LLM never computes numbers; only narrates pre-validated InsightBundle</td>
+            <td>Layer 4 Narrator</td>
+          </tr>
+          <tr>
+            <td><strong>Non-reproducibility</strong></td>
+            <td>Same question, different answer</td>
+            <td>Temperature=0; structured JSON output; schema validation</td>
+            <td>Layer 4 Narrator</td>
+          </tr>
+          <tr>
+            <td><strong>LLM downtime</strong></td>
+            <td>Product completely unavailable</td>
+            <td>Automatic TemplateNarrator fallback; structured data always returned</td>
+            <td>Layer 4 Narrator</td>
+          </tr>
+          <tr>
+            <td><strong>Prompt injection</strong></td>
+            <td>User manipulates LLM via chat</td>
+            <td>Chat input → IntentParser (deterministic) → KPI Engine; LLM not in chat path</td>
+            <td>Layer 5 Agent Bus</td>
+          </tr>
+          <tr>
+            <td><strong>Data staleness</strong></td>
+            <td>LLM unaware of data age</td>
+            <td>Every DataSet has a <code>fetchedAt</code> timestamp; stale data triggers UI warning</td>
+            <td>Layer 1 Connector</td>
+          </tr>
+          <tr>
+            <td><strong>Calculation drift</strong></td>
+            <td>Different code paths produce different totals</td>
+            <td>Single <code>AggregationEngine</code>; AccuracyCheckpoint cross-validates UI vs API values</td>
+            <td>Layer 2 KPI Engine</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ DATA SOURCES ═══ -->
+  <div class="section" id="datasources">
+    <div class="section-label">05 · Data Source Abstraction</div>
+    <h2>Any Source, One Contract</h2>
+    <p>
+      The <code>DataConnector</code> interface means the entire platform is source-agnostic.
+      Here is how each connector maps to the same normalized <code>DataSet</code> output.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Connector Class</th>
+            <th>Auth Pattern</th>
+            <th>Ingest Strategy</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Excel / CSV</strong></td>
+            <td><code>ExcelConnector</code></td>
+            <td>File path / Box OAuth</td>
+            <td>Full load; hash-based change detection</td>
+            <td>Current MVP. Column aliasing handles header variations across file versions.</td>
+          </tr>
+          <tr>
+            <td><strong>DB2</strong></td>
+            <td><code>Db2Connector</code></td>
+            <td>Service credentials / IAM token</td>
+            <td>Incremental via <code>UPDATED_TS &gt; last_run</code></td>
+            <td>Uses <code>ibm_db</code> npm package; connection pooling via <code>pg-pool</code> pattern.</td>
+          </tr>
+          <tr>
+            <td><strong>Oracle</strong></td>
+            <td><code>OracleConnector</code></td>
+            <td>wallet / tnsnames.ora</td>
+            <td>Incremental via <code>ORA_ROWSCN</code> change tracking</td>
+            <td>Thin driver (no Oracle Client install required in container).</td>
+          </tr>
+          <tr>
+            <td><strong>Snowflake</strong></td>
+            <td><code>SnowflakeConnector</code></td>
+            <td>key-pair / SSO</td>
+            <td>Incremental via Snowflake Streams</td>
+            <td>Time-travel queries for point-in-time snapshots useful for YoY comparisons.</td>
+          </tr>
+          <tr>
+            <td><strong>Data Lake</strong></td>
+            <td><code>WatsonxDataConnector</code></td>
+            <td>API key / OAuth</td>
+            <td>Presto/Spark SQL queries via REST API</td>
+            <td>Recommended production path for large-scale data.</td>
+          </tr>
+          <tr>
+            <td><strong>Salesforce / ISC</strong></td>
+            <td><code>SalesforceConnector</code></td>
+            <td>OAuth 2.0 Connected App</td>
+            <td>SOQL queries; incremental via <code>SystemModstamp</code></td>
+            <td>Maps ISC opportunity fields to <code>DataSet</code> schema via configurable field map.</td>
+          </tr>
+          <tr>
+            <td><strong>REST API</strong></td>
+            <td><code>RestApiConnector</code></td>
+            <td>API key / Bearer token</td>
+            <td>Polling or webhook-triggered</td>
+            <td>Generic connector; configured via OpenAPI spec or field map config.</td>
+          </tr>
+          <tr>
+            <td><strong>EPM</strong></td>
+            <td><code>EpmConnector</code></td>
+            <td>Service account / NTLM</td>
+            <td>Scheduled export via EPM REST API</td>
+            <td>Phase 3 target: replace manual Excel export from EPM entirely.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ConnectorRegistry — Runtime Discovery</h3>
+    <pre><code">// The platform discovers connectors at runtime via a registry.
+// To add a new source: register a factory function. Zero changes to core platform.
+
+ConnectorRegistry.register("snowflake", (config: ConnectorConfig) =&gt;
+  new SnowflakeConnector(config)
+);
+
+// Domain config specifies which connectors to use:
+const SALES_DOMAIN_CONFIG: DomainConfig = {
+  id: "sales_performance",
+  dataSources: [
+    { connectorId: "excel",  role: "pipeline", refreshIntervalMs: 604_800_000 },  // weekly
+    { connectorId: "excel",  role: "revenue",  refreshIntervalMs: 604_800_000 },
+    // Future: replace with datalake or db2
+    // { connectorId: "datalake", role: "pipeline", query: "SELECT * FROM sales.pipeline WHERE ..." }
+  ]
+};</code></pre>
+  </div>
+
+  <!-- ═══ AGENT DESIGN ═══ -->
+  <div class="section" id="agents">
+    <div class="section-label">06 · Agent Design</div>
+    <h2>Five Specialized Agents + Orchestrator</h2>
+    <p>
+      Each agent has a single, narrow responsibility. The Orchestrator
+      routes between agents based on the <code>IntentResult</code> from the IntentParser.
+      No agent calls another agent directly — all inter-agent communication is through the Orchestrator.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">DataAgent</div>
+        <div class="card-meta">Responsibility: Source → DataSet</div>
+        <p>Manages all <code>DataConnector</code> instances. Handles scheduling, refresh triggers, staleness detection, and the raw <code>DataSet</code> cache. Emits <code>DataReadyEvent</code> when a new DataSet is available — downstream agents subscribe.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">AnalyticsAgent</div>
+        <div class="card-meta">Responsibility: DataSet → KpiSnapshot</div>
+        <p>Owns the KPI Engine. Receives a <code>DataSet</code> and a filter <code>Context</code>, executes the <code>SchemaRegistry</code>, and returns a validated, checksummed <code>KpiSnapshot</code>. All aggregation, delta computation, and AccuracyCheckpoints happen here.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">InsightAgent</div>
+        <div class="card-meta">Responsibility: KpiSnapshot → InsightBundle</div>
+        <p>Runs the deterministic <code>InsightEngine</code>: TrendAnalyser, AnomalyDetector, RiskScorer. Produces a fully typed, confidence-scored <code>InsightBundle</code>. No LLM. Outputs are reproducible given the same <code>KpiSnapshot</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">GtmAgent</div>
+        <div class="card-meta">Responsibility: InsightBundle → Recommendations</div>
+        <p>Converts insights into ranked GTM recommendations with expected $M impact. Draws on the <code>MemoryStore</code> to surface historically successful actions for similar KPI patterns. Rules-based first; LLM refines language only.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">ReviewAgent</div>
+        <div class="card-meta">Responsibility: InsightBundle + History → Narrative</div>
+        <p>Coordinates the <code>NarratorService</code> to produce the executive narrative, PM report, and MBR/QBR decks. Manages the fallback chain (LLM → TemplateNarrator). Owns output validation and the <code>NarrativeResult</code> response.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">MemoryAgent</div>
+        <div class="card-meta">Responsibility: insight → action → outcome schema</div>
+        <p>Stores every <code>InsightBundle</code>, the action taken in response, and the observed outcome (from next-period KPIs). This is the compounding moat: each cycle, recommendations improve because they draw on an ever-growing library of what worked.</p>
+      </div>
+    </div>
+
+    <h3>Intent Parser — Deterministic Chat Routing</h3>
+    <pre><code">/**
+ * The IntentParser is purely deterministic — regex + rule-based NLU.
+ * It routes every chat message to the correct agent with a typed context.
+ * The LLM is never in the chat routing path.
+ * This eliminates prompt injection and guarantees consistent routing.
+ */
+class IntentParser {
+  parse(message: string, session: SessionContext): IntentResult {
+    // 1. Extract filter dimensions (geo, quarter, offeringArea, ut30)
+    // 2. Classify intent: pipeline | revenue | signings | win_rate | forecast |
+    //                      gtm_action | narrative | domain_knowledge
+    // 3. Return typed IntentResult — Orchestrator uses this to route to the correct agent
+    return {
+      intent: "pipeline_summary",
+      confidence: 0.97,
+      filters: { geo: "EMEA", quarter: "2Q26" },
+      agentTarget: "AnalyticsAgent",
+      fallbackChain: ["InsightAgent", "ReviewAgent"],
+    };
+  }
+}</code></pre>
+  </div>
+
+  <!-- ═══ DOMAIN REUSE ═══ -->
+  <div class="section">
+    <div class="section-label">07 · Platform Reuse</div>
+    <h2>One Platform, Any Domain</h2>
+    <p>
+      The entire platform is generic. A <code>DomainConfig</code> object maps a business
+      domain to the platform's abstract schema. No platform code changes are needed to
+      deploy Compass for a completely different business unit or metric set.
+    </p>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Sales Performance (Current)</div>
+        <p>Pipeline · Signings · Revenue · Win Rate<br>Source: Excel (EPM, ISC)<br>Personas: Analyst / PM / Portfolio Leader</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Procurement Analytics (Next)</div>
+        <p>PO Volume · Supplier Lead Time · Cost Savings · Contract Coverage<br>Source: Ariba REST API / DB2<br>Personas: Procurement Lead / CPO</p>
+      </div>
+      <div class="card">
+        <div class="card-title">HR Analytics</div>
+        <p>Headcount · Attrition Rate · Time-to-Fill · Engagement Score<br>Source: Workday REST / Oracle HCM<br>Personas: HRBP / CHRO</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Supply Chain Health</div>
+        <p>Inventory Turns · On-Time Delivery · Defect Rate · Fill Rate<br>Source: SAP OData / Snowflake<br>Personas: Supply Chain PM / COO</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Finance P&amp;L</div>
+        <p>Revenue · COGS · EBITDA · Variance to Plan<br>Source: EPM / Oracle Financials<br>Personas: Finance Analyst / CFO</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Customer Success</div>
+        <p>NPS · Churn Rate · Expansion ARR · Health Score<br>Source: Salesforce / Gainsight REST<br>Personas: CSM / VP Customer Success</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROADMAP ═══ -->
+  <div class="section" id="roadmap">
+    <div class="section-label">08 · Evolution Roadmap</div>
+    <h2>From Current MVP to Platform</h2>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 1 · Done</div>
+        <div class="tl-title">Working MVP</div>
+        <p>KPI engine (pipeline, signings, revenue, win rate), 3 PM personas, session-aware chat, exec summary, domain knowledge base, observability trace, agent-runs.jsonl log, Docker deployment.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-green">Rule-based NLU</span>
+          <span class="badge badge-green">Deterministic aggregation</span>
+          <span class="badge badge-green">Trace + confidence</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot active"></div>
+        <div class="tl-label" style="color:#3b82d4">Phase 2 · In Progress · Aug–Sep 2026</div>
+        <div class="tl-title">Platform Foundations + GTM Agent</div>
+        <p>Introduce <code>DataConnector</code> interface and <code>ExcelConnector</code> (refactor server.js data loading). Wire LLM behind <code>NarratorService</code> with <code>TemplateNarrator</code> fallback. GTM Agent with $M impact. KPI correlation engine. Auto-ingestion. Golden eval test set.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-blue">DataConnector abstraction</span>
+          <span class="badge badge-blue">NarratorService + fallback</span>
+          <span class="badge badge-blue">GtmAgent</span>
+          <span class="badge badge-blue">Eval harness</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot plan"></div>
+        <div class="tl-label" style="color:#7c5cd8">Phase 3 · Q4 2026</div>
+        <div class="tl-title">Full Agent Architecture + Memory Moat</div>
+        <p>Watsonx Orchestrate multi-agent routing. All 5 agents live (Data, Analytics, Insight, GTM, Review). <code>KpiDefinition</code> schema registry replaces hard-coded endpoints. <code>MemoryAgent</code> seeds insight→action→outcome store. PPT/MBR/QBR auto-generation.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-purple">Orchestrate routing</span>
+          <span class="badge badge-purple">KpiDefinition schema</span>
+          <span class="badge badge-purple">MemoryAgent</span>
+          <span class="badge badge-purple">MBR auto-generation</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot future"></div>
+        <div class="tl-label" style="color:#9ca3af">Phase 4 · 2027</div>
+        <div class="tl-title">Multi-Domain Platform</div>
+        <p><code>DomainConfig</code> registry enables a second business unit to onboard with zero platform code changes. Additional connectors (Snowflake, Oracle, Salesforce direct). LLM fine-tuned on feedback memory. Admin console for domain configuration. Open-source connector SDK.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-gray">DomainConfig registry</span>
+          <span class="badge badge-gray">Multi-domain</span>
+          <span class="badge badge-gray">Connector SDK</span>
+          <span class="badge badge-gray">LLM fine-tune</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STATS ═══ -->
+  <div class="section">
+    <div class="section-label">09 · Platform Metrics</div>
+    <h2>Target Platform Performance</h2>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">&lt;200ms</div><div class="stat-lbl">P95 KPI API response (cache hit)</div></div>
+      <div class="stat"><div class="stat-val">&lt;4 min</div><div class="stat-lbl">End-to-end Time-to-Insight</div></div>
+      <div class="stat"><div class="stat-val">≥95%</div><div class="stat-lbl">Chat intent accuracy (golden eval)</div></div>
+      <div class="stat"><div class="stat-val">100%</div><div class="stat-lbl">KPI reproducibility (same input → same output)</div></div>
+      <div class="stat"><div class="stat-val">0 min</div><div class="stat-lbl">LLM downtime impact (TemplateNarrator fallback)</div></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="grid-3" style="margin-bottom:32px">
+    <a href="architecture.html" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:16px;color:#1f2328;text-decoration:none">
+      <div style="font-weight:700;margin-bottom:4px">Visual Architecture →</div>
+      <div style="font-size:12px;color:#57606a">Full 7-layer system diagram with data flow, interfaces, and deployment topology</div>
+    </a>
+    <a href="contributing.html" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:16px;color:#1f2328;text-decoration:none">
+      <div style="font-weight:700;margin-bottom:4px">Extending the Platform →</div>
+      <div style="font-size:12px;color:#57606a">How to add a new data source, KPI, domain config, or agent — step-by-step guide</div>
+    </a>
+    <a href="https://github.com/puru-nayak-labs/compass" style="display:block;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:16px;color:#1f2328;text-decoration:none">
+      <div style="font-weight:700;margin-bottom:4px">GitHub Repository →</div>
+      <div style="font-size:12px;color:#57606a">github.com/puru-nayak-labs/compass — source code, issues, pull requests</div>
+    </a>
+  </div>
+
+</div>
+
+<footer>
+  <p>Compass Intelligence Platform &nbsp;·&nbsp; Puru Nayak &nbsp;·&nbsp; github.com/puru-nayak-labs</p>
+  <p style="margin-top:6px">Made with ❤️</p>
+</footer>
+
+</body>
+</html>

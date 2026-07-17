@@ -1,14 +1,23 @@
 {
-  "name": "playground",
+  "name": "ibm-compass",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Agentic AI for Performance Intelligence — transforms KPI reporting into an AI-powered intelligence and recommendation engine.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "echo \"No tests yet — see docs/contributing.html for the eval harness roadmap\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "ai",
+    "agentic",
+    "kpi",
+    "ibm",
+    "watsonx",
+    "performance-intelligence",
+    "product-management"
+  ],
+  "author": "Puru Nayak <github.com/puru-nayak-labs>",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",

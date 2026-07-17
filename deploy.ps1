@@ -1,70 +1,53 @@
 # -----------------------------------------------------------------------------
-# IBM Compass -- one-command deploy / update to IBM Code Engine
+# Compass — one-command Docker build + push + deploy
 #
-# Usage (default -- uses the committed data dump):
+# Usage (default data folder):
 #   .\deploy.ps1
 #
 # Usage (custom data folder):
-#   .\deploy.ps1 -DataDir "C:\Users\you\ibm-compass\.bob\tmp\xlsx-dumps\TLS Performance Data-e90c662f31f06851"
+#   .\deploy.ps1 -DataDir "C:\your\path\to\data"
+#
+# Usage (custom registry):
+#   .\deploy.ps1 -Registry "ghcr.io/your-username" -Tag "v1.2.0"
 # -----------------------------------------------------------------------------
 param(
-    [string]$DataDir = ".bob\tmp\xlsx-dumps\TLS Performance Data-e90c662f31f06851"
+    [string]$DataDir  = "data",
+    [string]$Registry = "ghcr.io/puru-nayak-labs",
+    [string]$AppName  = "compass-app",
+    [string]$Tag      = "latest"
 )
 
-$IMAGE    = "us.icr.io/ibm-compass/compass-app:latest"
-$APP_NAME = "compass-app"
-$PROJECT  = "ibm-compass"
+$IMAGE = "$Registry/${AppName}:$Tag"
 
 Write-Host ""
-Write-Host "IBM Compass -- Deploy" -ForegroundColor Cyan
+Write-Host "Compass — Deploy" -ForegroundColor Cyan
 Write-Host "------------------------------------" -ForegroundColor DarkGray
-Write-Host "   Data source : $DataDir" -ForegroundColor DarkGray
-Write-Host "   Image       : $IMAGE" -ForegroundColor DarkGray
+Write-Host "   Data source : $DataDir"  -ForegroundColor DarkGray
+Write-Host "   Image       : $IMAGE"    -ForegroundColor DarkGray
 
 # -- 1. Build Docker image -----------------------------------------------------
 Write-Host ""
-Write-Host "[1/4] Building Docker image..." -ForegroundColor Yellow
+Write-Host "[1/3] Building Docker image..." -ForegroundColor Yellow
 docker build --build-arg "DATA_SRC=$DataDir" -t $IMAGE .
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Docker build failed." -ForegroundColor Red; exit 1 }
 Write-Host "OK: Build complete." -ForegroundColor Green
 
-# -- 2. Log in to IBM Container Registry ---------------------------------------
+# -- 2. Push image to registry -------------------------------------------------
 Write-Host ""
-Write-Host "[2/4] Logging into IBM Container Registry..." -ForegroundColor Yellow
-ibmcloud cr login
-if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: CR login failed. Run: ibmcloud login --sso" -ForegroundColor Red; exit 1 }
-
-# -- 3. Push image -------------------------------------------------------------
-Write-Host ""
-Write-Host "[3/4] Pushing image to IBM Container Registry..." -ForegroundColor Yellow
+Write-Host "[2/3] Pushing image to $Registry..." -ForegroundColor Yellow
 docker push $IMAGE
-if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Push failed." -ForegroundColor Red; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Push failed. Make sure you are logged in: docker login $Registry" -ForegroundColor Red; exit 1 }
 Write-Host "OK: Image pushed." -ForegroundColor Green
 
-# -- 4. Update / create Code Engine application --------------------------------
+# -- 3. Deploy hint ------------------------------------------------------------
 Write-Host ""
-Write-Host "[4/4] Updating Code Engine application..." -ForegroundColor Yellow
-ibmcloud ce project select --name $PROJECT
-ibmcloud ce application update --name $APP_NAME --image $IMAGE
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "NOTE: Update failed -- trying first-time create..." -ForegroundColor Yellow
-    ibmcloud ce application create `
-        --name $APP_NAME `
-        --image $IMAGE `
-        --port 3000 `
-        --min-scale 1 `
-        --max-scale 3 `
-        --memory 2G `
-        --cpu 0.5
-}
-
+Write-Host "[3/3] Deploy" -ForegroundColor Yellow
+Write-Host "   Image is ready at: $IMAGE" -ForegroundColor Green
+Write-Host ""
+Write-Host "   Deploy options:" -ForegroundColor Cyan
+Write-Host "   • Fly.io   : flyctl deploy"
+Write-Host "   • Railway  : railway up"
+Write-Host "   • Render   : push to your connected git branch"
+Write-Host "   • Docker   : docker run -p 3000:3000 $IMAGE"
 Write-Host ""
 Write-Host "Deploy complete!" -ForegroundColor Green
-
-# -- Print the live URL --------------------------------------------------------
-$url = ibmcloud ce application get --name $APP_NAME --output json |
-       ConvertFrom-Json |
-       Select-Object -ExpandProperty status |
-       Select-Object -ExpandProperty url
-Write-Host "Live URL: $url" -ForegroundColor Cyan
-Write-Host ""
