@@ -587,6 +587,13 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
   </div>
 </header>
 
+<!-- GAP 2b-4: Data Staleness Warning Banner — shown when pipelineStale or revenueStale -->
+<div id="stale-banner">
+  <span>&#9888;</span>
+  <span id="stale-banner-msg">Data may be stale — pipeline or revenue data has not been refreshed within the expected window.</span>
+  <button id="stale-banner-close" onclick="document.getElementById('stale-banner').classList.remove('show')">&times;</button>
+</div>
+
 <!-- UNIFIED 3-PANEL APP SHELL -->
 <div id="shell-analyst" class="persona-shell active">
 <style>
@@ -678,6 +685,22 @@ header{height:48px;background:#fff;border-bottom:2px solid var(--ibm);
 .ktgt.on-track{background:rgba(25,128,56,.12);color:var(--green)}
 .ktgt.at-risk{background:rgba(178,134,0,.12);color:var(--yellow)}
 .ktgt.behind{background:rgba(218,30,40,.12);color:var(--red)}
+/* ── RAG status badges (Gap 2b-3) ── */
+.rag-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;flex-shrink:0}
+.rag-dot.GREEN{background:#198038}.rag-dot.AMBER{background:#b28600}.rag-dot.RED{background:#da1e28}.rag-dot.GRAY{background:#8d8d8d}
+.rag-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:600;padding:2px 6px;
+           border-radius:3px;white-space:nowrap;margin-top:2px;cursor:default}
+.rag-badge.GREEN{background:rgba(25,128,56,.1);color:#198038}
+.rag-badge.AMBER{background:rgba(178,134,0,.1);color:#b28600}
+.rag-badge.RED{background:rgba(218,30,40,.1);color:#da1e28}
+.rag-badge.GRAY{background:rgba(141,145,153,.1);color:#8d8d8d}
+/* ── Staleness warning banner (Gap 2b-4) ── */
+#stale-banner{display:none;position:fixed;top:48px;left:0;right:0;z-index:250;
+              background:#fff3e0;border-bottom:2px solid #b28600;
+              padding:5px 16px;font-size:11px;font-weight:600;color:#7a4f00;
+              align-items:center;gap:10px}
+#stale-banner.show{display:flex}
+#stale-banner-close{margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#7a4f00;line-height:1}
 .vbar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bdr);background:#fff;flex-shrink:0}
 .vtog{display:flex;border:1px solid var(--bdr2);border-radius:3px;overflow:hidden}
 .vbtn{padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted)}
@@ -844,19 +867,23 @@ I'm your TLS PM intelligence assistant. Ask me anything:
         <div class="ktile kt-pipe">
           <div class="klbl">Pipeline</div><div class="kval" id="kv-pip">&mdash;</div>
           <div class="kcount" id="kc-pip"></div><div class="kdelta" id="kd-pip"></div>
+          <div id="kt-pip-rag"></div>
         </div>
         <div class="ktile kt-sig">
           <div class="klbl">Signings</div><div class="kval" id="kv-sig">&mdash;</div>
           <div class="kcount" id="kc-sig"></div><div class="kdelta" id="kd-sig"></div>
           <div id="kt-sig-tgt"></div>
+          <div id="kt-sig-rag"></div>
         </div>
         <div class="ktile kt-rev">
           <div class="klbl">Revenue Actuals</div><div class="kval" id="kv-rev">&mdash;</div>
           <div class="kcount" id="kc-rev"></div><div class="kdelta" id="kd-rev"></div>
+          <div id="kt-rev-rag"></div>
         </div>
         <div class="ktile kt-wr">
           <div class="klbl">Win Rate</div><div class="kval" id="kv-wr">&mdash;</div>
           <div class="kcount" id="kc-wr"></div><div class="kdelta" id="kd-wr"></div>
+          <div id="kt-wr-rag"></div>
         </div>
       </div>
       <div class="vbar">
@@ -1770,6 +1797,17 @@ async function applyAll() {
     (aView==="trn" ? loadTrend() : aView==="tab" ? loadTab() : loadRevTab()).catch(e => console.warn("View load:", e)),
   ]);
   await loadInsights(); // always runs independently so right panel always refreshes
+  // GAP 2b-3: Refresh RAG badges on filter change
+  try {
+    const f = fq();
+    const tgtParams = new URLSearchParams(Object.fromEntries(Object.entries({
+      geo: f.geo || "WW",
+      quarter: f.quarter !== "ALL" ? f.quarter : undefined,
+      offeringArea: f.offeringArea !== "ALL" ? f.offeringArea : undefined,
+    }).filter(([,v]) => v))).toString();
+    const tgtData = await fetch(`/api/kpi/targets?${tgtParams}`).then(r => r.json()).catch(() => null);
+    if (tgtData && tgtData.rag) renderRagBadges(tgtData.rag, tgtData.targets);
+  } catch(e) { /* non-fatal */ }
 }
 
 // Chat
@@ -3037,16 +3075,61 @@ function setFilterDefaults() {
   }
 }
 
+// ── GAP 2b-3: Render RAG badges on Analyst KPI tiles ────────────────────────
+// Called after /api/kpi/targets resolves; injects coloured RAG badge into each tile.
+function renderRagBadges(rag, targets) {
+  const RAG_LABEL  = { GREEN: "On Track", AMBER: "At Risk", RED: "Behind", GRAY: "—" };
+  const setRag = (elId, status, metric, tgtVal, actualVal) => {
+    const el = $(elId); if (!el) return;
+    el.innerHTML = "";
+    if (!status || status === "GRAY") return;
+    const badge = document.createElement("span");
+    badge.className = `rag-badge ${status}`;
+    badge.title = `Target: ${tgtVal != null ? (typeof tgtVal === "number" && tgtVal < 5 ? tgtVal + "x" : tgtVal + "%") : "—"} · Actual: ${actualVal != null ? (typeof actualVal === "number" && actualVal < 5 ? actualVal.toFixed(2) + "x" : actualVal.toFixed(1) + "%") : "—"}`;
+    badge.innerHTML = `<span class="rag-dot ${status}"></span>${RAG_LABEL[status]}`;
+    el.appendChild(badge);
+  };
+  if (!rag) return;
+  setRag("kt-pip-rag", rag.pipelineCoverage, "Coverage", targets && targets.pipelineCoverage, null);
+  setRag("kt-sig-rag", rag.signingsYoY,      "Signings YoY", targets && targets.signingsYoY, null);
+  setRag("kt-rev-rag", rag.revenueYoY,       "Revenue YoY", targets && targets.revenueYoY, null);
+  setRag("kt-wr-rag",  rag.winRate,           "Win Rate", targets && targets.winRate, null);
+}
+
 window.addEventListener("load", async () => {
   setFilterDefaults();
-  // Fetch data-source dates, store globally, and update header
+  // Fetch data-source dates, store globally, update header, and show staleness banner
   fetch("/api/data-info").then(r => r.json()).then(d => {
     dataInfo = d;
     const el = $("h-data-dates");
     if (el) el.innerHTML = `Pipeline Data &middot; ${d.pipelineDate} &nbsp;|&nbsp; Revenue Data &middot; ${d.revenueDate}`;
+    // GAP 2b-4: Staleness banner — show if data age exceeds threshold
+    const banner = $("stale-banner");
+    if (banner && d.stalenessWarning) {
+      const parts = [];
+      if (d.pipelineStale) parts.push(`Pipeline (${d.pipelineAgeDays}d old, threshold 14d)`);
+      if (d.revenueStale)  parts.push(`Revenue (${d.revenueAgeDays}d old, threshold 30d)`);
+      const msg = $("stale-banner-msg");
+      if (msg) msg.textContent = `⚠ Stale data detected: ${parts.join(" · ")}. Refresh source files and restart.`;
+      banner.classList.add("show");
+      // Push main content down so banner doesn't overlap KPI strip
+      const shell = $("shell-analyst");
+      if (shell) shell.style.marginTop = "36px";
+    }
   }).catch(() => {});
   try { await Promise.all([ loadMeta(), initPMWizard() ]); } catch(e) { console.warn("Boot warning:", e); }
   try { await Promise.all([ loadKPIs(), loadTrend(), loadInsights() ]); } catch(e) { console.warn(e); }
+  // GAP 2b-3: Load KPI targets and render RAG badges on KPI tiles
+  try {
+    const f = fq ? fq() : {};
+    const tgtParams = new URLSearchParams(Object.fromEntries(Object.entries({
+      geo: f.geo || "WW",
+      quarter: f.quarter !== "ALL" ? f.quarter : undefined,
+      offeringArea: f.offeringArea !== "ALL" ? f.offeringArea : undefined,
+    }).filter(([,v]) => v))).toString();
+    const tgtData = await fetch(`/api/kpi/targets?${tgtParams}`).then(r => r.json()).catch(() => null);
+    if (tgtData && tgtData.rag) renderRagBadges(tgtData.rag, tgtData.targets);
+  } catch(e) { /* non-fatal — RAG badges stay empty */ }
   const lov = $("lov"); if (lov) lov.style.display = "none";
   // Auto-generate PM report with defaults (CPIS, 2026, 2Q26, WW)
   generatePMReport();

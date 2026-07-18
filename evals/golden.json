@@ -1,0 +1,272 @@
+[
+  {
+    "id": "pipeline-ww-all",
+    "message": "how is pipeline",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "active", "opportunities"],
+      "notContains": ["error", "undefined"]
+    }
+  },
+  {
+    "id": "pipeline-emea-2q26",
+    "message": "how is EMEA pipeline in Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "emea"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "signings-ww-2q26",
+    "message": "what are WW signings for Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["signings"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "revenue-ww-2q26",
+    "message": "what is revenue for 2Q26",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["revenue"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "win-rate-ww",
+    "message": "what is the win rate",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["win rate", "%"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "win-rate-by-geo",
+    "message": "show win rate by geo",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["win rate", "americas", "emea"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "forecast-coverage",
+    "message": "what is forecast coverage for 2Q26",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["coverage", "commit", "pipeline"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "psi-signings",
+    "message": "how is PSI signings in Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["signings", "project services"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "americas-signings-2q26",
+    "message": "americas signings Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["signings", "americas"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "top-accounts",
+    "message": "show top accounts",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["top accounts", "pipeline"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "geo-comparison",
+    "message": "which geo grew fastest in Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["yoy", "geo"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "focus-priorities",
+    "message": "where should PM focus this quarter",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["priority", "win rate"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-best-case",
+    "message": "what is best case",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["best case", "forecast category", "propose"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-flm-judgement",
+    "message": "what is FLM Judgement",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["flm", "forecast judgement", "manager"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-sales-stages",
+    "message": "explain the sales stages",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["qualify", "propose", "closing", "forecast category"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-upside",
+    "message": "what is upside",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["upside", "propose", "negotiate"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "revenue-low-why",
+    "message": "why is revenue low in 2Q26",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["revenue", "recommended"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "session-carry-geo",
+    "message": "and APAC",
+    "sessionContext": { "geo": "EMEA", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["apac"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "pipeline-americas-2q26",
+    "message": "Americas pipeline for Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "americas"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "signings-japan",
+    "message": "how are Japan signings",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["signings", "japan"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "win-rate-apac",
+    "message": "what is APAC win rate this quarter",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["win rate", "apac"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-commit",
+    "message": "what is commit in ISC",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["commit", "closing", "forecast"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "isc-qualify-stage",
+    "message": "what happens in the qualify stage",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["qualify", "budget", "pipeline"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "signings-yoy",
+    "message": "how are signings year over year",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["signings", "yoy"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "data-freshness",
+    "message": "when was data last updated",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "revenue", "data"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "interoperability-pipeline",
+    "message": "how is Interoperability Services pipeline",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "interoperability"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "emea-win-rate",
+    "message": "EMEA win rate Q2 2026",
+    "sessionContext": { "geo": "WW", "quarter": "ALL", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["win rate", "emea"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "revenue-direct-eco",
+    "message": "what is direct vs ecosystem revenue",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["revenue", "direct"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "forecast-call",
+    "message": "what is the call forecast",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["call", "forecast"],
+      "notContains": ["error"]
+    }
+  },
+  {
+    "id": "pipeline-coverage-ratio",
+    "message": "is pipeline coverage healthy",
+    "sessionContext": { "geo": "WW", "quarter": "2Q26", "offeringArea": "ALL", "ut30": "ALL" },
+    "expect": {
+      "contains": ["pipeline", "coverage"],
+      "notContains": ["error"]
+    }
+  }
+]

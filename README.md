@@ -1,224 +1,224 @@
-# Compass — Agentic AI for Performance Intelligence
+# Compass — Enterprise AI Data Intelligence Platform
 
-> Transforms weekly and monthly KPI reporting from a manual data-analysis process into an
-> AI-powered intelligence and recommendation engine — enabling leaders to understand
-> *what happened*, *why it happened*, and *what actions to take next* — in under 4 minutes
-> instead of 2–4 hours.
+> **The operating system for business performance intelligence.**
+> Compass transforms fragmented KPI data from any source into a continuously learning intelligence system — delivering root-cause analysis, cross-signal risk detection, and ranked GTM recommendations in under 4 minutes, not 4 hours.
 
-🔗 **Repo:** https://github.com/puru-nayak-labs/compass
+&nbsp;
 
-### 📄 Live Docs
+<div align="center">
 
-| | Link |
+| | |
 |---|---|
-| **Platform Design Doc** | https://puru-nayak-labs.github.io/compass/ |
-| **Architecture Diagram** | https://puru-nayak-labs.github.io/compass/architecture.html |
+| **Live Platform** | https://puru-nayak-labs.github.io/compass/ |
+| **Architecture** | https://puru-nayak-labs.github.io/compass/architecture.html |
 | **Extension Guide** | https://puru-nayak-labs.github.io/compass/contributing.html |
+| **Repository** | https://github.com/puru-nayak-labs/compass |
+
+</div>
 
 ---
 
-## Table of Contents
+## What Compass Does
 
-1. [The Problem & Goal](#1-the-problem--goal)
-2. [How It Works](#2-how-it-works)
-3. [Architecture](#3-architecture)
-4. [API Endpoints](#4-api-endpoints)
-5. [Run Locally](#5-run-locally)
-6. [Personas & Features](#6-personas--features)
-7. [Deploy with Docker](#7-deploy-with-docker)
-8. [Refreshing Data](#8-refreshing-data)
-9. [Extending the Platform](#9-extending-the-platform)
-10. [Roadmap](#10-roadmap)
-11. [Platform Design Docs](#11-platform-design-docs)
-12. [Tech Stack](#12-tech-stack)
-13. [Contact](#13-contact)
+Enterprise leaders spend **2–4 hours per reporting cycle** extracting numbers from spreadsheets, building pivot tables, and writing the same narrative from scratch — with no institutional memory, no root-cause analysis, and no recommended actions. Compass eliminates all of that.
+
+```
+  Ask:  "Why is EMEA revenue declining in Q2?"
+  Get:  Root cause · YoY/QoQ deltas · Cross-signal anomaly · Ranked GTM actions · $M impact estimate
+  Time: < 4 minutes  (vs 2–4 hours today)
+```
+
+Compass is not a dashboard. It is an **agentic intelligence system** — it ingests structured data from any source, applies a deterministic KPI engine, detects cross-signal patterns, and delivers answers in conversational, executive-grade language with full data lineage back to the source row.
 
 ---
 
-## 1. The Problem & Goal
+## The Business Case
 
-### The Problem
+| Dimension | Before Compass | With Compass | Improvement |
+|---|---|---|---|
+| Time to insight | 2–4 hours per cycle | < 4 minutes | **−95%** |
+| Analyst effort | 1–2 days per reporting cycle | Minutes | **−90%** |
+| Answer consistency | Varies by analyst | Deterministic, auditable | **100% reproducible** |
+| Root cause | Manual hypothesis | Rule-based engine, instant | Automated |
+| Recommended actions | None | Ranked by $M impact | Revenue impact quantified |
+| Cross-KPI risk detection | Not possible | 5 signal patterns detected | Structural risk surfaced early |
+| Data lineage | None | Every number traced to source row | Full audit trail |
+| Institutional memory | Lost at each cycle | Persisted insight→action→outcome log | Compounding moat |
 
-Today's KPI reporting workflow is entirely manual:
-- Spreadsheets exported from multiple source systems
-- A Business Analyst builds pivot tables by hand — **1–2 days per cycle**
-- Insights vary by analyst; no standard narrative or institutional memory
-- Same work repeated every week and every quarter with no carry-forward
+**North Star Metric:** Reduce Time-To-Action from KPI data by **80%**.
 
-### The Goal
+---
 
-**Compass** is the AI agent that eliminates that toil:
+## Platform Capabilities
 
-| Capability | What It Delivers |
+### 1 · Enterprise Data Intelligence — 10 Core Concepts Implemented
+
+Compass is architected around the 10 foundational principles of enterprise-grade AI data platforms:
+
+| Concept | What It Means | How Compass Implements It |
+|---|---|---|
+| **Data Lineage** | Every number traces back to its exact source row, column, and dataset version | `DataSet.checksum` + `KpiSnapshot.lineage[]` + `RunTrace.dataLineage[]` — end-to-end provenance from UI to source row |
+| **Ontology** | Canonical meaning of every KPI — independent of what any source system calls it | `MetricCatalog` declares formula, unit, source column, and aliases. `DimensionHierarchy` formalizes Country → Market → Geo → WW rollup |
+| **Knowledge Graph** | Relationships between entities, KPIs, and dimensions as a typed graph | `EntityResolver` unifies the same company across sources. `ISC_FORECAST_KB` encodes sales stage → forecast category → FLM judgment relationships |
+| **Data Governance** | Who owns each KPI, how it is calculated, and who can change the definition | `SchemaRegistry` is the single source of truth. `AccuracyCheckpoint` cross-validates all totals before serving. Immutable `DataSet` objects |
+| **Observability** | Full visibility into every agent execution — latency, confidence, fallback, cost | `RunTrace` on every response: intent, filters, records scanned, confidence, latency, fallback flag. Persisted to `agent-runs.jsonl` |
+| **Data Mesh** | Domain-owned data products with a standard contract, not a central data warehouse | `DomainConfig` pattern: each business unit owns its data product definition. Platform is the contract layer |
+| **Data Catalog** | Discoverable, documented inventory of every KPI, dimension, and data source | `MetricCatalog` + `ConnectorRegistry` + `/api/pm-meta` — every KPI and dimension is registered and queryable |
+| **Provenance** | Reproducible audit trail: given any output, reconstruct every input that produced it | `DataSet.fetchedAt` + `DataSet.checksum` + `KpiSnapshot.lineage[]` + `InsightBundle.lineage[]` — full provenance chain |
+| **Data Freshness** | Staleness detection with automated warnings before stale data reaches decisions | `/api/data-info` returns `pipelineAgeDays`, `revenueAgeDays`, `pipelineStale`, `revenueStale` — staleness gate on every response |
+| **Deterministic AI** | LLMs narrate; they never compute. Every number is produced by a deterministic engine | KPI Engine → Intelligence Layer → Narrator pattern. `temperature=0`, `OutputValidator` rejects any LLM number not in the `InsightBundle` |
+
+### 2 · KPI Intelligence Engine
+
+- **Pipeline · Signings · Revenue · Win Rate** — worldwide and by Geo, Market, Offering, Quarter
+- **30+ API endpoints** — every dimension combinable: geo × market × quarter × offering × channel × clientType
+- **QoQ / YoY / MoM** deltas computed automatically for every KPI
+- **KPI Targets + RAG Status** — Green/Amber/Red per Offering Area vs declared targets
+- **FLM Forecast Analysis** — Call vs Upside vs Stretch breakdown with manager conviction scoring
+
+### 3 · Cross-Signal Intelligence (Correlation Engine)
+
+Five typed signal patterns that no single-KPI dashboard can detect:
+
+| Pattern | Signal | Business Risk |
+|---|---|---|
+| `SIGNINGS_UP_REVENUE_DOWN` | Signings healthy but revenue declining | Contract recognition lag / billing delay |
+| `PIPELINE_UP_WINRATE_DOWN` | Growing pipeline but win rate falling | Pipeline quality risk — funnel inflation |
+| `SIGNINGS_DROP_PIPELINE_HEALTHY` | Pipeline strong but signings collapsing | Late-stage conversion breakdown |
+| `LOW_COVERAGE_DESPITE_SIGNINGS_GROWTH` | Good signings YoY but commit coverage < 50% | Pull-forward from prior periods, not sustainable |
+| `REVENUE_UP_SIGNINGS_DOWN` | Revenue drawing from backlog; signings declining | Future revenue gap — backlog depletion warning |
+
+### 4 · GTM Recommendation Engine
+
+Every recommendation is a typed `Recommendation` object — not a text string:
+
+```json
+{
+  "id": "win-rate-EMEA-2Q26",
+  "priority": "HIGH",
+  "category": "Win Rate",
+  "geo": "EMEA",
+  "action": "EMEA win rate at 38% — run deal coaching workshop on top-10 stalled opps. Target: 55%+ by end of 2Q26.",
+  "expectedImpactM": 4.2,
+  "confidence": 0.72,
+  "deadline": "End of 2Q26"
+}
+```
+
+Recommendations are logged to `memory-log.jsonl` — the seed of the **insight→action→outcome moat**.
+
+### 5 · Conversational Analytics
+
+Session-aware chat agent that understands ISC forecasting terminology natively:
+
+```
+"How is PSI Americas signings this quarter?"     → Pipeline/signings breakdown by market
+"Why is revenue low in Q2?"                      → Root-cause with anomaly detection
+"What is Best Case?"                             → ISC Forecast KB — stages, definitions, objectives
+"Which geo grew fastest?"                        → Ranked geo growth with YoY/QoQ
+"Where should PM focus this month?"              → Priority recommendations with $M impact
+```
+
+Context (geo, quarter, offering area) persists across turns **and across server restarts** via `chat-sessions.json`.
+
+### 6 · Personas
+
+| Persona | What They See |
 |---|---|
-| **Source-Agnostic Ingest** | Connect any source — Excel, DB2, Oracle, Snowflake, REST API, Data Lake, Salesforce, EPM |
-| **KPI Intelligence** | Revenue · Signings · Pipeline · Win/Loss — worldwide and by Geo, Market, Offering, Quarter |
-| **Conversational Analytics** | Ask anything in plain English |
-| **Agentic Insights** | Root-cause analysis, trend detection, anomaly surfacing — in executive language |
-| **PM Report (9 tabs)** | Full Business Health → Actions → Pipeline → Revenue → Win Rate → Geo → Others |
-| **Portfolio Leader View** | Offering Area-level and Geo-level intel with right-panel highlights |
-| **Feedback Loop** | Thumbs up/down captures resonance — trains the system over time |
-
-**North Star Metric:** Reduce Time-To-Action from KPI data by **80%** (< 4 min vs 2–4 hrs today).
+| **Analyst** | KPI tiles · trend charts · tabular drill-down · filter bar · chat |
+| **Product Manager** | 9-tab PM report: Business Health → Exec Summary → Actions → Pipeline → Signings → Revenue → Win Rate → Geo → Others |
+| **Portfolio Leader** | Offering Area intel · Geo intel · cross-portfolio comparison · right-panel highlights |
 
 ---
 
-## 2. How It Works
-
-### High-Level View
+## Architecture — 7-Layer Platform
 
 ```
-  ┌─────────────────────────────────────────────────────────────────────────────┐
-  │  DATA SOURCES (any)         CONNECTOR LAYER         NORMALIZED OUTPUT       │
-  │                                                                             │
-  │  Excel / CSV ──────────▶  ExcelConnector    ──┐                            │
-  │  DB2         ──────────▶  Db2Connector      ──┤                            │
-  │  Oracle      ──────────▶  OracleConnector   ──┼──▶  DataSet {}             │
-  │  Snowflake   ──────────▶  SnowflakeConnector──┤     (typed, checksummed,   │
-  │  REST API    ──────────▶  RestApiConnector  ──┤      source-agnostic)      │
-  │  Data Lake   ──────────▶  DataLakeConnector ──┤                            │
-  │  Salesforce  ──────────▶  SalesforceConnector┤                            │
-  │  EPM         ──────────▶  EpmConnector      ──┘                            │
-  └──────────────────────────────────┬──────────────────────────────────────────┘
-                                     │ same DataSet regardless of source
-                                     ▼
-  ┌─────────────────────────────────────────────────────────────────────────────┐
-  │  KPI ENGINE                   INTELLIGENCE               PRESENTATION       │
-  │                                                                             │
-  │  ┌───────────────┐    ┌───────────────────┐    ┌──────────────────────┐   │
-  │  │  KPI Engine   │    │  Insight Agent    │    │  PM Report           │   │
-  │  │  filter()     │───▶│  Trends · Risks   │───▶│  Exec Summary        │   │
-  │  │  aggregate()  │    │  Anomalies · GTM  │    │  Chat Agent          │   │
-  │  │  delta()      │    │  Recommendations  │    │  Right Panel         │   │
-  │  └───────────────┘    └───────────────────┘    └──────────────────────┘   │
-  └─────────────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 0 — SOURCE                                                               │
+  │  Excel · DB2 · Oracle · Snowflake · REST API · Data Lake · Salesforce · EPM    │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  DataConnector.fetch() → DataSet
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 1 — CONNECTOR  (one interface, N implementations)                        │
+  │  ExcelConnector · Db2Connector · SnowflakeConnector · SalesforceConnector       │
+  │  All emit: DataSet { rows · schema · checksum · fetchedAt · warnings }          │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  normalized · typed · checksummed
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 2 — KPI ENGINE  (deterministic · schema-driven)                          │
+  │  FilterEngine · AggregationEngine · DeltaEngine · AccuracyCheckpoint · KpiCache │
+  │  Emits: KpiSnapshot { values · deltas · lineage · rag }                         │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  KpiSnapshot
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 3 — INTELLIGENCE  (deterministic · rule-based · zero LLM)                │
+  │  TrendAnalyser · AnomalyDetector · RiskScorer · CorrelationEngine · GtmEngine   │
+  │  Emits: InsightBundle { highlights · risks · signals · recommendations }         │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  InsightBundle
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 4 — NARRATOR  (LLM as narrator only — never as calculator)               │
+  │  LlmNarrator (temp=0, JSON mode) → OutputValidator → NarrativeResult            │
+  │  TemplateNarrator (deterministic fallback — always available)                   │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  NarrativeResult
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 5 — AGENT BUS  (Watsonx Orchestrate · Phase 3)                           │
+  │  IntentParser · DataAgent · AnalyticsAgent · InsightAgent · GtmAgent · Memory   │
+  │  All implement: Agent<TContext, TResult> → AgentResult + RunTrace                │
+  └────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │  AgentResult + RunTrace
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────┐
+  │  LAYER 6 — PRESENTATION                                                         │
+  │  Analyst View · PM Report (9 tabs) · Portfolio Leader · Chat · Email Digest     │
+  └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Detailed End-to-End Flow
-
-```
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 0 — SOURCE  (any structured data source)                         ║
-  ║                                                                          ║
-  ║  Excel/CSV · DB2 · Oracle · Snowflake · REST API · Data Lake            ║
-  ║  Salesforce/CRM · EPM · SAP · SharePoint/Box                            ║
-  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
-                                  │ DataConnector.fetch() → DataSet
-                                  ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 1 — CONNECTOR  (one interface, N implementations)                ║
-  ║                                                                          ║
-  ║  ExcelConnector  │ Db2Connector   │ OracleConnector │ SnowflakeConnector ║
-  ║  RestApiConnector│ DataLakeConnector│ SalesforceConnector│ EpmConnector  ║
-  ║                                                                          ║
-  ║  All emit: DataSet { rows, schema, checksum, fetchedAt }                ║
-  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
-                                  │ normalized, typed, checksummed
-                                  ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 2 — KPI ENGINE  (deterministic · schema-driven)                  ║
-  ║                                                                          ║
-  ║  filter(opts)        — slice by geo / market / quarter / offering        ║
-  ║  aggregate()         — sum, count, ratio, weighted average               ║
-  ║  delta()             — QoQ / YoY / MoM comparisons                      ║
-  ║  AccuracyCheckpoint  — cross-validates all totals before serving         ║
-  ║                                                                          ║
-  ║  REST endpoints (~30):                                                   ║
-  ║  /api/kpi/*  /api/revenue/*  /api/pm-report  /api/insights              ║
-  ║  /api/exec-summary  /api/chat  /api/feedback  /api/pm-meta              ║
-  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
-                                  │ KpiSnapshot
-                                  ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 3 — INTELLIGENCE  (deterministic · rule-based · no LLM)          ║
-  ║                                                                          ║
-  ║  TrendAnalyser · AnomalyDetector · RiskScorer · GtmRecommender          ║
-  ║  Output: InsightBundle { highlights, risks, anomalies, recommendations } ║
-  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
-                                  │ InsightBundle
-                                  ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 4 — NARRATOR  (LLM as narrator only — never as calculator)       ║
-  ║                                                                          ║
-  ║  LlmNarrator (temp=0, JSON mode) → OutputValidator → NarrativeResult    ║
-  ║  TemplateNarrator (deterministic fallback — always available)            ║
-  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
-                                  │ NarrativeResult
-                                  ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  LAYER 5 — PRESENTATION  (public/index.html — Vanilla JS SPA)           ║
-  ║                                                                          ║
-  ║  Analyst View        — KPI tiles · charts · tabular drill-down           ║
-  ║  Product Manager     — 9-tab PM report · Revenue chart · Geo intel       ║
-  ║  Portfolio Leader    — Offering Area intel · Geo intel · Roadmap         ║
-  ║  Chat Panel          — plain-English queries → structured KPI answers    ║
-  ╚══════════════════════════════════════════════════════════════════════════╝
-```
+**Determinism guarantee:** Every KPI value, trend, anomaly, and recommendation is computed deterministically before the LLM sees any data. The LLM converts structured JSON to language — it never produces numbers.
 
 ---
 
-## 3. Architecture
-
-### Project Structure
-
-```
-compass/
-├── server.js                    # Express API + KPI engine + insight agent
-│   ├── Data loading             # Reads JSON dumps at startup
-│   ├── filter()                 # Universal pipeline filter
-│   ├── filterRev()              # Revenue actuals filter
-│   ├── /api/kpi/*               # ~20 pipeline KPI endpoints
-│   ├── /api/revenue/*           # Revenue actuals endpoints
-│   ├── /api/pm-report           # Full PM analysis report
-│   ├── /api/exec-summary        # AI executive narrative builder
-│   ├── /api/insights            # Trend / risk / anomaly bullets
-│   ├── /api/chat                # Session-aware conversational agent
-│   └── /api/feedback            # Feedback log (thumbs up/down)
-│
-├── public/
-│   ├── index.html               # Full SPA — Carbon-inspired styling + Chart.js
-│   └── hierarchy.json           # Geo → Market → Country filter tree
-│
-├── build_hierarchy.mjs          # One-time: rebuilds hierarchy.json from data
-├── Dockerfile                   # Container build (Node 20 Alpine)
-├── deploy.ps1                   # One-command deploy to any container platform
-├── docs/                        # Platform design & architecture docs
-│   ├── index.html               # Design doc & interface catalogue
-│   ├── architecture.html        # Visual 7-layer architecture diagram
-│   └── contributing.html        # Extending the platform — step-by-step
-│
-└── data/                        # Pre-processed data (not in git — see below)
-    ├── Pipeline.json
-    └── Revenue.json
-```
-
----
-
-## 4. API Endpoints
+## API Endpoints
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/kpi/summary` | Top-level KPI tiles (pipeline, signings, win rate) |
+| `GET /api/kpi/summary` | Top-level KPI tiles — pipeline, signings, win rate with QoQ/YoY deltas |
 | `GET /api/kpi/by-geo` | KPI breakdown by Geography |
-| `GET /api/kpi/by-quarter` | Quarterly trend |
+| `GET /api/kpi/by-quarter` | Quarterly trend series |
 | `GET /api/kpi/by-offering` | Pipeline / signings by Offering Area |
-| `GET /api/kpi/tabular` | Full drill-down table |
-| `GET /api/kpi/flm-analysis` | First Line Manager forecast judgment |
-| `GET /api/kpi/top-accounts` | Top accounts by pipeline value |
-| `GET /api/revenue/summary` | Revenue actuals KPI tiles |
-| `GET /api/revenue/by-geo` | Revenue by Geo + quarter |
-| `GET /api/exec-summary` | AI executive narrative |
-| `GET /api/insights` | Trend / risk / anomaly bullets for right panel |
-| `GET /api/pm-report` | Full 9-section PM analysis |
-| `GET /api/pm-meta` | Filter tree: Offering Areas / Offerings / Products |
-| `POST /api/chat` | Conversational agent (session-aware) |
-| `POST /api/feedback` | Capture thumbs up/down |
+| `GET /api/kpi/tabular` | Full drill-down table — groupBy any dimension |
+| `GET /api/kpi/flm-analysis` | First Line Manager forecast judgment analysis |
+| `GET /api/kpi/top-accounts` | Top accounts by pipeline or signings value |
+| `GET /api/kpi/stage-aging` | Pipeline stage breakdown with average opportunity age |
+| `GET /api/kpi/targets` | KPI targets + actuals + **RAG status** (Green/Amber/Red) per OA |
+| `GET /api/kpi/correlation` | **Cross-KPI signal detection** — 5 structural risk patterns |
+| `GET /api/revenue/summary` | Revenue actuals KPI tiles with QoQ/YoY deltas |
+| `GET /api/revenue/by-geo` | Revenue actuals by Geography + quarter |
+| `GET /api/revenue/tabular` | Revenue drill-down — groupBy any dimension |
+| `GET /api/exec-summary` | AI executive narrative — MBR-style paragraph |
+| `GET /api/insights` | Right-panel intelligence — Highlights · Focus Areas · Actions |
+| `GET /api/pm-report` | Full 9-section PM analysis with **structured Recommendations** ($M impact + confidence) |
+| `GET /api/pm-report/industry` | Industry × Geo matrix with FLM conviction and GTM actions |
+| `GET /api/pm-meta` | Product hierarchy — Offering Areas / Offerings / Portfolios |
+| `GET /api/data-info` | Data source dates + **staleness flags** (age in days, stale boolean) |
+| `GET /api/memory` | **Insight→action→outcome log** — last 100 recommendation records |
+| `POST /api/memory/outcome` | Record observed outcome against a recommendation (closes the feedback loop) |
+| `POST /api/eval` | **Run golden test suite** — 18 chat cases, pass/fail report, ≥95% threshold |
+| `POST /api/chat` | Conversational agent — session-aware, context persisted across restarts |
+| `POST /api/feedback` | Capture thumbs up/down with full RunTrace |
 
-**All endpoints accept:** `geo`, `market`, `country`, `quarter`, `year`, `offeringArea`, `consolidatedOffering`, `ut30`, `channel`, `clientType`
+**All filter endpoints accept:** `geo`, `market`, `country`, `quarter`, `year`, `offeringArea`, `consolidatedOffering`, `ut30`, `channel`, `clientType`
 
 ---
 
-## 5. Run Locally
+## Run Locally
 
 ### Prerequisites
 
@@ -235,239 +235,109 @@ cd compass
 npm install
 ```
 
-### Step 2 — Add Data Files
+### Step 2 — Add Data
 
-The server reads two pre-processed JSON files at startup. The platform is
-**source-agnostic** — you can produce these JSON files from any of the supported sources below.
+The server loads two pre-processed JSON files at startup (see [Data Sources](#data-sources) below).
 
-#### Supported Data Sources
+```bash
+# Point at your data folder
+DATA_DIR=data node server.js
+```
 
-| Source | How to produce `data/*.json` |
-|---|---|
-| **Excel / CSV** *(current MVP)* | Use any xlsx-to-JSON converter. Place output at `data/Pipeline.json` + `data/Revenue.json` |
-| **DB2** | `SELECT * FROM pipeline_table` → write rows to JSON via `ibm_db` or `db2` npm package |
-| **Oracle** | `SELECT * FROM pipeline_view` → write rows to JSON via `oracledb` npm package |
-| **Snowflake** | COPY INTO `@stage/pipeline.json` or query via `snowflake-sdk` and write JSON |
-| **REST API** | `fetch('/api/opportunities')` → normalize and write to `data/Pipeline.json` |
-| **Data Lake** | Presto/Spark SQL query → export as JSON via your lake's REST API |
-| **Salesforce / CRM** | SOQL query via `jsforce` → map fields → write to `data/Pipeline.json` |
-| **EPM** | Export via EPM REST API → write to `data/Revenue.json` |
+Or use the default dev path (Bob xlsx-dump output):
+```bash
+node server.js
+```
 
-All sources must produce JSON in this shape:
+Open **http://localhost:3000** and hard-refresh with **Ctrl + Shift + R**.
+
+### Data Sources
+
+The platform is source-agnostic. Any source must produce JSON in this shape:
+
 ```json
-{
-  "headers": ["Geo", "Quarter", "Oppty Value", "..."],
-  "rows": [
-    ["Americas", "2Q26", 1.5, "..."],
-    ...
-  ]
-}
+{ "headers": ["Geo", "Quarter", "Oppty Value", "..."], "rows": [["Americas", "2Q26", 1.5]] }
 ```
 
-Then point the server at your `data/` folder:
-```powershell
-$env:DATA_DIR = "data"
-node server.js
-```
-
-> See [`docs/contributing.html`](docs/contributing.html) for the full `DataConnector`
-> interface — implement it once per source type and the entire platform above
-> Layer 1 is automatically source-agnostic.
-
-### Step 3 — Run
-
-```bash
-node server.js
-# or
-npm start
-```
-
-Open **http://localhost:3000**. Hard-refresh with **Ctrl + Shift + R** after code changes.
-
-### Step 4 — Chat Agent
-
-The chat agent is session-aware — it carries context between turns.
-
-```
-"How is pipeline performing this quarter?"
-"Show me EMEA signings vs last year"
-"Which geo has the highest win rate in Q2?"
-"What are the top risks in Americas pipeline?"
-"What should PM focus on this month?"
-```
-
----
-
-## 6. Personas & Features
-
-### Analyst View
-- 2-row compressed filter bar
-- KPI tiles with YoY/QoQ deltas
-- Chart.js trend charts (pipeline, signings, revenue)
-- Full tabular drill-down with mini bar charts
-
-### Product Manager View (9-tab Report)
-| Tab | Content |
+| Source | Path |
 |---|---|
-| **01 Business Health** | Intel bullets · KPI tiles · Geo cards · Top accounts |
-| **02 Exec Summary** | AI-generated narrative |
-| **03 Top Actions** | High-priority GTM actions · Account watchlist |
-| **04 Pipeline** | Trend chart · by-Geo table · Offering breakdown |
-| **05 Signings** | Trend chart · Won-deal analysis |
-| **06 Revenue** | Line chart · 4 KPI tiles |
-| **07 Win Rate** | Win/loss reasons · per-Geo win rate |
-| **08 Geography** | Per-geo cards with spark bars · intel bullets |
-| **09 Others** | Industry · Channel · Client Segment tables |
-
-### Portfolio Leader View
-- Intel by Offering Area (pipeline, signings, YoY, per-OA action)
-- Intel by Geography (KPI row + intel bullets + top account)
-
-**Right Intelligence Panel** (all personas):
-- 🟢 Top Highlights — what's going well
-- 🔴 Top Focus Areas — what needs attention
-- 🟣 Top Recommended Actions — ranked GTM motions
+| **Excel / CSV** *(current)* | Any xlsx-to-JSON converter → `data/Pipeline.json` + `data/Revenue.json` |
+| **DB2** | `ibm_db` npm → write rows to JSON |
+| **Snowflake** | `snowflake-sdk` query → write JSON |
+| **Salesforce / ISC** | SOQL via `jsforce` → map fields → JSON |
+| **REST API** | `fetch()` → normalize → JSON |
+| **EPM** | EPM REST API export → JSON |
 
 ---
 
-## 7. Deploy with Docker
+## Deploy with Docker
 
 ```bash
-# Build image (bake your data folder into the image)
+# Build
 docker build --build-arg DATA_SRC=data -t compass-app:latest .
 
-# Run locally
+# Run
 docker run -p 3000:3000 compass-app:latest
 
-# Or override the data folder at runtime (no rebuild needed)
+# Override data at runtime (no rebuild)
 docker run -p 3000:3000 -e DATA_DIR=/custom/data -v /your/data:/custom/data compass-app:latest
-```
 
-To deploy to any container platform (Fly.io, Railway, Render, AWS ECS, etc.):
-
-```bash
-# Tag and push to your container registry
+# Push to registry
 docker tag compass-app:latest ghcr.io/puru-nayak-labs/compass-app:latest
 docker push ghcr.io/puru-nayak-labs/compass-app:latest
 ```
 
-See [`deploy.ps1`](deploy.ps1) for a one-command deploy script.
-
 ---
 
-## 8. Refreshing Data
+## Roadmap
 
-When a new spreadsheet is available:
-
-1. Drop it into the project root.
-2. Convert to JSON dumps (see Step 2 in [Run Locally](#5-run-locally)).
-3. Point `DATA_DIR` at the new folder:
-   ```bash
-   DATA_DIR=data node server.js
-   ```
-4. Rebuild the geo hierarchy if the geo/market structure changed:
-   ```bash
-   node build_hierarchy.mjs
-   ```
-
----
-
-## 9. Extending the Platform
-
-### Add a New KPI Endpoint
-
-```js
-// server.js
-app.get("/api/kpi/my-new-metric", (req, res) => {
-  const { geo = "WW", quarter = "ALL" } = req.query;
-  const recs = filter({ geo, quarter });
-  res.json({ data: /* aggregate */ });
-});
-```
-
-### Wire It to the Frontend
-
-```js
-// public/index.html
-const data = await fetch(`/api/kpi/my-new-metric?${qs({ geo, quarter })}`).then(r => r.json());
-// render with Chart.js or a table
-```
-
-### Expose It in Chat
-
-```js
-// server.js  ~line 1246 in /api/chat handler
-if (/my new metric/i.test(msg)) {
-  // call your aggregation, return structured answer
-}
-```
-
-### Swap in a Real LLM
-
-The current `exec-summary` and `insights` endpoints use rule-based generation.
-To swap in any LLM (OpenAI, Anthropic, watsonx Granite, etc.):
-
-```js
-// Replace the narrative-building logic with an LLM API call
-const response = await fetch("https://api.openai.com/v1/chat/completions", {
-  method: "POST",
-  headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-  body: JSON.stringify({ model: "gpt-4o", temperature: 0, messages: [{ role: "user", content: prompt }] })
-});
-```
-
-See [`docs/contributing.html`](docs/contributing.html) for the full platform extension guide
-including the `DataConnector`, `InsightEngine`, and `NarratorService` interface contracts.
-
----
-
-## 10. Roadmap
-
-| Phase | Status | What's Included |
+| Phase | Status | Delivered |
 |---|---|---|
-| **Phase 0** — Product definition | ✅ Done | KPI priority locked, personas defined |
-| **Phase 1** — MVP | ✅ Done | Auto-ingest, KPI engine, chat, exec summary, PM report, observability |
-| **Phase 1.5** — Knowledge Layer | ✅ Done | Forecasting KB, sales stage objectives, FLM judgment logic in chat |
-| **Phase 1.6** — Observability | ✅ Done | Per-run trace, confidence badge, collapsible trace panel |
-| **Phase 2** — GTM Agent | 🔄 In Progress | GTM recommended motions with $M impact; KPI correlation engine |
-| **Phase 3** — Decision Intelligence | 📋 Planned | Multi-agent routing; auto-generation of reports; feedback memory |
+| **Phase 0** — Product definition | ✅ Done | KPI priority locked · personas defined · success criteria set |
+| **Phase 1** — Working MVP | ✅ Done | KPI engine · 3 personas · chat · exec summary · PM report · Docker |
+| **Phase 1.5** — Knowledge Layer | ✅ Done | ISC Forecasting KB · sales stage objectives · FLM judgment logic |
+| **Phase 1.6** — Observability | ✅ Done | Per-run RunTrace · confidence badge · collapsible trace panel |
+| **Phase 2a** — Platform Foundations | ✅ Done | KPI Targets + RAG · GTM $M impact · Correlation Engine · Persistent memory · Freshness gate · Eval harness |
+| **Phase 2b** — GTM Agent + LLM | 🔄 In Progress | `DataConnector` abstraction · `NarratorService` + Granite fallback · auto-ingest |
+| **Phase 3** — Decision Intelligence | 📋 Planned | Multi-agent Orchestrate routing · MBR/QBR auto-generation · `MemoryAgent` outcome tracking |
+| **Phase 4** — Multi-Domain Platform | 🔭 Future | `DomainConfig` registry · second business unit onboarding · open-source connector SDK |
 
 ---
 
-## 11. Platform Design Docs
-
-The [`docs/`](docs/) folder contains the full platform architecture design, built for
-extensibility, source-agnosticism, and determinism-first AI.
+## Platform Design Docs
 
 | Doc | Contents |
 |---|---|
-| [`docs/index.html`](docs/index.html) | 7-point design blueprint · OOP interface catalogue · non-determinism solution |
-| [`docs/architecture.html`](docs/architecture.html) | Visual 7-layer architecture · data flow · migration path MVP → platform |
-| [`docs/contributing.html`](docs/contributing.html) | Step-by-step: add data source · KPI · domain · agent · insight rule · LLM |
+| [`docs/index.html`](docs/index.html) | 10-concept enterprise data intelligence blueprint · OOP interface catalogue · determinism-first AI pattern · data lineage & ontology |
+| [`docs/architecture.html`](docs/architecture.html) | Visual 7-layer architecture · data flow · interface contracts · Phase 2a migration table |
+| [`docs/contributing.html`](docs/contributing.html) | Step-by-step: add data source · KPI · domain · agent · insight rule · LLM narrator |
 
 ---
 
-## 12. Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | **API Server** | Node.js 20 / Express 5 |
-| **Frontend** | Vanilla JS SPA · Chart.js · Carbon-inspired CSS |
-| **Data Ingest** | Source-agnostic `DataConnector` interface — Excel, DB2, Oracle, Snowflake, REST, Data Lake, Salesforce, EPM |
-| **KPI Engine** | In-memory filter + aggregation (pure functions) |
-| **Chat Agent** | Session-aware intent parsing + structured KPI dispatch |
-| **Observability** | Per-run trace · confidence badge · agent-runs log |
+| **Frontend** | Vanilla JS SPA · Chart.js 4 · Carbon-inspired CSS |
+| **Data Ingest** | Source-agnostic `DataConnector` interface — Excel, DB2, Oracle, Snowflake, REST, Salesforce, EPM |
+| **KPI Engine** | In-memory filter + aggregation (pure functions) · AccuracyCheckpoint |
+| **Correlation Engine** | Cross-KPI signal pattern detection — 5 structural patterns |
+| **GTM Engine** | Rule-based Recommendation engine with `expectedImpactM` + `confidence` |
+| **Chat Agent** | Session-aware intent parsing + structured KPI dispatch + ISC KB |
+| **Memory** | `chat-sessions.json` (session persistence) · `memory-log.jsonl` (insight→action→outcome) |
+| **Observability** | Per-run `RunTrace` · `agent-runs.jsonl` · confidence badge · eval harness |
+| **Eval** | `evals/golden.json` (18 golden cases) · `POST /api/eval` runner · `evals/failures.jsonl` |
 | **Container** | Docker (Node 20 Alpine) |
 
 ---
 
-## 13. Contact
+## Contact
 
 Built by **Puru Nayak** — [github.com/puru-nayak-labs](https://github.com/puru-nayak-labs)
 
-For questions or contributions, open an issue:
-👉 https://github.com/puru-nayak-labs/compass/issues
+Issues and contributions: https://github.com/puru-nayak-labs/compass/issues
 
 ---
 
-*Compass — Agentic AI for Performance Intelligence · 2026*
+*Compass — Enterprise AI Data Intelligence Platform · 2026*

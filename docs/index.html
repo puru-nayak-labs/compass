@@ -203,6 +203,16 @@ li strong { color: #1f2328; }
 .principle.p-eff { border-top-color: #f59e0b; }
 .principle.p-abs { border-top-color: #ef4444; }
 
+/* ── status badge (lineage & roadmap tables) ── */
+.status-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+}
+.badge-done    { background: #d1fae5; color: #065f46; }
+.badge-active  { background: #dce8fb; color: #1a4fa0; }
+.badge-planned { background: #ede9fe; color: #5b21b6; }
+.badge-future  { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+
 /* ── divider ── */
 hr { border: none; border-top: 1px solid #e5e7eb; margin: 40px 0; }
 
@@ -259,6 +269,13 @@ footer {
     <a href="https://puru-nayak-labs.github.io/compass/" class="active">Design Doc</a>
     <a href="https://puru-nayak-labs.github.io/compass/architecture.html">Architecture</a>
     <a href="https://puru-nayak-labs.github.io/compass/contributing.html">Extending</a>
+    <a href="#principles">Principles</a>
+    <a href="#abstractions">Interfaces</a>
+    <a href="#determinism">Determinism</a>
+    <a href="#datasources">Data Sources</a>
+    <a href="#lineage">Lineage &amp; Ontology</a>
+    <a href="#agents">Agents</a>
+    <a href="#roadmap">Roadmap</a>
     <a href="https://github.com/puru-nayak-labs/compass">GitHub →</a>
   </div>
 </nav>
@@ -270,8 +287,8 @@ footer {
     <div class="hero-eyebrow">Platform Design &amp; Architecture Reference</div>
     <h1>Compass<br><em>Intelligence Platform</em></h1>
     <p class="hero-sub">
-      A rigorous, co-designed architectural blueprint for building Compass as a reusable,
-      source-agnostic, determinism-first AI intelligence platform — engineered for accuracy,
+      A platform architecture reference for building Compass as a reusable,
+      source-agnostic, determinism-first AI intelligence system — engineered for accuracy,
       resiliency, and efficiency across any business domain, KPI set, or data source.
     </p>
     <div class="hero-badges">
@@ -281,17 +298,20 @@ footer {
       <span class="badge badge-orange">Agentic AI</span>
       <span class="badge badge-gray">OOP / Abstraction</span>
       <span class="badge badge-gray">LLM-agnostic</span>
+      <span class="badge badge-blue">Data Lineage</span>
+      <span class="badge badge-purple">Ontology-Driven</span>
     </div>
   </div>
 
   <!-- ═══ HIGH-LEVEL PLAN ═══ -->
   <div class="section">
     <div class="section-label">00 · High-Level Plan</div>
-    <h2>The 7-Point Platform Blueprint</h2>
+    <h2>The 9-Point Platform Blueprint</h2>
     <p>
-      If a world-class AI Product Leader, Data Science Engineer, and Software Architect
-      co-designed Compass from scratch as a platform — not a single-purpose app —
-      these are the seven structural decisions they would make before writing a single line of code.
+      Building Compass as a reusable enterprise platform — rather than a single-purpose application —
+      requires a set of foundational architectural decisions that govern every layer of the system.
+      The following nine principles define the structural commitments made at design time,
+      before any implementation begins.
     </p>
 
     <div class="callout callout-dark">
@@ -338,6 +358,25 @@ footer {
         (Sales KPIs, HR metrics, Supply Chain, Finance P&amp;L) to the platform's abstract schema.
         Reuse is a configuration problem, not a code problem. The same platform serves sales performance today,
         and procurement analytics tomorrow, with zero change to platform code.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">8 · Ontology-Driven Semantics</div>
+      <p>
+        A <strong>MetricCatalog</strong> declares the formal definition of every KPI — its formula, unit,
+        source column, and canonical name — independent of what any data source calls it.
+        A <strong>DimensionHierarchy</strong> formalizes rollup trees (Country → Market → Geo → WW).
+        An <strong>EntityResolver</strong> unifies the same real-world entity across sources.
+        Meaning is declared once and shared across all layers.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">9 · End-to-End Data Lineage</div>
+      <p>
+        Every number surfaced in the UI can be traced back to the exact source rows, columns,
+        and <code>DataSet</code> version that produced it. Lineage is not optional instrumentation —
+        it is a first-class field on <code>KpiSnapshot</code>, <code>InsightBundle</code>, and <code>RunTrace</code>.
+        Any answer the platform gives can be audited from output back to raw source.
       </p>
     </div>
   </div>
@@ -674,7 +713,7 @@ interface Recommendation {
 </code></pre>
 
     <h3>NarratorService — The LLM Isolation Boundary</h3>
-    <pre><code">/**
+    <pre><code>/**
  * The LLM is behind this interface. If the LLM is down, TemplateNarrator
  * activates automatically. The caller never knows the difference — it
  * always receives a NarrativeResult with the same shape.
@@ -902,7 +941,7 @@ if (!validated.passed) {
     </div>
 
     <h3>ConnectorRegistry — Runtime Discovery</h3>
-    <pre><code">// The platform discovers connectors at runtime via a registry.
+    <pre><code>// The platform discovers connectors at runtime via a registry.
 // To add a new source: register a factory function. Zero changes to core platform.
 
 ConnectorRegistry.register("snowflake", (config: ConnectorConfig) =&gt;
@@ -921,9 +960,175 @@ const SALES_DOMAIN_CONFIG: DomainConfig = {
 };</code></pre>
   </div>
 
+  <!-- ═══ LINEAGE & ONTOLOGY ═══ -->
+  <div class="section" id="lineage">
+    <div class="section-label">06 · Data Lineage &amp; Ontology</div>
+    <h2>Traceability &amp; Semantic Consistency</h2>
+    <p>
+      Data lineage answers: <em>"Where did this number come from?"</em>
+      Ontology answers: <em>"What does this number mean — regardless of which system produced it?"</em>
+      Both are required for enterprise-grade AI trust. The table below shows current implementation
+      status and the planned architecture for each capability.
+    </p>
+
+    <div class="callout callout-orange">
+      <div class="callout-title">Current Status</div>
+      <p>
+        The MVP has the <strong>skeleton</strong> of both — column mapping, data-freshness timestamps,
+        and per-run trace logs are in place. Formal ontology (MetricCatalog, DimensionHierarchy,
+        EntityResolver) and graph-based lineage (DataSet checksum, KpiSnapshot.lineage[]) are
+        designed and planned for Phase 2–3.
+      </p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>Layer</th>
+            <th>Status</th>
+            <th>What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Column mapping</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-done">✓ MVP</span></td>
+            <td>Source column names (<code>"Geography Name"</code>) mapped to canonical field names (<code>geo</code>) at ingest time via <code>ColumnSchema.aliases[]</code></td>
+          </tr>
+          <tr>
+            <td><strong>Data freshness timestamp</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-done">✓ MVP</span></td>
+            <td><code>DataSet.fetchedAt</code> — surfaces as a data-cutoff warning in the UI when data is older than the period end date</td>
+          </tr>
+          <tr>
+            <td><strong>Per-run trace log</strong></td>
+            <td>Layer 5 · Agent Bus</td>
+            <td><span class="status-badge badge-done">✓ MVP</span></td>
+            <td><code>RunTrace</code> on every chat response: intent, filters, records scanned, confidence, latency — persisted to <code>agent-runs.jsonl</code></td>
+          </tr>
+          <tr>
+            <td><strong>DataSet checksum</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-active">Phase 2</span></td>
+            <td>SHA-256 of the rows array at ingest time. Enables "did the data change?" detection and ties every KPI calculation to a specific data version</td>
+          </tr>
+          <tr>
+            <td><strong>KpiSnapshot.lineage[]</strong></td>
+            <td>Layer 2 · KPI Engine</td>
+            <td><span class="status-badge badge-active">Phase 2</span></td>
+            <td>Array of <code>DataSet</code> ids consumed to produce each KPI value. Every number in the API response carries its source provenance</td>
+          </tr>
+          <tr>
+            <td><strong>MetricCatalog</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-active">Phase 2</span></td>
+            <td>Formal JSON declaration of every KPI: canonical name, formula, unit, source column, and acceptable value range. Replaces inline column mapping in <code>server.js</code></td>
+          </tr>
+          <tr>
+            <td><strong>DimensionHierarchy</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-planned">Phase 3</span></td>
+            <td>Typed rollup tree: Country → Market → Geo → WW. Promotes <code>hierarchy.json</code> to a formal ontology with typed levels and version control</td>
+          </tr>
+          <tr>
+            <td><strong>EntityResolver</strong></td>
+            <td>Layer 1 · Connector</td>
+            <td><span class="status-badge badge-planned">Phase 3</span></td>
+            <td>Fuzzy-match and canonical ID assignment for entity names that vary across sources (e.g. <code>"MASTERCARD TECHNOLOGIES LLC"</code> = <code>"MASTERCARD INTERNATIONAL"</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>Full RunTrace.dataLineage[]</strong></td>
+            <td>Layer 5 · Agent Bus</td>
+            <td><span class="status-badge badge-planned">Phase 3</span></td>
+            <td>Every insight, recommendation, and narrative traces back to the exact <code>DataSet</code> ids, source row indices, and column names that contributed to it</td>
+          </tr>
+          <tr>
+            <td><strong>Lineage graph API</strong></td>
+            <td>Layer 6 · Presentation</td>
+            <td><span class="status-badge badge-future">Phase 4</span></td>
+            <td><code>/api/lineage/:traceId</code> — given any RunTrace id, returns the full directed acyclic graph from UI output → insight → KPI → DataSet → source row</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Ontology Architecture — Three Components</h3>
+    <div class="grid-3" style="margin-bottom:16px">
+      <div class="box" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#3b82d4;margin-bottom:8px">MetricCatalog</div>
+        <p style="font-size:12px">Declares the canonical definition of every KPI. <strong>What it means</strong> is independent of what any source system calls it.</p>
+        <pre style="font-size:11px;background:#161b22;color:#e6edf3;border-radius:4px;padding:10px;margin-top:8px;overflow-x:auto"><code>MetricEntry {
+  id: "revenue"
+  label: "Revenue Actuals"
+  formula: "SUM(revActM)"
+  unit: "currency_usd"
+  sourceColumn: "Rev Act @ PC"
+  scaleFactorM: true
+  aliases: ["Rev", "Revenue $M"]
+}</code></pre>
+      </div>
+      <div class="box" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7c5cd8;margin-bottom:8px">DimensionHierarchy</div>
+        <p style="font-size:12px">Formalizes the rollup structure. <strong>How dimensions aggregate</strong> is declared, not computed ad-hoc.</p>
+        <pre style="font-size:11px;background:#161b22;color:#e6edf3;border-radius:4px;padding:10px;margin-top:8px;overflow-x:auto"><code>HierarchyLevel {
+  id: "geo"
+  label: "Geography"
+  levels: [
+    "Country",
+    "Market",
+    "Geography",
+    "WW"
+  ]
+  rollup: "sum"
+}</code></pre>
+      </div>
+      <div class="box" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#27ae60;margin-bottom:8px">EntityResolver</div>
+        <p style="font-size:12px">Assigns canonical IDs to entities that appear under different names across sources.</p>
+        <pre style="font-size:11px;background:#161b22;color:#e6edf3;border-radius:4px;padding:10px;margin-top:8px;overflow-x:auto"><code>EntityRecord {
+  canonicalId: "GC5WDGQB"
+  canonicalName: "Mastercard"
+  aliases: [
+    "MASTERCARD TECHNOLOGIES LLC",
+    "MASTERCARD INTERNATIONAL",
+    "Mastercard Inc."
+  ]
+  sources: ["pipeline","revenue"]
+}</code></pre>
+      </div>
+    </div>
+
+    <h3>Lineage Flow — From Source Row to UI Number</h3>
+    <pre style="font-size:12px"><code>Source Row (Excel / DB2 / Snowflake)
+  │  connector.fetch() → DataSet { id: "ds-abc123", checksum: "sha256:...", fetchedAt }
+  ▼
+DataSet Row  [geo:"EMEA", quarter:"2Q26", revActM: 4.2]
+  │  AggregationEngine.sum("revActM", { geo:"EMEA", quarter:"2Q26" })
+  ▼
+KpiSnapshot  { value: 29.6, lineage: ["ds-abc123"], computedAt }
+  │  InsightEngine.analyse(snapshot)
+  ▼
+InsightBundle  { headline: "EMEA Revenue +19% YoY", ruleId: "rev_yoy_growth",
+                 supportingData: { current: 29.6, prior: 24.9 },
+                 lineage: ["ds-abc123"] }
+  │  NarratorService.narrate(bundle)
+  ▼
+NarrativeResult  { text: "EMEA delivered $29.6M revenue...",
+                   structuredFallback: InsightBundle,  ← always present
+                   trace: RunTrace { dataLineage: ["ds-abc123"] } }
+  │
+  ▼
+UI / Chat Response  ← every number traceable to ds-abc123 → source row</code></pre>
+
+  </div>
+
   <!-- ═══ AGENT DESIGN ═══ -->
   <div class="section" id="agents">
-    <div class="section-label">06 · Agent Design</div>
+    <div class="section-label">07 · Agent Design</div>
     <h2>Five Specialized Agents + Orchestrator</h2>
     <p>
       Each agent has a single, narrow responsibility. The Orchestrator
@@ -965,7 +1170,7 @@ const SALES_DOMAIN_CONFIG: DomainConfig = {
     </div>
 
     <h3>Intent Parser — Deterministic Chat Routing</h3>
-    <pre><code">/**
+    <pre><code>/**
  * The IntentParser is purely deterministic — regex + rule-based NLU.
  * It routes every chat message to the correct agent with a typed context.
  * The LLM is never in the chat routing path.
@@ -990,7 +1195,7 @@ class IntentParser {
 
   <!-- ═══ DOMAIN REUSE ═══ -->
   <div class="section">
-    <div class="section-label">07 · Platform Reuse</div>
+    <div class="section-label">08 · Platform Reuse</div>
     <h2>One Platform, Any Domain</h2>
     <p>
       The entire platform is generic. A <code>DomainConfig</code> object maps a business
@@ -1027,10 +1232,21 @@ class IntentParser {
 
   <!-- ═══ ROADMAP ═══ -->
   <div class="section" id="roadmap">
-    <div class="section-label">08 · Evolution Roadmap</div>
+    <div class="section-label">09 · Evolution Roadmap</div>
     <h2>From Current MVP to Platform</h2>
 
     <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 0 · Done</div>
+        <div class="tl-title">Product Definition</div>
+        <p>KPI priority locked, personas defined, source-agnostic architecture planned.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-green">KPI set locked</span>
+          <span class="badge badge-green">Personas defined</span>
+        </div>
+      </div>
+
       <div class="tl-item">
         <div class="tl-dot done"></div>
         <div class="tl-label" style="color:#22c55e">Phase 1 · Done</div>
@@ -1044,15 +1260,56 @@ class IntentParser {
       </div>
 
       <div class="tl-item">
-        <div class="tl-dot active"></div>
-        <div class="tl-label" style="color:#3b82d4">Phase 2 · In Progress · Aug–Sep 2026</div>
-        <div class="tl-title">Platform Foundations + GTM Agent</div>
-        <p>Introduce <code>DataConnector</code> interface and <code>ExcelConnector</code> (refactor server.js data loading). Wire LLM behind <code>NarratorService</code> with <code>TemplateNarrator</code> fallback. GTM Agent with $M impact. KPI correlation engine. Auto-ingestion. Golden eval test set.</p>
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 1.5 · Done</div>
+        <div class="tl-title">Knowledge Layer</div>
+        <p>Forecasting KB, ISC sales stage objectives, FLM judgment logic, domain knowledge base wired into chat.</p>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-          <span class="badge badge-blue">DataConnector abstraction</span>
-          <span class="badge badge-blue">NarratorService + fallback</span>
-          <span class="badge badge-blue">GtmAgent</span>
-          <span class="badge badge-blue">Eval harness</span>
+          <span class="badge badge-green">ISC Forecasting KB</span>
+          <span class="badge badge-green">Sales stage NLU</span>
+          <span class="badge badge-green">FLM judgment logic</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 1.6 · Done</div>
+        <div class="tl-title">Observability</div>
+        <p>Per-run trace log, confidence badge in UI, collapsible trace panel, agent-runs.jsonl persistence.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-green">RunTrace log</span>
+          <span class="badge badge-green">Confidence badge</span>
+          <span class="badge badge-green">Trace panel</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 2a · Done</div>
+        <div class="tl-title">Enterprise Readiness</div>
+        <p>KPI Targets + RAG status (<code>/api/kpi/targets</code>), GTM recommendations with $M impact + confidence, KPI Correlation Engine (5 cross-KPI patterns), persistent session memory (<code>chat-sessions.json</code> + <code>memory-log.jsonl</code>), Data Freshness Gate, golden eval harness (<code>POST /api/eval</code>).</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-green">KPI Targets + RAG</span>
+          <span class="badge badge-green">GTM $M impact</span>
+          <span class="badge badge-green">Correlation engine</span>
+          <span class="badge badge-green">Session persistence</span>
+          <span class="badge badge-green">Freshness gate</span>
+          <span class="badge badge-green">Eval harness</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label" style="color:#22c55e">Phase 2b · Done</div>
+        <div class="tl-title">Platform Abstractions</div>
+        <p><code>ExcelConnector</code> implementing <code>DataConnector</code> interface (<code>connectors/ExcelConnector.js</code>), <code>NarratorService</code> + <code>TemplateNarrator</code> + <code>LlmNarrator</code> stub (<code>narrator/index.js</code>), <code>InsightEngine.analyse()</code> class (<code>insight/InsightEngine.js</code>), RAG badges wired into KPI tiles, staleness warning banner, eval suite expanded to 30 cases, <code>npm test</code> CI gate.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <span class="badge badge-green">ExcelConnector (Layer 1)</span>
+          <span class="badge badge-green">InsightEngine (Layer 3)</span>
+          <span class="badge badge-green">NarratorService (Layer 4)</span>
+          <span class="badge badge-green">RAG badges in UI</span>
+          <span class="badge badge-green">Staleness banner</span>
+          <span class="badge badge-green">30 golden cases</span>
         </div>
       </div>
 
@@ -1086,7 +1343,7 @@ class IntentParser {
 
   <!-- ═══ STATS ═══ -->
   <div class="section">
-    <div class="section-label">09 · Platform Metrics</div>
+    <div class="section-label">10 · Platform Metrics</div>
     <h2>Target Platform Performance</h2>
     <div class="stats">
       <div class="stat"><div class="stat-val">&lt;200ms</div><div class="stat-lbl">P95 KPI API response (cache hit)</div></div>

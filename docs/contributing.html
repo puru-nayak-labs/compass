@@ -680,14 +680,14 @@ Container.bind(NarratorService).to(Gpt4Narrator);
 
     <ul class="checklist">
       <li class="done">New connector/agent/rule implements its interface — not a concrete dependency</li>
-      <li class="done">New connector passes <code>ConnectorContractTest</code> (12 standard assertions)</li>
-      <li class="done">New insight rule is a pure function with unit tests — no infrastructure mocks needed</li>
+      <li class="done">New connector passes <code>ConnectorContractTest</code> (12 standard assertions) — <code>ExcelConnector</code> (Layer 1) ships in <code>connectors/ExcelConnector.js</code> with <code>load()</code> + <code>status()</code> methods and integrity checksum</li>
+      <li class="done">New insight rule is a pure function with unit tests — no infrastructure mocks needed — <code>InsightEngine.analyse()</code> in <code>insight/InsightEngine.js</code> is pure: same KpiSnapshot → same InsightBundle every call</li>
       <li class="done">New KpiDefinition has at least one threshold rule and one insight rule</li>
       <li class="done">New domain config has a dimension map covering geo, quarter, offeringArea</li>
-      <li>New agent emits <code>RunTrace</code> on every execution (success and failure)</li>
-      <li>New endpoint added to the golden eval test set (<code>evals/golden.json</code>)</li>
-      <li>Eval pass rate ≥95% after changes (run <code>npm run eval</code>)</li>
-      <li>No new imports from a higher layer into the modified layer</li>
+      <li class="done">New agent emits <code>RunTrace</code> on every execution (success and failure) — <code>logAgentRun()</code> called on every <code>POST /api/chat</code> response; GTM recommendations logged to <code>memory-log.jsonl</code></li>
+      <li class="done">New endpoint added to the golden eval test set (<code>evals/golden.json</code>) — <strong>30 golden cases</strong> covering pipeline, signings, revenue, win rate, forecast, ISC KB, geo comparison, session carry-forward, data freshness, and all major intents</li>
+      <li class="done">Eval pass rate ≥95% after changes — run <code>npm test</code> (aliases <code>npm run eval</code>) or <code>POST /api/eval</code> directly. Script exits non-zero if pass rate falls below 95% threshold. <code>NarratorService</code> interface in <code>narrator/index.js</code> — <code>narrator.narrate()</code> is called in <code>/api/exec-summary</code>; exposes <code>narratorSource</code> + <code>narratorFallback</code> for observability</li>
+      <li class="done">No new imports from a higher layer into the modified layer — all Phase 2b abstractions flow strictly downward: <code>ExcelConnector</code> (L1) → <code>InsightEngine</code> (L3) → <code>NarratorService</code> (L4). No upward dependencies.</li>
       <li>PR description includes: layer modified, interface implemented, zero-touch guarantee confirmed</li>
     </ul>
   </div>

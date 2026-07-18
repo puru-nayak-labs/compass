@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"No tests yet — see docs/contributing.html for the eval harness roadmap\" && exit 0"
+    "eval":  "node -e \"fetch('http://localhost:3000/api/eval',{method:'POST'}).then(r=>r.json()).then(d=>{console.log(JSON.stringify(d.summary,null,2));if(!d.summary.aboveThreshold){console.error('EVAL FAILED: pass rate',d.summary.passRate+'% <',d.summary.threshold+'% threshold');process.exit(1);}})\"",
+    "test":  "npm run eval"
   },
   "keywords": [
     "ai",

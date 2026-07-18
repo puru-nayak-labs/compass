@@ -597,49 +597,77 @@ footer { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 32px;
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Component</th><th>MVP (Today)</th><th>Phase 2 (Aug–Sep)</th><th>Phase 3 (Q4 2026)</th></tr>
+        <tr><th>Component</th><th>MVP (Today)</th><th>Phase 2a ✅ Done</th><th>Phase 2b ✅ Done</th><th>Phase 3</th></tr>
       </thead>
       <tbody>
         <tr>
+          <td><strong>KPI Targets &amp; RAG</strong></td>
+          <td>Hard-coded spot references in chat handler only</td>
+          <td><code>/api/kpi/targets</code> — declarative <code>KPI_TARGETS</code> map · RAG status per OA · actuals vs plan</td>
+          <td>RAG badges wired into all 4 KPI tiles in UI (Green/Amber/Red dots with tooltip) · refreshes on filter change</td>
+          <td>Operator UI to update targets per quarter · target history tracking</td>
+        </tr>
+        <tr>
+          <td><strong>GTM Recommendations</strong></td>
+          <td>Text-only action strings, no $ estimate, no confidence score</td>
+          <td>Full <code>Recommendation</code> shape: <code>expectedImpactM</code> · <code>confidence</code> · unique <code>id</code> · logged to <code>memory-log.jsonl</code></td>
+          <td><code>InsightEngine.analyse()</code> class in <code>insight/InsightEngine.js</code> — Layer 3 abstraction with typed <code>InsightBundle</code> emitted by every analysis path</td>
+          <td><code>GtmAgent</code> with LLM-refined language · outcome-weighted confidence via <code>MemoryAgent</code></td>
+        </tr>
+        <tr>
+          <td><strong>KPI Correlation</strong></td>
+          <td>Each KPI analysed independently — no cross-KPI signal detection</td>
+          <td><code>/api/kpi/correlation</code> — detects 5 cross-KPI patterns: Signings↑Revenue↓, Pipeline↑WR↓, etc.</td>
+          <td>Correlation signals surfaced in Portfolio Signals panel · InsightEngine merges novel signals from correlation patterns</td>
+          <td><code>CorrelationEngine</code> class · domain-configurable patterns · anomaly scoring</td>
+        </tr>
+        <tr>
+          <td><strong>Session Memory</strong></td>
+          <td><code>chatSessions{}</code> in-process object — lost on restart</td>
+          <td><code>chat-sessions.json</code> sidecar — context survives restarts · <code>memory-log.jsonl</code> insight→action→outcome schema</td>
+          <td>Memory log exposed via <code>GET /api/memory</code> · outcome recording via <code>POST /api/memory/outcome</code></td>
+          <td><code>MemoryAgent</code> · insight→action→outcome schema · vector store</td>
+        </tr>
+        <tr>
+          <td><strong>Data Freshness</strong></td>
+          <td>Dates shown in header bar; <code>revIsIncomplete()</code> only in revenue chat handler</td>
+          <td><code>/api/data-info</code> returns <code>pipelineStale</code>, <code>revenueStale</code>, <code>stalenessWarning</code>, age in days</td>
+          <td>Sticky amber staleness banner shown in UI when data age exceeds threshold · dismissable · connector health exposed via <code>connectors</code> field</td>
+          <td>Auto-refresh trigger on Box upload · webhook ingest</td>
+        </tr>
+        <tr>
+          <td><strong>Eval Harness</strong></td>
+          <td>No test coverage — changes made blindly</td>
+          <td><code>POST /api/eval</code> · <code>evals/golden.json</code> (18 cases) · <code>evals/failures.jsonl</code> · pass/fail report</td>
+          <td>Golden set expanded to <strong>30 cases</strong> · <code>npm run eval</code> script in <code>package.json</code> · <code>npm test</code> aliases eval · exits non-zero on threshold failure</td>
+          <td>50+ golden cases covering all intents · pre-commit hook · CI gate</td>
+        </tr>
+        <tr>
           <td><strong>Data Ingestion</strong></td>
-          <td>Direct fs.readFileSync JSON dump in server.js startup</td>
-          <td><code>ExcelConnector</code> implementing <code>DataConnector</code> interface · Box-triggered refresh</td>
-          <td><code>WatsonxDataConnector</code> for large-scale; all sources via registry</td>
-        </tr>
-        <tr>
-          <td><strong>KPI Computation</strong></td>
-          <td>filter() + sumBy() functions inline in route handlers</td>
-          <td>Extracted to <code>AggregationEngine</code> class · KpiCache added</td>
-          <td>Full <code>SchemaRegistry</code> + <code>KpiDefinition</code> — schema-driven</td>
-        </tr>
-        <tr>
-          <td><strong>Insight Generation</strong></td>
-          <td>Rule strings embedded in /api/pm-report response handler</td>
-          <td>Extracted to <code>InsightEngine</code> class · typed <code>InsightBundle</code></td>
-          <td>Domain-configurable rule sets via <code>DomainConfig.insightRules</code></td>
+          <td>Direct <code>fs.readFileSync</code> JSON dump in server.js startup</td>
+          <td>ExcelConnector spec documented in architecture</td>
+          <td><code>ExcelConnector</code> implementing <code>DataConnector</code> interface in <code>connectors/ExcelConnector.js</code> · <code>pipeConnector.load()</code> replaces all raw <code>fs.readFileSync</code> calls · <code>connector.status()</code> health method</td>
+          <td><code>Db2Connector</code> · <code>SnowflakeConnector</code> · <code>WatsonxDataConnector</code></td>
         </tr>
         <tr>
           <td><strong>Narrative (LLM)</strong></td>
           <td>Template string concatenation in exec-summary endpoint</td>
-          <td><code>LlmNarrator</code> + <code>TemplateNarrator</code> fallback behind <code>NarratorService</code></td>
-          <td>OutputValidator · per-persona prompts · MBR/QBR auto-gen</td>
+          <td>NarratorService spec documented in architecture</td>
+          <td><code>TemplateNarrator</code> + <code>LlmNarrator</code> stub behind <code>NarratorService</code> interface in <code>narrator/index.js</code> · <code>getNarrator()</code> factory · <code>/api/exec-summary</code> wired through <code>narrator.narrate()</code> · exposes <code>narratorSource</code> + <code>narratorFallback</code> fields</td>
+          <td>Granite LLM integration via <code>IBM_WATSONX_API_KEY</code> · OutputValidator · per-persona prompts</td>
         </tr>
         <tr>
           <td><strong>Chat Agent</strong></td>
-          <td>Single 600-line if/else intent dispatch in /api/chat</td>
+          <td>Single if/else intent dispatch in /api/chat</td>
           <td>Extracted <code>IntentParser</code> class · session context object</td>
+          <td>Session carry-forward tested in eval harness · 30 golden cases cover all intent categories</td>
           <td>Agent Orchestrator routing · 5 specialized agents</td>
-        </tr>
-        <tr>
-          <td><strong>Memory</strong></td>
-          <td>In-process chatSessions{} object (lost on restart)</td>
-          <td>Persistent session store (Redis / DB2)</td>
-          <td><code>MemoryAgent</code> · insight→action→outcome schema · vector store</td>
         </tr>
         <tr>
           <td><strong>Observability</strong></td>
           <td>agent-runs.jsonl append · confidence badge · trace panel</td>
-          <td>Structured <code>RunTrace</code> object on every response · token cost tracking</td>
+          <td>Structured <code>RunTrace</code> object on every response · <code>engineId</code> exposed in insights response</td>
+          <td>InsightEngine <code>id</code> propagated in API responses for layer traceability · connector checksum in data-info</td>
           <td>Admin dashboard · North Star metric tracking · ROI dashboard</td>
         </tr>
       </tbody>
