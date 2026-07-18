@@ -43,7 +43,7 @@ Today's KPI reporting workflow is entirely manual:
 
 | Capability | What It Delivers |
 |---|---|
-| **Auto-ingest** | Drop an updated `.xlsx` → all KPIs refresh automatically |
+| **Source-Agnostic Ingest** | Connect any source — Excel, DB2, Oracle, Snowflake, REST API, Data Lake, Salesforce, EPM |
 | **KPI Intelligence** | Revenue · Signings · Pipeline · Win/Loss — worldwide and by Geo, Market, Offering, Quarter |
 | **Conversational Analytics** | Ask anything in plain English |
 | **Agentic Insights** | Root-cause analysis, trend detection, anomaly surfacing — in executive language |
@@ -60,52 +60,91 @@ Today's KPI reporting workflow is entirely manual:
 ### High-Level View
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│   SPREADSHEET DATA            INTEL LAYER          INSIGHTS & UI    │
-│                                                                      │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐  │
-│  │  Performance    │    │  Compass        │    │  PM Report      │  │
-│  │  Data.xlsx      │───▶│  KPI Engine +   │───▶│  Exec Summary   │  │
-│  │                 │    │  Insight Agent  │    │  Chat Agent     │  │
-│  │  • Pipeline     │    │                 │    │  Right Panel    │  │
-│  │  • Revenue      │    │  (server.js)    │    │  Highlights     │  │
-│  └─────────────────┘    └─────────────────┘    └─────────────────┘  │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │  DATA SOURCES (any)         CONNECTOR LAYER         NORMALIZED OUTPUT       │
+  │                                                                             │
+  │  Excel / CSV ──────────▶  ExcelConnector    ──┐                            │
+  │  DB2         ──────────▶  Db2Connector      ──┤                            │
+  │  Oracle      ──────────▶  OracleConnector   ──┼──▶  DataSet {}             │
+  │  Snowflake   ──────────▶  SnowflakeConnector──┤     (typed, checksummed,   │
+  │  REST API    ──────────▶  RestApiConnector  ──┤      source-agnostic)      │
+  │  Data Lake   ──────────▶  DataLakeConnector ──┤                            │
+  │  Salesforce  ──────────▶  SalesforceConnector┤                            │
+  │  EPM         ──────────▶  EpmConnector      ──┘                            │
+  └──────────────────────────────────┬──────────────────────────────────────────┘
+                                     │ same DataSet regardless of source
+                                     ▼
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │  KPI ENGINE                   INTELLIGENCE               PRESENTATION       │
+  │                                                                             │
+  │  ┌───────────────┐    ┌───────────────────┐    ┌──────────────────────┐   │
+  │  │  KPI Engine   │    │  Insight Agent    │    │  PM Report           │   │
+  │  │  filter()     │───▶│  Trends · Risks   │───▶│  Exec Summary        │   │
+  │  │  aggregate()  │    │  Anomalies · GTM  │    │  Chat Agent          │   │
+  │  │  delta()      │    │  Recommendations  │    │  Right Panel         │   │
+  │  └───────────────┘    └───────────────────┘    └──────────────────────┘   │
+  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Detailed End-to-End Flow
 
 ```
-  INPUT LAYER
-  ├── Performance Data.xlsx
-  │   ├── Sheet: Pipeline   (opportunity-level rows)
-  │   └── Sheet: Revenue    (monthly actuals)
-  │
-  │   ↓  read_xlsx → JSON dump
-  │
-  PROCESSING LAYER
-  ├── data/Pipeline.json   (normalised rows + headers)
-  └── data/Revenue.json
-      ↓  loaded at server startup → records[] + revRecords[]
-  │
-  KPI ENGINE  (server.js)
-  ├── filter(opts)      — pipeline slices (geo/market/qtr/offering/…)
-  ├── filterRev(opts)   — revenue slices (same dimensions)
-  ├── ~30 REST API endpoints
-  │   ├── /api/kpi/*         KPI summary, by-geo, by-quarter, tabular
-  │   ├── /api/revenue/*     Revenue actuals, by-geo, trend
-  │   ├── /api/pm-report     Full 9-section PM analysis
-  │   ├── /api/insights      Trend · Risk · Anomaly bullets
-  │   ├── /api/exec-summary  AI executive narrative
-  │   ├── /api/chat          Session-aware conversational agent
-  │   └── /api/feedback      Thumbs up/down feedback log
-  │
-  PRESENTATION LAYER  (public/index.html — Vanilla JS SPA)
-  ├── Analyst View       — KPI tiles · charts · tabular drill-down
-  ├── Product Manager    — 9-tab PM report · Revenue chart · Geo intel
-  └── Portfolio Leader   — Offering Area intel · Geo intel · Roadmap
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 0 — SOURCE  (any structured data source)                         ║
+  ║                                                                          ║
+  ║  Excel/CSV · DB2 · Oracle · Snowflake · REST API · Data Lake            ║
+  ║  Salesforce/CRM · EPM · SAP · SharePoint/Box                            ║
+  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
+                                  │ DataConnector.fetch() → DataSet
+                                  ▼
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 1 — CONNECTOR  (one interface, N implementations)                ║
+  ║                                                                          ║
+  ║  ExcelConnector  │ Db2Connector   │ OracleConnector │ SnowflakeConnector ║
+  ║  RestApiConnector│ DataLakeConnector│ SalesforceConnector│ EpmConnector  ║
+  ║                                                                          ║
+  ║  All emit: DataSet { rows, schema, checksum, fetchedAt }                ║
+  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
+                                  │ normalized, typed, checksummed
+                                  ▼
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 2 — KPI ENGINE  (deterministic · schema-driven)                  ║
+  ║                                                                          ║
+  ║  filter(opts)        — slice by geo / market / quarter / offering        ║
+  ║  aggregate()         — sum, count, ratio, weighted average               ║
+  ║  delta()             — QoQ / YoY / MoM comparisons                      ║
+  ║  AccuracyCheckpoint  — cross-validates all totals before serving         ║
+  ║                                                                          ║
+  ║  REST endpoints (~30):                                                   ║
+  ║  /api/kpi/*  /api/revenue/*  /api/pm-report  /api/insights              ║
+  ║  /api/exec-summary  /api/chat  /api/feedback  /api/pm-meta              ║
+  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
+                                  │ KpiSnapshot
+                                  ▼
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 3 — INTELLIGENCE  (deterministic · rule-based · no LLM)          ║
+  ║                                                                          ║
+  ║  TrendAnalyser · AnomalyDetector · RiskScorer · GtmRecommender          ║
+  ║  Output: InsightBundle { highlights, risks, anomalies, recommendations } ║
+  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
+                                  │ InsightBundle
+                                  ▼
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 4 — NARRATOR  (LLM as narrator only — never as calculator)       ║
+  ║                                                                          ║
+  ║  LlmNarrator (temp=0, JSON mode) → OutputValidator → NarrativeResult    ║
+  ║  TemplateNarrator (deterministic fallback — always available)            ║
+  ╚═══════════════════════════════╤════════════════════════════════════════ ═╝
+                                  │ NarrativeResult
+                                  ▼
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  LAYER 5 — PRESENTATION  (public/index.html — Vanilla JS SPA)           ║
+  ║                                                                          ║
+  ║  Analyst View        — KPI tiles · charts · tabular drill-down           ║
+  ║  Product Manager     — 9-tab PM report · Revenue chart · Geo intel       ║
+  ║  Portfolio Leader    — Offering Area intel · Geo intel · Roadmap         ║
+  ║  Chat Panel          — plain-English queries → structured KPI answers    ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
 ```
 
 ---
@@ -190,22 +229,42 @@ npm install
 
 ### Step 2 — Add Data Files
 
-The server reads two pre-processed JSON files. Because source data files are not
-committed to git, you need to generate them from your own spreadsheet.
+The server reads two pre-processed JSON files at startup. The platform is
+**source-agnostic** — you can produce these JSON files from any of the supported sources below.
 
-1. Place your `Performance Data.xlsx` in the project root (two sheets: Pipeline + Revenue).
-2. Use the `read_xlsx` tool (or any xlsx-to-JSON converter) with `dump:true` to produce:
-   ```
-   data/
-   ├── Pipeline.json
-   └── Revenue.json
-   ```
-3. Update the `DATA_DUMP_DIR` constant in `server.js` (line ~27) to point at your `data/` folder,
-   or set the `DATA_DIR` environment variable at runtime:
-   ```powershell
-   $env:DATA_DIR = "data"
-   node server.js
-   ```
+#### Supported Data Sources
+
+| Source | How to produce `data/*.json` |
+|---|---|
+| **Excel / CSV** *(current MVP)* | Use any xlsx-to-JSON converter. Place output at `data/Pipeline.json` + `data/Revenue.json` |
+| **DB2** | `SELECT * FROM pipeline_table` → write rows to JSON via `ibm_db` or `db2` npm package |
+| **Oracle** | `SELECT * FROM pipeline_view` → write rows to JSON via `oracledb` npm package |
+| **Snowflake** | COPY INTO `@stage/pipeline.json` or query via `snowflake-sdk` and write JSON |
+| **REST API** | `fetch('/api/opportunities')` → normalize and write to `data/Pipeline.json` |
+| **Data Lake** | Presto/Spark SQL query → export as JSON via your lake's REST API |
+| **Salesforce / CRM** | SOQL query via `jsforce` → map fields → write to `data/Pipeline.json` |
+| **EPM** | Export via EPM REST API → write to `data/Revenue.json` |
+
+All sources must produce JSON in this shape:
+```json
+{
+  "headers": ["Geo", "Quarter", "Oppty Value", "..."],
+  "rows": [
+    ["Americas", "2Q26", 1.5, "..."],
+    ...
+  ]
+}
+```
+
+Then point the server at your `data/` folder:
+```powershell
+$env:DATA_DIR = "data"
+node server.js
+```
+
+> See [`docs/contributing.html`](docs/contributing.html) for the full `DataConnector`
+> interface — implement it once per source type and the entire platform above
+> Layer 1 is automatically source-agnostic.
 
 ### Step 3 — Run
 
@@ -386,7 +445,7 @@ extensibility, source-agnosticism, and determinism-first AI.
 |---|---|
 | **API Server** | Node.js 20 / Express 5 |
 | **Frontend** | Vanilla JS SPA · Chart.js · Carbon-inspired CSS |
-| **Data Ingest** | XLSX → JSON pre-processing |
+| **Data Ingest** | Source-agnostic `DataConnector` interface — Excel, DB2, Oracle, Snowflake, REST, Data Lake, Salesforce, EPM |
 | **KPI Engine** | In-memory filter + aggregation (pure functions) |
 | **Chat Agent** | Session-aware intent parsing + structured KPI dispatch |
 | **Observability** | Per-run trace · confidence badge · agent-runs log |
