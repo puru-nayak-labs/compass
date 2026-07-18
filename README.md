@@ -7,6 +7,14 @@
 
 🔗 **Repo:** https://github.com/puru-nayak-labs/compass
 
+### 📄 Live Docs
+
+| | Link |
+|---|---|
+| **Platform Design Doc** | https://puru-nayak-labs.github.io/compass/ |
+| **Architecture Diagram** | https://puru-nayak-labs.github.io/compass/architecture.html |
+| **Extension Guide** | https://puru-nayak-labs.github.io/compass/contributing.html |
+
 ---
 
 ## Table of Contents
